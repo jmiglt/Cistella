@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cesta de la Compra Inteligente</title>
+  <!-- Tailwind CSS CDN para renderizado inmediato sin configuración -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Estilos táctiles para móvil y lista compacta */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .line-through-gray {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+    /* Animación del modal de edición */
+    .bottom-sheet {
+      transition: transform 0.25s ease-out;
+    }
+    .bottom-sheet.closed {
+      transform: translateY(100%);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col h-screen overflow-hidden font-sans">
+
+  <!-- CABECERA PRINCIPAL -->
+  <header class="bg-emerald-700 text-white shadow-md z-10 flex flex-col">
+    <div class="flex items-center justify-between px-4 py-3">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-basket-shopping text-xl"></i>
+        <h1 class="text-lg font-bold tracking-tight">Mi Cesta</h1>
+      </div>
+      <div class="flex items-center space-x-3 text-sm">
+        <span id="sync-badge" class="flex items-center text-xs bg-emerald-800 px-2.5 py-1 rounded-full text-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span> Sincronizado
+        </span>
+      </div>
+    </div>
+
+    <!-- SELECTOR DE TIENDAS (TABS HORIZONTALES CON SCROLL) -->
+    <div id="store-tabs" class="flex space-x-2 px-3 pb-2.5 overflow-x-auto text-xs whitespace-nowrap scrollbar-none">
+      <!-- Se inyecta dinámicamente con JS -->
+    </div>
+  </header>
+
+  <!-- CONTENIDO: LISTA COMPACTA -->
+  <main class="flex-1 overflow-y-auto px-2 py-2 space-y-3 pb-24">
+    
+    <!-- ARTÍCULOS PENDIENTES -->
+    <section>
+      <div class="flex justify-between items-center px-2 py-1 text-xs font-bold text-gray-500 uppercase tracking-wider">
+        <span id="pending-counter">Pendientes (0)</span>
+        <button onclick="toggleGrouping()" id="group-btn" class="text-emerald-700 hover:underline flex items-center gap-1">
+          <i class="fa-solid fa-layer-group"></i> <span id="group-mode-text">Agrupar: Categoría</span>
+        </button>
+      </div>
+
+      <div id="pending-list" class="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-100">
+        <!-- Render dinámico -->
+      </div>
+    </section>
+
+    <!-- ARTÍCULOS COMPRADOS / TACHADOS AL FONDO -->
+    <section id="completed-section" class="pt-2">
+      <div class="flex justify-between items-center px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider">
+        <span id="completed-counter">Comprados / Tachados (0)</span>
+        <button onclick="clearCompleted()" class="text-xs text-rose-500 hover:underline">Limpiar</button>
+      </div>
+      <div id="completed-list" class="bg-gray-50 rounded-lg border border-dashed border-gray-300 divide-y divide-gray-200 opacity-90">
+        <!-- Render dinámico -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BARRA DE ENTRADA RÁPIDA / BOTÓN DE VOZ -->
+  <footer class="bg-white border-t border-gray-200 px-3 py-2.5 fixed bottom-0 left-0 right-0 z-20 flex items-center gap-2 shadow-lg">
+    <div class="relative flex-1">
+      <input type="text" id="quick-input" placeholder="Añadir producto... (ej: Leche entera)" 
+             class="w-full pl-3 pr-9 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
+             onkeydown="if(event.key === 'Enter') handleQuickAdd()">
+      <button onclick="handleQuickAdd()" class="absolute right-2 top-2 text-gray-400 hover:text-emerald-600">
+        <i class="fa-solid fa-plus text-base"></i>
+      </button>
+    </div>
+
+    <!-- BOTÓN DE MICRÓFONO CON RECONOCIMIENTO DE VOZ INTEGRADO -->
+    <button id="voice-btn" onclick="startVoiceRecognition()" title="Pulsar para hablar" 
+            class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg p-2.5 w-11 h-11 flex items-center justify-center transition shadow">
+      <i id="voice-icon" class="fa-solid fa-microphone text-lg"></i>
+    </button>
+  </footer>
+
+  <!-- MODAL / BOTTOM SHEET DE EDICIÓN DEL PRODUCTO -->
+  <div id="modal-backdrop" class="fixed inset-0 bg-black/40 z-30 hidden" onclick="closeEditModal()"></div>
+  
+  <div id="edit-modal" class="bottom-sheet closed fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-40 max-h-[88vh] overflow-y-auto flex flex-col shadow-2xl">
+    <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-2.5"></div>
+    
+    <div class="px-5 py-2 flex items-center justify-between border-b border-gray-100">
+      <h3 class="text-base font-bold text-gray-800">Ficha del Producto</h3>
+      <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-1">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <form id="edit-form" class="p-5 space-y-4" onsubmit="event.preventDefault(); saveProductEdit();">
+      <input type="hidden" id="edit-id">
+
+      <!-- FOTO DEL PRODUCTO -->
+      <div class="flex items-center space-x-4">
+        <div class="relative w-20 h-20 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+          <img id="edit-image-preview" src="" alt="" class="w-full h-full object-cover hidden">
+          <div id="edit-image-placeholder" class="text-3xl text-gray-400">
+            <i class="fa-solid fa-image"></i>
+          </div>
+        </div>
+        <div class="flex-1 space-y-1.5">
+          <label class="block text-xs font-semibold text-gray-600">Imagen / Foto</label>
+          <div class="flex gap-2">
+            <button type="button" onclick="setPhotoViaCameraPrompt()" class="text-xs bg-gray-100 border border-gray-300 px-2.5 py-1.5 rounded hover:bg-gray-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-camera"></i> Foto
+            </button>
+            <button type="button" onclick="setPhotoViaWebSearch()" class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-300 px-2.5 py-1.5 rounded hover:bg-emerald-100 flex items-center gap-1.5">
+              <i class="fa-solid fa-magnifying-glass"></i> Buscar web
+            </button>
+            <button type="button" onclick="removePhoto()" class="text-xs text-rose-600 border border-rose-200 px-2 py-1.5 rounded hover:bg-rose-50">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+          <input type="text" id="edit-photo-url" placeholder="O pega enlace URL..." class="w-full text-xs border border-gray-200 rounded px-2 py-1 mt-1">
+        </div>
+      </div>
+
+      <!-- NOMBRE Y CANTIDAD -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre</label>
+        <input type="text" id="edit-name" required class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Cantidad / Unidad</label>
+          <div class="flex items-center">
+            <button type="button" onclick="adjustQty(-1)" class="w-8 h-9 bg-gray-100 border border-gray-300 rounded-l-lg font-bold text-gray-600">-</button>
+            <input type="text" id="edit-qty" class="w-12 h-9 border-y border-gray-300 text-center text-sm font-semibold focus:outline-none" value="1">
+            <button type="button" onclick="adjustQty(1)" class="w-8 h-9 bg-gray-100 border border-gray-300 rounded-r-lg font-bold text-gray-600">+</button>
+            <input type="text" id="edit-unit" placeholder="ud" class="ml-2 w-16 h-9 border border-gray-300 rounded-lg text-xs text-center">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Precio estimado (€)</label>
+          <div class="relative">
+            <input type="number" step="0.01" id="edit-price" placeholder="0.00" class="w-full text-sm border border-gray-300 rounded-lg pl-3 pr-7 py-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none">
+            <span class="absolute right-3 top-2 text-xs font-bold text-gray-400">€</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIENDA Y CATEGORÍA (BASADO EN TU EXPORTACIÓN DE OURGROCERIES) -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Tienda asignada</label>
+          <select id="edit-store" class="w-full text-xs border border-gray-300 rounded-lg px-2 py-2 bg-white focus:outline-none">
+            <!-- Rellenado por script -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Categoría</label>
+          <select id="edit-category" class="w-full text-xs border border-gray-300 rounded-lg px-2 py-2 bg-white focus:outline-none">
+            <!-- Rellenado por script con categorías limpias sin numeración -->
+          </select>
+        </div>
+      </div>
+
+      <!-- NOTAS -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Notas / Marca específica</label>
+        <textarea id="edit-note" rows="2" placeholder="Ej: Mirar fecha de caducidad, botella de 1.5L..." class="w-full text-xs border border-gray-300 rounded-lg p-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none"></textarea>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN -->
+      <div class="pt-3 flex gap-3">
+        <button type="button" onclick="deleteCurrentProduct()" class="flex-1 py-2.5 border border-rose-300 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-trash"></i> Eliminar
+        </button>
+        <button type="submit" class="flex-[2] py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-check"></i> Guardar cambios
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- LÓGICA JAVASCRIPT -->
+  <script>
+    // 1. MAESTRO DE TIENDAS HABITUALES
+    const STORES = [
+      { id: "all", name: "Todas" },
+      { id: "mercadona", name: "Mercadona", online: true },
+      { id: "caprabo", name: "Caprabo", online: true },
+      { id: "bonpreu", name: "Bonpreu", online: true },
+      { id: "carrefour", name: "Carrefour", online: true },
+      { id: "dia", name: "Dia", online: true },
+      { id: "lidl", name: "Lidl", online: false },
+      { id: "alcampo", name: "Alcampo", online: true },
+      { id: "ametller", name: "Casa Ametller", online: false },
+      { id: "spar", name: "Spar", online: false },
+      { id: "clarel", name: "Clarel", online: false },
+      { id: "makro", name: "Makro", online: false },
+      { id: "decathlon", name: "Decathlon", online: true },
+      { id: "farmacia", name: "Farmacia", online: false },
+      { id: "ferreteria", name: "Ferretería", online: false },
+      { id: "garden", name: "Garden", online: false },
+      { id: "bazar", name: "Bazar Chino", online: false },
+      { id: "bruno", name: "Bruno", online: false }
+    ];
+
+    // 2. CATEGORÍAS NORMALIZADAS (LIMPIAS DE PREFIJOS DE PASILLO)
+    const CATEGORIES = [
+      "Hogar", "Perfumería", "Limpieza", "Bebidas", "Pescadería", 
+      "Fruta y Verdura", "Cocina", "Congelados", "Frutos Secos", 
+      "Aperitivos", "Carnicería", "Especias", "Embutidos", "Salsas", 
+      "Aceite y Vinagre", "Pasta y Legumbres", "Harinas y Repostería", 
+      "Lácteos", "Quesos", "Desayuno", "Panadería", "Electricidad", 
+      "Medicamentos", "Suplementos", "General"
+    ];
+
+    // 3. PRODUCTOS INICIALES BASADOS EN TU JSON DE OURGROCERIES
+    let currentStoreFilter = "all";
+    let groupByCategories = true;
+
+    let items = [
+      {
+        id: "p1",
+        name: "vino cocina blanco",
+        store: "mercadona",
+        category: "Bebidas",
+        qty: "1",
+        unit: "botella",
+        price: 1.45,
+        note: "",
+        photo: "",
+        crossed_off: false
+      },
+      {
+        id: "p2",
+        name: "nueces de brasil",
+        store: "mercadona",
+        category: "Frutos Secos",
+        qty: "1",
+        unit: "paq",
+        price: 2.80,
+        note: "",
+        photo: "",
+        crossed_off: false
+      },
+      {
+        id: "p3",
+        name: "laurel",
+        store: "mercadona",
+        category: "Especias",
+        qty: "1",
+        unit: "bote",
+        price: 0.95,
+        note: "",
+        photo: "",
+        crossed_off: false
+      },
+      {
+        id: "p4",
+        name: "Acondicionador GLISS",
+        store: "clarel",
+        category: "Perfumería",
+        qty: "1",
+        unit: "ud",
+        price: 3.25,
+        note: "Schwarzkopf",
+        photo: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=100&auto=format&fit=crop&q=60",
+        crossed_off: false
+      },
+      {
+        id: "p5",
+        name: "tornillos rosca chapa 3.5",
+        store: "ferreteria",
+        category: "Hogar",
+        qty: "12",
+        unit: "ud",
+        price: 1.20,
+        note: "Para mesa cocina",
+        photo: "",
+        crossed_off: false
+      },
+      {
+        id: "p6",
+        name: "bacalao ahumado",
+        store: "mercadona",
+        category: "Embutidos",
+        qty: "1",
+        unit: "pack",
+        price: 2.10,
+        note: "",
+        photo: "",
+        crossed_off: true
+      },
+      {
+        id: "p7",
+        name: "Almendra tostada sin sal",
+        store: "mercadona",
+        category: "Frutos Secos",
+        qty: "1",
+        unit: "paq",
+        price: 2.40,
+        note: "",
+        photo: "",
+        crossed_off: true
+      }
+    ];
+
+    // INICIALIZACIÓN
+    window.onload = () => {
+      renderStoreTabs();
+      populateSelectOptions();
+      renderLists();
+    };
+
+    // RENDERIZADO DE TABS DE TIENDA
+    function renderStoreTabs() {
+      const container = document.getElementById("store-tabs");
+      container.innerHTML = STORES.map(store => {
+        const isActive = store.id === currentStoreFilter;
+        return `
+          <button onclick="setStoreFilter('${store.id}')" 
+                  class="px-3 py-1.5 rounded-full font-medium transition ${
+                    isActive 
+                      ? 'bg-white text-emerald-800 shadow font-bold' 
+                      : 'bg-emerald-800 text-emerald-100 hover:bg-emerald-600'
+                  }">
+            ${store.name}
+          </button>
+        `;
+      }).join("");
+    }
+
+    function setStoreFilter(storeId) {
+      currentStoreFilter = storeId;
+      renderStoreTabs();
+      renderLists();
+    }
+
+    function toggleGrouping() {
+      groupByCategories = !groupByCategories;
+      document.getElementById("group-mode-text").innerText = groupByCategories ? "Agrupar: Categoría" : "Sin agrupar";
+      renderLists();
+    }
+
+    // RENDERIZADO DE LAS LISTAS (COMPACTAS)
+    function renderLists() {
+      const pendingContainer = document.getElementById("pending-list");
+      const completedContainer = document.getElementById("completed-list");
+
+      // Filtrar según tienda activa
+      let filtered = items.filter(it => currentStoreFilter === "all" || it.store === currentStoreFilter);
+
+      let pending = filtered.filter(it => !it.crossed_off);
+      let completed = filtered.filter(it => it.crossed_off);
+
+      document.getElementById("pending-counter").innerText = `Pendientes (${pending.length})`;
+      document.getElementById("completed-counter").innerText = `Comprados / Tachados (${completed.length})`;
+
+      // Render Pendientes
+      if (pending.length === 0) {
+        pendingContainer.innerHTML = `<div class="p-4 text-center text-xs text-gray-400">No hay productos pendientes en esta lista.</div>`;
+      } else {
+        pendingContainer.innerHTML = pending.map(item => createItemRowHTML(item, false)).join("");
+      }
+
+      // Render Tachados
+      if (completed.length === 0) {
+        completedContainer.innerHTML = `<div class="p-3 text-center text-xs text-gray-400">Ningún artículo tachado todavía.</div>`;
+      } else {
+        completedContainer.innerHTML = completed.map(item => createItemRowHTML(item, true)).join("");
+      }
+    }
+
+    // GENERAR FILA COMPACTA DE PRODUCTO
+    function createItemRowHTML(item, isCrossed) {
+      const storeObj = STORES.find(s => s.id === item.store);
+      const storeName = storeObj ? storeObj.name : item.store;
+
+      return `
+        <div class="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50 transition group">
+          <!-- ZONA IZQUIERDA: CHECKBOX Y FOTO/ICONO -->
+          <div class="flex items-center space-x-2.5 flex-1 min-w-0 mr-2" onclick="toggleItemCheck('${item.id}')">
+            <input type="checkbox" ${isCrossed ? "checked" : ""} 
+                   class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer pointer-events-none">
+
+            <!-- FOTO MINIATURA (O ICONO) -->
+            <div class="w-8 h-8 rounded bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+              ${item.photo 
+                ? `<img src="${item.photo}" class="w-full h-full object-cover">`
+                : `<i class="fa-solid fa-basket-shopping text-gray-400 text-xs"></i>`
+              }
+            </div>
+
+            <!-- DETALLES COMPACTOS -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-baseline space-x-1.5">
+                <span class="font-medium truncate ${isCrossed ? 'line-through-gray' : 'text-gray-800'}">
+                  ${item.name}
+                </span>
+                ${item.qty && item.qty !== '1' ? `<span class="text-xs font-semibold text-gray-500">x${item.qty} ${item.unit || ''}</span>` : ''}
+              </div>
+              <div class="flex items-center space-x-2 text-[11px] text-gray-400">
+                <span class="truncate text-emerald-700 font-medium">${storeName}</span>
+                <span>•</span>
+                <span class="truncate">${item.category}</span>
+                ${item.note ? `<span>• <i class="fa-regular fa-note-sticky text-amber-600" title="${item.note}"></i></span>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- ZONA DERECHA: PRECIO Y BOTÓN EDITAR -->
+          <div class="flex items-center space-x-2 flex-shrink-0">
+            ${item.price > 0 
+              ? `<span class="text-xs font-semibold ${isCrossed ? 'text-gray-400 line-through' : 'text-gray-700'}">${Number(item.price).toFixed(2)} €</span>` 
+              : ''}
+            <button onclick="openEditModal('${item.id}')" class="text-gray-400 hover:text-emerald-700 p-1.5 rounded-full hover:bg-gray-100">
+              <i class="fa-solid fa-pen text-xs"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ACCIÓN: TACHAR O DESMARCAR
+    function toggleItemCheck(id) {
+      const it = items.find(x => x.id === id);
+      if (it) {
+        it.crossed_off = !it.crossed_off;
+        renderLists();
+      }
+    }
+
+    // ACCIÓN: AÑADIDO RÁPIDO DESDE INPUT
+    function handleQuickAdd() {
+      const input = document.getElementById("quick-input");
+      const val = input.value.trim();
+      if (!val) return;
+
+      const parsed = parseVoiceOrTextCommand(val);
+      items.unshift({
+        id: "p_" + Date.now(),
+        name: parsed.name,
+        store: parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona"),
+        category: parsed.category || "General",
+        qty: "1",
+        unit: "ud",
+        price: 0.0,
+        note: "",
+        photo: "",
+        crossed_off: false
+      });
+
+      input.value = "";
+      renderLists();
+    }
+
+    // MOTOR DE RECONOCIMIENTO DE VOZ NATIVO (WEB SPEECH API)
+    function startVoiceRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const voiceIcon = document.getElementById("voice-icon");
+      const voiceBtn = document.getElementById("voice-btn");
+
+      if (!SpeechRecognition) {
+        alert("El reconocimiento de voz no está soportado en este navegador. Usa Chrome o Safari.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = "es-ES";
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        voiceBtn.classList.replace("bg-emerald-600", "bg-rose-600");
+        voiceIcon.classList.add("animate-pulse");
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        processVoiceSentence(transcript);
+      };
+
+      recognition.onerror = () => {
+        resetVoiceButton();
+      };
+
+      recognition.onend = () => {
+        resetVoiceButton();
+      };
+
+      recognition.start();
+    }
+
+    function resetVoiceButton() {
+      const voiceIcon = document.getElementById("voice-icon");
+      const voiceBtn = document.getElementById("voice-btn");
+      voiceBtn.classList.replace("bg-rose-600", "bg-emerald-600");
+      voiceIcon.classList.remove("animate-pulse");
+    }
+
+    // PARSEO INTELIGENTE: EXTRAE TIENDA Y PRODUCTO
+    function parseVoiceOrTextCommand(sentence) {
+      let clean = sentence.replace(/^(comprar|añadir|traer|apuntar)\s+/i, "").trim();
+      let detectedStore = null;
+
+      // Buscar si nombra alguna tienda de la lista
+      for (let s of STORES) {
+        if (s.id === "all") continue;
+        const regex = new RegExp(`\\b(en|al|del|de la)\\s+${s.name}\\b|\\b${s.name}\\b`, "i");
+        if (regex.test(clean)) {
+          detectedStore = s.id;
+          clean = clean.replace(regex, "").trim();
+          break;
+        }
+      }
+
+      // Auto-categorización semántica rápida
+      let category = "General";
+      const cLower = clean.toLowerCase();
+      if (/leche|queso|yogur|mantequilla|nata/i.test(cLower)) category = "Lácteos";
+      else if (/manzana|platano|lechuga|tomate|patata|cebolla|fruta/i.test(cLower)) category = "Fruta y Verdura";
+      else if (/detergente|fregona|estropajo|lavavajillas|papel cocina/i.test(cLower)) category = "Limpieza";
+      else if (/pollo|ternera|carne|solomillo|hamburguesa/i.test(cLower)) category = "Carnicería";
+      else if (/pescado|merluza|salmon|gambas|calamares/i.test(cLower)) category = "Pescadería";
+      else if (/tornillo|broca|pila|bombilla/i.test(cLower)) category = "Hogar";
+
+      return {
+        name: clean,
+        store: detectedStore,
+        category: category
+      };
+    }
+
+    function processVoiceSentence(sentence) {
+      const parsed = parseVoiceOrTextCommand(sentence);
+      items.unshift({
+        id: "p_" + Date.now(),
+        name: parsed.name,
+        store: parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona"),
+        category: parsed.category,
+        qty: "1",
+        unit: "ud",
+        price: 0.0,
+        note: `Añadido por voz: "${sentence}"`,
+        photo: "",
+        crossed_off: false
+      });
+      renderLists();
+    }
+
+    // EDICIÓN DE PRODUCTO Y CONTROL DE FOTOS
+    function openEditModal(id) {
+      const it = items.find(x => x.id === id);
+      if (!it) return;
+
+      document.getElementById("edit-id").value = it.id;
+      document.getElementById("edit-name").value = it.name;
+      document.getElementById("edit-qty").value = it.qty || "1";
+      document.getElementById("edit-unit").value = it.unit || "ud";
+      document.getElementById("edit-price").value = it.price ? it.price : "";
+      document.getElementById("edit-store").value = it.store;
+      document.getElementById("edit-category").value = it.category;
+      document.getElementById("edit-note").value = it.note || "";
+      document.getElementById("edit-photo-url").value = it.photo || "";
+
+      updatePhotoPreview(it.photo);
+
+      // Mostrar modal
+      document.getElementById("modal-backdrop").classList.remove("hidden");
+      document.getElementById("edit-modal").classList.remove("closed");
+    }
+
+    function closeEditModal() {
+      document.getElementById("modal-backdrop").classList.add("hidden");
+      document.getElementById("edit-modal").classList.add("closed");
+    }
+
+    function updatePhotoPreview(url) {
+      const img = document.getElementById("edit-image-preview");
+      const icon = document.getElementById("edit-image-placeholder");
+      if (url && url.trim() !== "") {
+        img.src = url;
+        img.classList.remove("hidden");
+        icon.classList.add("hidden");
+      } else {
+        img.src = "";
+        img.classList.add("hidden");
+        icon.classList.remove("hidden");
+      }
+    }
+
+    document.getElementById("edit-photo-url").addEventListener("input", (e) => {
+      updatePhotoPreview(e.target.value);
+    });
+
+    function setPhotoViaCameraPrompt() {
+      // Simula captura o subida de foto local en base64
+      const url = prompt("Introduce la URL directa de la foto o captura:", "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=100&auto=format&fit=crop&q=60");
+      if (url) {
+        document.getElementById("edit-photo-url").value = url;
+        updatePhotoPreview(url);
+      }
+    }
+
+    function setPhotoViaWebSearch() {
+      const name = document.getElementById("edit-name").value;
+      // Asignación de foto simulada desde API para pruebas
+      const samplePhoto = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&auto=format&fit=crop&q=60";
+      document.getElementById("edit-photo-url").value = samplePhoto;
+      updatePhotoPreview(samplePhoto);
+    }
+
+    function removePhoto() {
+      document.getElementById("edit-photo-url").value = "";
+      updatePhotoPreview("");
+    }
+
+    function adjustQty(delta) {
+      const el = document.getElementById("edit-qty");
+      let val = parseInt(el.value, 10) || 1;
+      val = Math.max(1, val + delta);
+      el.value = val;
+    }
+
+    function saveProductEdit() {
+      const id = document.getElementById("edit-id").value;
+      const it = items.find(x => x.id === id);
+      if (!it) return;
+
+      it.name = document.getElementById("edit-name").value;
+      it.qty = document.getElementById("edit-qty").value;
+      it.unit = document.getElementById("edit-unit").value;
+      it.price = parseFloat(document.getElementById("edit-price").value) || 0;
+      it.store = document.getElementById("edit-store").value;
+      it.category = document.getElementById("edit-category").value;
+      it.note = document.getElementById("edit-note").value;
+      it.photo = document.getElementById("edit-photo-url").value;
+
+      closeEditModal();
+      renderLists();
+    }
+
+    function deleteCurrentProduct() {
+      const id = document.getElementById("edit-id").value;
+      items = items.filter(x => x.id !== id);
+      closeEditModal();
+      renderLists();
+    }
+
+    function clearCompleted() {
+      items = items.filter(x => !x.crossed_off);
+      renderLists();
+    }
+
+    function populateSelectOptions() {
+      const storeSelect = document.getElementById("edit-store");
+      storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => 
+        `<option value="${s.id}">${s.name}</option>`
+      ).join("");
+
+      const catSelect = document.getElementById("edit-category");
+      catSelect.innerHTML = CATEGORIES.map(c => 
+        `<option value="${c}">${c}</option>`
+      ).join("");
+    }
+  </script>
+</body>
+</html>
