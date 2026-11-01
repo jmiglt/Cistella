@@ -1,11 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Cistella - Llista de la Compra</title>
-  <!-- Tailwind CSS per al disseny ràpid -->
+  
+  <!-- CONFIGURACIÓ PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#047857">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cistella">
+
+  <!-- Tailwind CSS & FontAwesome -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -13,22 +22,18 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-
     .line-through-gray {
       text-decoration: line-through;
       color: #9ca3af;
     }
-
     .bottom-sheet {
       transition: transform 0.25s ease-out;
     }
-
     .bottom-sheet.closed {
       transform: translateY(100%);
     }
   </style>
 </head>
-
 <body class="bg-gray-100 text-gray-800 flex flex-col h-screen overflow-hidden font-sans">
 
   <!-- CAPÇALERA -->
@@ -39,9 +44,12 @@
         <h1 class="text-lg font-bold tracking-tight">Cistella</h1>
       </div>
       <div class="flex items-center space-x-2 text-xs">
-        <span id="storage-indicator"
-          class="flex items-center bg-emerald-800/80 px-2.5 py-1 rounded-full text-emerald-200">
-          <i class="fa-solid fa-database text-[10px] mr-1.5 text-emerald-300"></i> Desat local
+        <!-- BOTÓ D'INSTAL·LACIÓ PWA (només es mostra si el navegador el permet) -->
+        <button id="pwa-install-btn" onclick="triggerPwaInstall()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-2.5 py-1 rounded-full text-xs shadow flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-download"></i> Instal·lar
+        </button>
+        <span id="storage-indicator" class="flex items-center bg-emerald-800/80 px-2.5 py-1 rounded-full text-emerald-200">
+          <i class="fa-solid fa-database text-[10px] mr-1.5 text-emerald-300"></i> Local
         </span>
       </div>
     </div>
@@ -54,13 +62,12 @@
 
   <!-- LLISTA PRINCIPAL COMPACTA -->
   <main class="flex-1 overflow-y-auto px-2 py-2 space-y-3 pb-24">
-
+    
     <!-- PENDENTS -->
     <section>
       <div class="flex justify-between items-center px-2 py-1 text-xs font-bold text-gray-500 uppercase tracking-wider">
         <span id="pending-counter">Pendents (0)</span>
-        <button onclick="toggleGrouping()" id="group-btn"
-          class="text-emerald-700 hover:underline flex items-center gap-1">
+        <button onclick="toggleGrouping()" id="group-btn" class="text-emerald-700 hover:underline flex items-center gap-1">
           <i class="fa-solid fa-layer-group"></i> <span id="group-mode-text">Agrupar: Categoria</span>
         </button>
       </div>
@@ -76,8 +83,7 @@
         <span id="completed-counter">Comprats / Ratllats (0)</span>
         <button onclick="clearCompleted()" class="text-xs text-rose-500 hover:underline">Netejar ratllats</button>
       </div>
-      <div id="completed-list"
-        class="bg-gray-50 rounded-lg border border-dashed border-gray-300 divide-y divide-gray-200 opacity-90">
+      <div id="completed-list" class="bg-gray-50 rounded-lg border border-dashed border-gray-300 divide-y divide-gray-200 opacity-90">
         <!-- Renderitzat dinàmic -->
       </div>
     </section>
@@ -85,30 +91,28 @@
   </main>
 
   <!-- BARRA INFERIOR: ENTRADA RÀPIDA I BOTÓ DE VEU -->
-  <footer
-    class="bg-white border-t border-gray-200 px-3 py-2.5 fixed bottom-0 left-0 right-0 z-20 flex items-center gap-2 shadow-lg">
+  <footer class="bg-white border-t border-gray-200 px-3 py-2.5 fixed bottom-0 left-0 right-0 z-20 flex items-center gap-2 shadow-lg">
     <div class="relative flex-1">
-      <input type="text" id="quick-input" placeholder="Afegir producte... (o prem el micro)"
-        class="w-full pl-3 pr-9 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
-        onkeydown="if(event.key === 'Enter') handleQuickAdd()">
+      <input type="text" id="quick-input" placeholder="Afegir producte... (o prem el micro)" 
+             class="w-full pl-3 pr-9 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
+             onkeydown="if(event.key === 'Enter') handleQuickAdd()">
       <button onclick="handleQuickAdd()" class="absolute right-2 top-2 text-gray-400 hover:text-emerald-600">
         <i class="fa-solid fa-plus text-base"></i>
       </button>
     </div>
 
-    <button id="voice-btn" onclick="startVoiceRecognition()" title="Prémer per parlar"
-      class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg p-2.5 w-11 h-11 flex items-center justify-center transition shadow">
+    <button id="voice-btn" onclick="startVoiceRecognition()" title="Prémer per parlar" 
+            class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg p-2.5 w-11 h-11 flex items-center justify-center transition shadow">
       <i id="voice-icon" class="fa-solid fa-microphone text-lg"></i>
     </button>
   </footer>
 
   <!-- FULL INFERIOR (BOTTOM SHEET) PER EDITAR EL PRODUCTE -->
   <div id="modal-backdrop" class="fixed inset-0 bg-black/40 z-30 hidden" onclick="closeEditModal()"></div>
-
-  <div id="edit-modal"
-    class="bottom-sheet closed fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-40 max-h-[88vh] overflow-y-auto flex flex-col shadow-2xl">
+  
+  <div id="edit-modal" class="bottom-sheet closed fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-40 max-h-[88vh] overflow-y-auto flex flex-col shadow-2xl">
     <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-2.5"></div>
-
+    
     <div class="px-5 py-2 flex items-center justify-between border-b border-gray-100">
       <h3 class="text-base font-bold text-gray-800">Fitxa del Producte</h3>
       <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-1">
@@ -121,8 +125,7 @@
 
       <!-- FOTO DEL PRODUCTE -->
       <div class="flex items-center space-x-4">
-        <div
-          class="relative w-20 h-20 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div class="relative w-20 h-20 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
           <img id="edit-image-preview" src="" alt="" class="w-full h-full object-cover hidden">
           <div id="edit-image-placeholder" class="text-3xl text-gray-400">
             <i class="fa-solid fa-image"></i>
@@ -131,51 +134,41 @@
         <div class="flex-1 space-y-1.5">
           <label class="block text-xs font-semibold text-gray-600">Imatge / Foto</label>
           <div class="flex gap-2">
-            <button type="button" onclick="setPhotoViaCameraPrompt()"
-              class="text-xs bg-gray-100 border border-gray-300 px-2.5 py-1.5 rounded hover:bg-gray-200 flex items-center gap-1.5">
+            <button type="button" onclick="setPhotoViaCameraPrompt()" class="text-xs bg-gray-100 border border-gray-300 px-2.5 py-1.5 rounded hover:bg-gray-200 flex items-center gap-1.5">
               <i class="fa-solid fa-camera"></i> Foto
             </button>
-            <button type="button" onclick="setPhotoViaWebSearch()"
-              class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-300 px-2.5 py-1.5 rounded hover:bg-emerald-100 flex items-center gap-1.5">
+            <button type="button" onclick="setPhotoViaWebSearch()" class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-300 px-2.5 py-1.5 rounded hover:bg-emerald-100 flex items-center gap-1.5">
               <i class="fa-solid fa-magnifying-glass"></i> Cerca web
             </button>
-            <button type="button" onclick="removePhoto()"
-              class="text-xs text-rose-600 border border-rose-200 px-2 py-1.5 rounded hover:bg-rose-50">
+            <button type="button" onclick="removePhoto()" class="text-xs text-rose-600 border border-rose-200 px-2 py-1.5 rounded hover:bg-rose-50">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
-          <input type="text" id="edit-photo-url" placeholder="O enganxa l'enllaç de la foto..."
-            class="w-full text-xs border border-gray-200 rounded px-2 py-1 mt-1">
+          <input type="text" id="edit-photo-url" placeholder="O enganxa l'enllaç de la foto..." class="w-full text-xs border border-gray-200 rounded px-2 py-1 mt-1">
         </div>
       </div>
 
       <!-- NOM I QUANTITAT -->
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">Nom del producte</label>
-        <input type="text" id="edit-name" required
-          class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none">
+        <input type="text" id="edit-name" required class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none">
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Quantitat / Unitat</label>
           <div class="flex items-center">
-            <button type="button" onclick="adjustQty(-1)"
-              class="w-8 h-9 bg-gray-100 border border-gray-300 rounded-l-lg font-bold text-gray-600">-</button>
-            <input type="text" id="edit-qty"
-              class="w-12 h-9 border-y border-gray-300 text-center text-sm font-semibold focus:outline-none" value="1">
-            <button type="button" onclick="adjustQty(1)"
-              class="w-8 h-9 bg-gray-100 border border-gray-300 rounded-r-lg font-bold text-gray-600">+</button>
-            <input type="text" id="edit-unit" placeholder="ud"
-              class="ml-2 w-16 h-9 border border-gray-300 rounded-lg text-xs text-center">
+            <button type="button" onclick="adjustQty(-1)" class="w-8 h-9 bg-gray-100 border border-gray-300 rounded-l-lg font-bold text-gray-600">-</button>
+            <input type="text" id="edit-qty" class="w-12 h-9 border-y border-gray-300 text-center text-sm font-semibold focus:outline-none" value="1">
+            <button type="button" onclick="adjustQty(1)" class="w-8 h-9 bg-gray-100 border border-gray-300 rounded-r-lg font-bold text-gray-600">+</button>
+            <input type="text" id="edit-unit" placeholder="ud" class="ml-2 w-16 h-9 border border-gray-300 rounded-lg text-xs text-center">
           </div>
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Preu (€)</label>
           <div class="relative">
-            <input type="number" step="0.01" id="edit-price" placeholder="0.00"
-              class="w-full text-sm border border-gray-300 rounded-lg pl-3 pr-7 py-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none">
+            <input type="number" step="0.01" id="edit-price" placeholder="0.00" class="w-full text-sm border border-gray-300 rounded-lg pl-3 pr-7 py-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none">
             <span class="absolute right-3 top-2 text-xs font-bold text-gray-400">€</span>
           </div>
         </div>
@@ -185,36 +178,27 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Botiga assignada</label>
-          <select id="edit-store"
-            class="w-full text-xs border border-gray-300 rounded-lg px-2 py-2 bg-white focus:outline-none">
-            <!-- Rellenado dinámico -->
-          </select>
+          <select id="edit-store" class="w-full text-xs border border-gray-300 rounded-lg px-2 py-2 bg-white focus:outline-none"></select>
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Categoria</label>
-          <select id="edit-category"
-            class="w-full text-xs border border-gray-300 rounded-lg px-2 py-2 bg-white focus:outline-none">
-            <!-- Rellenado dinámico -->
-          </select>
+          <select id="edit-category" class="w-full text-xs border border-gray-300 rounded-lg px-2 py-2 bg-white focus:outline-none"></select>
         </div>
       </div>
 
       <!-- NOTES -->
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">Notes o marca concreta</label>
-        <textarea id="edit-note" rows="2" placeholder="Ex: ampolla verda, no comprar càpsules..."
-          class="w-full text-xs border border-gray-300 rounded-lg p-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none"></textarea>
+        <textarea id="edit-note" rows="2" placeholder="Ex: ampolla verda, no comprar càpsules..." class="w-full text-xs border border-gray-300 rounded-lg p-2 focus:ring-1 focus:ring-emerald-600 focus:outline-none"></textarea>
       </div>
 
       <!-- ACCIONS -->
       <div class="pt-3 flex gap-3">
-        <button type="button" onclick="deleteCurrentProduct()"
-          class="flex-1 py-2.5 border border-rose-300 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50 flex items-center justify-center gap-1.5">
+        <button type="button" onclick="deleteCurrentProduct()" class="flex-1 py-2.5 border border-rose-300 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50 flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-trash"></i> Eliminar
         </button>
-        <button type="submit"
-          class="flex-[2] py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow flex items-center justify-center gap-1.5">
+        <button type="submit" class="flex-[2] py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-check"></i> Desar canvis
         </button>
       </div>
@@ -248,17 +232,16 @@
       { id: "bruno", name: "Bruno", online: false }
     ];
 
-    // 2. CATEGORIES NETES
+    // 2. CATEGORIES
     const CATEGORIES = [
-      "Llar", "Perfumeria", "Neteja", "Begudes", "Peixateria",
-      "Fruita i Verdura", "Cuina", "Congelats", "Fruits Secs",
-      "Aperitius", "Carnisseria", "Espècies", "Embotits", "Salses",
-      "Oli i Vinagre", "Pasta i Llegums", "Farines i Reposteria",
-      "Lactis", "Formatges", "Esmorzar", "Forn", "Electricitat",
+      "Llar", "Perfumeria", "Neteja", "Begudes", "Peixateria", 
+      "Fruita i Verdura", "Cuina", "Congelats", "Fruits Secs", 
+      "Aperitius", "Carnisseria", "Espècies", "Embotits", "Salses", 
+      "Oli i Vinagre", "Pasta i Llegums", "Farines i Reposteria", 
+      "Lactis", "Formatges", "Esmorzar", "Forn", "Electricitat", 
       "Medicaments", "Suplements", "General"
     ];
 
-    // 3. PRODUCTES PER DEFECTE SI NO HI HA RES DESAT
     const DEFAULT_SEED_ITEMS = [
       { id: "p1", name: "vino cocina blanco", store: "mercadona", category: "Begudes", qty: "1", unit: "botella", price: 1.45, note: "", photo: "", crossed_off: false },
       { id: "p2", name: "nueces de brasil", store: "mercadona", category: "Fruits Secs", qty: "1", unit: "paq", price: 2.80, note: "", photo: "", crossed_off: false },
@@ -272,6 +255,36 @@
     let items = [];
     let currentStoreFilter = "all";
     let groupByCategories = true;
+    let deferredPrompt = null;
+
+    // REGISTRE DEL SERVICE WORKER I PROMPT D'INSTAL·LACIÓ PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker registrat amb èxit:', reg.scope))
+          .catch(err => console.log('Error registrant el Service Worker:', err));
+      });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) installBtn.classList.remove('hidden');
+    });
+
+    function triggerPwaInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('Usuari ha acceptat instal·lar la PWA');
+          }
+          deferredPrompt = null;
+          document.getElementById('pwa-install-btn').classList.add('hidden');
+        });
+      }
+    }
 
     // CARREGAR I DESAR EN LOCALSTORAGE
     function loadFromLocalStorage() {
@@ -311,17 +324,17 @@
       renderLists();
     };
 
-    // GESTIÓ DE BOTIGUES
     function renderStoreTabs() {
       const container = document.getElementById("store-tabs");
       container.innerHTML = STORES.map(store => {
         const isActive = store.id === currentStoreFilter;
         return `
           <button onclick="setStoreFilter('${store.id}')" 
-                  class="px-3 py-1.5 rounded-full font-medium transition ${isActive
-            ? 'bg-white text-emerald-800 shadow font-bold'
-            : 'bg-emerald-800 text-emerald-100 hover:bg-emerald-600'
-          }">
+                  class="px-3 py-1.5 rounded-full font-medium transition ${
+                    isActive 
+                      ? 'bg-white text-emerald-800 shadow font-bold' 
+                      : 'bg-emerald-800 text-emerald-100 hover:bg-emerald-600'
+                  }">
             ${store.name}
           </button>
         `;
@@ -341,7 +354,6 @@
       renderLists();
     }
 
-    // RENDERITZAT DE LLISTES
     function renderLists() {
       const pendingContainer = document.getElementById("pending-list");
       const completedContainer = document.getElementById("completed-list");
@@ -353,11 +365,11 @@
       document.getElementById("pending-counter").innerText = `Pendents (${pending.length})`;
       document.getElementById("completed-counter").innerText = `Comprats / Ratllats (${completed.length})`;
 
-      pendingContainer.innerHTML = pending.length === 0
+      pendingContainer.innerHTML = pending.length === 0 
         ? `<div class="p-4 text-center text-xs text-gray-400">Cap producte pendent en aquesta llista.</div>`
         : pending.map(item => createItemRowHTML(item, false)).join("");
 
-      completedContainer.innerHTML = completed.length === 0
+      completedContainer.innerHTML = completed.length === 0 
         ? `<div class="p-3 text-center text-xs text-gray-400">Cap article ratllat encara.</div>`
         : completed.map(item => createItemRowHTML(item, true)).join("");
     }
@@ -373,10 +385,10 @@
                    class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer pointer-events-none">
 
             <div class="w-8 h-8 rounded bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-              ${item.photo
-          ? `<img src="${item.photo}" class="w-full h-full object-cover">`
-          : `<i class="fa-solid fa-basket-shopping text-gray-400 text-xs"></i>`
-        }
+              ${item.photo 
+                ? `<img src="${item.photo}" class="w-full h-full object-cover">`
+                : `<i class="fa-solid fa-basket-shopping text-gray-400 text-xs"></i>`
+              }
             </div>
 
             <div class="flex-1 min-w-0">
@@ -396,9 +408,9 @@
           </div>
 
           <div class="flex items-center space-x-2 flex-shrink-0">
-            ${item.price > 0
-          ? `<span class="text-xs font-semibold ${isCrossed ? 'text-gray-400 line-through' : 'text-gray-700'}">${Number(item.price).toFixed(2)} €</span>`
-          : ''}
+            ${item.price > 0 
+              ? `<span class="text-xs font-semibold ${isCrossed ? 'text-gray-400 line-through' : 'text-gray-700'}">${Number(item.price).toFixed(2)} €</span>` 
+              : ''}
             <button onclick="openEditModal('${item.id}')" class="text-gray-400 hover:text-emerald-700 p-1.5 rounded-full hover:bg-gray-100">
               <i class="fa-solid fa-pen text-xs"></i>
             </button>
@@ -416,7 +428,6 @@
       }
     }
 
-    // AFEGIR RÀPID
     function handleQuickAdd() {
       const input = document.getElementById("quick-input");
       const val = input.value.trim();
@@ -441,7 +452,6 @@
       renderLists();
     }
 
-    // RECONEIXEMENT DE VEU
     function startVoiceRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const voiceIcon = document.getElementById("voice-icon");
@@ -523,7 +533,6 @@
       renderLists();
     }
 
-    // MODAL D'EDICIÓ
     function openEditModal(id) {
       const it = items.find(x => x.id === id);
       if (!it) return;
@@ -628,16 +637,15 @@
 
     function populateSelectOptions() {
       const storeSelect = document.getElementById("edit-store");
-      storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s =>
+      storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => 
         `<option value="${s.id}">${s.name}</option>`
       ).join("");
 
       const catSelect = document.getElementById("edit-category");
-      catSelect.innerHTML = CATEGORIES.map(c =>
+      catSelect.innerHTML = CATEGORIES.map(c => 
         `<option value="${c}">${c}</option>`
       ).join("");
     }
   </script>
 </body>
-
 </html>

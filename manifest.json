@@ -1,0 +1,18 @@
+{
+  "name": "Cistella - Llista de la Compra",
+  "short_name": "Cistella",
+  "description": "Llista de la compra intel·ligent amb reconeixement de veu i botigues",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#047857",
+  "theme_color": "#047857",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

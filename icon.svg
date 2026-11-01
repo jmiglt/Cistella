@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="115" fill="#047857"/>
+  <!-- Cistella de la compra -->
+  <path d="M120 180 h272 l-28 190 c-2 16-16 28-32 28 H180 c-16 0-30-12-32-28 Z" fill="#ffffff" opacity="0.95"/>
+  <path d="M100 170 h312 c11 0 20 9 20 20 s-9 20-20 20 H100 c-11 0-20-9-20-20 s9-20 20-20 Z" fill="#ffffff"/>
+  <!-- Nanses creuades -->
+  <path d="M170 170 L256 80 L342 170" fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Detall de línies de cistell -->
+  <line x1="210" y1="230" x2="200" y2="350" stroke="#047857" stroke-width="12" stroke-linecap="round"/>
+  <line x1="256" y1="230" x2="256" y2="350" stroke="#047857" stroke-width="12" stroke-linecap="round"/>
+  <line x1="302" y1="230" x2="312" y2="350" stroke="#047857" stroke-width="12" stroke-linecap="round"/>
+</svg>
