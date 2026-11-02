@@ -178,6 +178,11 @@
   <div id="options-menu"
     class="hidden absolute top-12 right-3 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 w-52 py-1.5 text-xs text-gray-700 divide-y divide-gray-100">
     <div class="px-3 py-2 font-semibold text-gray-500 text-[10px] uppercase">Opcions de llista</div>
+    <button onclick="promptCreateNewStore(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-800 font-semibold flex items-center justify-between">
+      <span>+ Nova llista / botiga</span>
+      <i class="fa-solid fa-folder-plus text-emerald-600"></i>
+    </button>
     <button onclick="toggleGrouping(); toggleOptionsMenu();"
       class="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between">
       <span>Agrupar per categoria</span>
@@ -565,9 +570,10 @@
     const STORAGE_KEY_VOICE_LANG = "cistella_voice_lang";
     const STORAGE_KEY_GROUP_MODE = "cistella_group_mode";
     const STORAGE_KEY_COLLAPSED = "cistella_completed_collapsed";
+    const STORAGE_KEY_CUSTOM_STORES = "cistella_custom_stores_v1";
 
-    // 1. CATÀLEG DE BOTIGUES
-    const STORES = [
+    // 1. CATÀLEG DE BOTIGUES (Predefinides i extensibles dinàmicament)
+    const DEFAULT_STORES = [
       { id: "all", name: "Totes", color: "gray" },
       { id: "mercadona", name: "Mercadona", online: true, color: "emerald", badgeBg: "bg-emerald-50", badgeText: "text-emerald-700" },
       { id: "caprabo", name: "Caprabo", online: true, color: "blue", badgeBg: "bg-blue-50", badgeText: "text-blue-700" },
@@ -585,9 +591,12 @@
       { id: "ferreteria", name: "Ferreteria", online: false, color: "amber", badgeBg: "bg-amber-50", badgeText: "text-amber-800" },
       { id: "garden", name: "Garden", online: false, color: "emerald", badgeBg: "bg-emerald-50", badgeText: "text-emerald-800" },
       { id: "bazar", name: "Bazar Xinès", online: false, color: "purple", badgeBg: "bg-purple-50", badgeText: "text-purple-700" },
+      { id: "bodega", name: "Bodega", online: false, color: "rose", badgeBg: "bg-rose-50", badgeText: "text-rose-800" },
       { id: "marroqui", name: "Marroquí", online: false, color: "orange", badgeBg: "bg-amber-100", badgeText: "text-amber-800" },
       { id: "bruno", name: "Bruno", online: false, color: "stone", badgeBg: "bg-stone-100", badgeText: "text-stone-700" }
     ];
+
+    let STORES = [...DEFAULT_STORES];
 
     // 2. CATEGORIES I ICONES
     const CATEGORY_ICONS = {
@@ -787,6 +796,8 @@
           pattern = `\\b(en el|al|al bazar|en)\\s+(bazar xinès|bazar chino|bazar|chino|xino)\\b|\\b(bazar)\\b`;
         } else if (s.id === "marroqui") {
           pattern = `\\b(en el|al|a la|en)\\s+(marroquí|marroqui|botiga marroquina|marroc)\\b|\\b(marroquí|marroqui)\\b`;
+        } else if (s.id === "bodega") {
+          pattern = `\\b(en la|a la|al|en|a)\\s+(bodega|celler)\\b|\\b(bodega|celler)\\b`;
         }
 
         const storeRegex = new RegExp(pattern, "i");
@@ -1073,7 +1084,7 @@
     function renderStoreTabs() {
       const container = document.getElementById("store-tabs");
 
-      container.innerHTML = STORES.map(store => {
+      let html = STORES.map(store => {
         const isActive = store.id === currentStoreFilter;
         // Comptar pendents per botiga
         const pendingCount = items.filter(it => !it.crossed_off && (store.id === "all" || it.store === store.id)).length;
@@ -1091,6 +1102,70 @@
           </button>
         `;
       }).join("");
+
+      // Botó per afegir llista o botiga nova ràpidament
+      html += `
+        <button onclick="promptCreateNewStore()" 
+                title="Crear nova llista o botiga"
+                class="px-2.5 py-1 rounded-full font-medium transition flex items-center gap-1 flex-shrink-0 bg-emerald-900/60 hover:bg-emerald-700 text-emerald-200 hover:text-white border border-emerald-700/50">
+          <i class="fa-solid fa-plus text-[10px]"></i>
+          <span>Nova llista</span>
+        </button>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function promptCreateNewStore() {
+      const name = prompt("Introdueix el nom de la nova llista o botiga:");
+      if (!name || !name.trim()) return;
+
+      const clean = name.trim();
+      const slug = clean.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
+      if (!slug) return;
+
+      const store = ensureStore(slug, clean);
+      setStoreFilter(store.id);
+      showToast(`Llista creada: ${store.name}`, "fa-plus");
+    }
+
+    function ensureStore(id, name) {
+      if (!id) return null;
+      let existing = STORES.find(s => s.id === id);
+      if (existing) {
+        if (name && existing.name !== name && !DEFAULT_STORES.some(d => d.id === id)) {
+          existing.name = name;
+          saveCustomStores();
+        }
+        return existing;
+      }
+
+      const newStore = {
+        id: id,
+        name: name || (id.charAt(0).toUpperCase() + id.slice(1)),
+        online: false,
+        color: "emerald",
+        badgeBg: "bg-emerald-50",
+        badgeText: "text-emerald-800"
+      };
+      STORES.push(newStore);
+      saveCustomStores();
+      populateSelectOptions();
+      renderStoreTabs();
+      return newStore;
+    }
+
+    function saveCustomStores() {
+      try {
+        const customOnly = STORES.filter(s => !DEFAULT_STORES.some(d => d.id === s.id));
+        localStorage.setItem(STORAGE_KEY_CUSTOM_STORES, JSON.stringify(customOnly));
+      } catch (e) {
+        console.error("Error desant botigues personalitzades:", e);
+      }
     }
 
     function setStoreFilter(storeId) {
@@ -1637,6 +1712,23 @@
             }
           }
 
+          // Carregar botigues personalitzades afegides per l'usuari
+          const storedCustom = localStorage.getItem(STORAGE_KEY_CUSTOM_STORES);
+          if (storedCustom) {
+            try {
+              const customStores = JSON.parse(storedCustom);
+              if (Array.isArray(customStores)) {
+                customStores.forEach(cs => {
+                  if (!STORES.some(s => s.id === cs.id)) {
+                    STORES.push(cs);
+                  }
+                });
+              }
+            } catch (e) {
+              console.error("Error carregant botigues personalitzades:", e);
+            }
+          }
+
           const storedItems = localStorage.getItem(STORAGE_KEY_ITEMS);
           if (storedItems) {
             items = JSON.parse(storedItems);
@@ -1665,14 +1757,21 @@
                 it.store = "marroqui";
                 hadMigration = true;
               }
-              if (it.store === "mercadona" && /portell|reserva 2019/i.test(lower)) {
-                it.store = "caprabo";
+              if ((it.store === "mercadona" || it.store === "caprabo") && /portell|reserva 2019/i.test(lower)) {
+                it.store = "bodega";
                 hadMigration = true;
               }
             });
             if (hadMigration) {
               saveToLocalStorage();
             }
+
+            // Assegurar que qualsevol botiga dels articles té pestanya
+            items.forEach(it => {
+              if (it.store && !STORES.some(s => s.id === it.store)) {
+                ensureStore(it.store, it.store.charAt(0).toUpperCase() + it.store.slice(1));
+              }
+            });
           } else {
             items = [...DEFAULT_SEED_ITEMS];
             saveToLocalStorage();
@@ -1881,7 +1980,7 @@
         "bonpreu": "bonpreu",
         "colet": "ferreteria",
         "fruteria": "mercadona",
-        "bodega": "caprabo",
+        "bodega": "bodega",
         "carnicer": "mercadona",
         "pescader": "mercadona",
         "forn": "bonpreu",
@@ -1930,12 +2029,25 @@
           return;
         }
 
-        let targetStore = "mercadona";
+        let targetStore = null;
         for (const [k, v] of Object.entries(OG_STORE_MAP)) {
           if (listName.includes(k)) {
             targetStore = v;
             break;
           }
+        }
+
+        if (!targetStore) {
+          let cleanStoreTitle = (sl.name || "").replace(/^(P\d+|\d+)[\.\-\s:]+\s*/i, '').trim();
+          if (!cleanStoreTitle) cleanStoreTitle = (sl.name || "").trim();
+          const storeSlug = cleanStoreTitle.toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+          const s = ensureStore(storeSlug, cleanStoreTitle);
+          targetStore = s ? s.id : "mercadona";
+        } else {
+          ensureStore(targetStore);
         }
 
         (sl.items || []).forEach(it => {
@@ -2045,8 +2157,8 @@
         if (it.store === "bazar" && /cardamomo|azahar|guindilla fresca|pasta curry/i.test(lower)) {
           it.store = "marroqui";
         }
-        if (it.store === "mercadona" && /portell|reserva 2019/i.test(lower)) {
-          it.store = "caprabo";
+        if ((it.store === "mercadona" || it.store === "caprabo") && /portell|reserva 2019/i.test(lower)) {
+          it.store = "bodega";
         }
 
         // Buscar si ja tenim un article igual o similar a la mateixa botiga
