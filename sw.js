@@ -1,9 +1,12 @@
-const CACHE_NAME = 'cistella-cache-v1';
+const CACHE_NAME = 'cistella-cache-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './icon.svg'
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable-512.png'
 ];
 
 // Instal·lació del Service Worker i precaching bàsic
@@ -22,6 +25,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('Eliminant cau antiga:', key);
             return caches.delete(key);
           }
         })
@@ -32,8 +36,17 @@ self.addEventListener('activate', (event) => {
 
 // Estratègia Network-First amb fallback a Cache
 self.addEventListener('fetch', (event) => {
-  // Ignorar peticions no GET
   if (event.request.method !== 'GET') return;
+  if (!event.request.url.startsWith('http')) return;
+
+  // En desenvolupament local (127.0.0.1 o localhost), no servir index.html de memòria cau
+  const url = new URL(event.request.url);
+  if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+    if (url.pathname.endsWith('index.html') || url.pathname.endsWith('/')) {
+      event.respondWith(fetch(event.request));
+      return;
+    }
+  }
 
   event.respondWith(
     fetch(event.request)
