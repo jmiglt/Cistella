@@ -2733,6 +2733,14 @@
       processReceiptText(text);
     }
 
+    function toTitleCase(str) {
+      if (!str) return "";
+      return str.toLowerCase().split(' ').map(word => {
+        if (word.length <= 2 && /^(de|del|d|i|y|en|amb|con|la|el|les|los)$/i.test(word)) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }).join(' ');
+    }
+
     function processReceiptText(rawText) {
       lastExtractedRawText = rawText || "";
       const rawTextarea = document.getElementById("receipt-detected-raw-text");
@@ -2749,8 +2757,7 @@
         const cleanLine = line.trim();
         if (cleanLine.length < 3 || ignoreRegex.test(cleanLine)) return;
 
-        // Expressió regular flexible per trobar preus
-        // Busca imports típics: números seguits de coma/punt i 2 decimals, possiblement seguits de tipus d'IVA (ex: 1,19 B, 2.45 A, 0,85€)
+        // Expressió regular flexible per trobar preus (amb suport d'IVA final ex: 1,19 B)
         const priceRegex = /(\d{1,3}[\.,]\d{2})(?:\s*[a-zA-Z%€])?(?:\s*$|\s+)/g;
         let lastMatch = null;
         let m;
@@ -2767,16 +2774,21 @@
           let rawProdName = cleanLine.substring(0, lastMatch.index).trim();
           // Netejar quantitats inicials com "1 ", "2x ", "01 ", etc.
           rawProdName = rawProdName.replace(/^(\d+[xX\*\s]+)/, '').replace(/^[\d\.\-\s]+/, '').trim();
-          // Eliminar codis de barres o números de 8-13 dígits
+          // Eliminar codis de barres o números de 8-14 dígits
           rawProdName = rawProdName.replace(/\b\d{8,14}\b/g, '').trim();
 
           if (rawProdName.length >= 2 && priceVal > 0.05 && priceVal < 500) {
             const matchedItem = findBestMatchingItem(rawProdName, storeId);
+            const formattedTitle = toTitleCase(rawProdName);
+
             matches.push({
               rawName: rawProdName,
               price: priceVal,
-              matchedItem: matchedItem,
-              selected: Boolean(matchedItem)
+              selected: true,
+              // Accions: "link" (relacionar), "rename" (relacionar i actualitzar nom), "create" (crear nou)
+              action: matchedItem ? "link" : "create",
+              matchedItemId: matchedItem ? matchedItem.id : "",
+              customName: matchedItem ? matchedItem.name : formattedTitle
             });
           }
         }
@@ -2785,7 +2797,6 @@
       detectedReceiptItems = matches;
       renderReceiptMatches(matches);
 
-      // Si no ha detectat cap preu automàticament, obrim directament l'acordió perquè l'usuari vegi què s'ha llegit
       const rawDetails = document.getElementById("receipt-raw-details");
       if (rawDetails) {
         if (matches.length === 0) {
@@ -2829,44 +2840,140 @@
         return;
       }
 
+      // Preparar llista d'articles existents ordenada alfabèticament per als desplegables
+      const sortedItems = [...items].sort((a, b) => (a.name || "").localeCompare(b.name || "", 'ca'));
+
       listContainer.innerHTML = matches.map((m, idx) => {
-        const item = m.matchedItem;
-        const prevPrice = item && item.price ? Number(item.price).toFixed(2) + " €" : "Cap";
+        const currentItem = items.find(it => it.id === m.matchedItemId);
+        const prevPriceStr = currentItem && currentItem.price ? Number(currentItem.price).toFixed(2) + " €" : null;
 
         return `
-          <div class="py-2 px-1 flex items-center justify-between gap-2 ${m.selected ? 'bg-emerald-50/50' : 'opacity-70'} rounded-lg">
-            <div class="flex items-center space-x-2 min-w-0 flex-1">
-              <input type="checkbox" id="receipt-chk-${idx}" ${m.selected ? 'checked' : ''} 
-                     onchange="toggleReceiptMatchSelected(${idx}, this.checked)"
-                     class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-bold text-gray-800 truncate">${m.rawName}</p>
-                ${item ? `
-                  <p class="text-[10px] text-emerald-700 flex items-center gap-1">
-                    <i class="fa-solid fa-arrow-right text-[8px]"></i>
-                    <span class="font-semibold">${item.name}</span>
-                    <span class="text-gray-400">(Abans: ${prevPrice})</span>
-                  </p>
-                ` : `
-                  <p class="text-[10px] text-amber-700 italic">No trobat a la llista (es pot afegir com a nou)</p>
-                `}
+          <div class="p-2.5 rounded-xl border transition ${
+            m.selected ? 'bg-white border-gray-200 shadow-2xs' : 'bg-gray-50/70 border-gray-100 opacity-60'
+          } space-y-2">
+            
+            <!-- CAPÇALERA DE LA LÍNIA DEL TIQUET -->
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center space-x-2 min-w-0 flex-1">
+                <input type="checkbox" id="receipt-chk-${idx}" ${m.selected ? 'checked' : ''} 
+                       onchange="toggleReceiptMatchSelected(${idx}, this.checked)"
+                       class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer">
+                <div class="min-w-0 flex-1">
+                  <span class="text-xs font-mono font-bold text-gray-800 truncate block" title="${m.rawName}">${m.rawName}</span>
+                </div>
+              </div>
+
+              <!-- PREU DETECTAT I EDITABLE -->
+              <div class="flex items-center space-x-1 flex-shrink-0">
+                <input type="number" step="0.01" min="0" value="${m.price.toFixed(2)}" 
+                       onchange="updateReceiptMatchPrice(${idx}, this.value)"
+                       title="Preu detectat (pots retocar-lo)"
+                       class="w-16 h-7 text-xs font-bold text-center border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600">
+                <span class="text-xs font-bold text-gray-500">€</span>
               </div>
             </div>
 
-            <div class="flex items-center space-x-1 flex-shrink-0">
-              <input type="number" step="0.01" min="0" value="${m.price.toFixed(2)}" 
-                     onchange="updateReceiptMatchPrice(${idx}, this.value)"
-                     class="w-16 h-7 text-xs font-bold text-center border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600">
-              <span class="text-xs font-bold text-gray-500">€</span>
+            <!-- SELECTOR D'ACCIÓ (LES 3 OPCIONS EN PÍNDOLES) -->
+            <div class="grid grid-cols-3 gap-1 bg-gray-100/80 p-0.5 rounded-lg text-[10.5px] font-semibold text-center select-none">
+              <button type="button" onclick="setReceiptAction(${idx}, 'link')"
+                class="py-1 rounded-md transition ${m.action === 'link' ? 'bg-white text-emerald-800 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-800'}">
+                <i class="fa-solid fa-link text-[9px] mr-0.5"></i> Relacionar
+              </button>
+              <button type="button" onclick="setReceiptAction(${idx}, 'rename')"
+                class="py-1 rounded-md transition ${m.action === 'rename' ? 'bg-white text-amber-800 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-800'}">
+                <i class="fa-solid fa-pen text-[9px] mr-0.5"></i> Renombrar
+              </button>
+              <button type="button" onclick="setReceiptAction(${idx}, 'create')"
+                class="py-1 rounded-md transition ${m.action === 'create' ? 'bg-white text-blue-800 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-800'}">
+                <i class="fa-solid fa-plus text-[9px] mr-0.5"></i> Crear nou
+              </button>
             </div>
+
+            <!-- CONTROLS ESPECÍFICS SEGONS L'OPCIÓ TRIA -->
+            ${(m.action === 'link' || m.action === 'rename') ? `
+              <div class="space-y-1.5 pt-0.5">
+                <div>
+                  <label class="block text-[10px] text-gray-500 font-semibold mb-0.5">Article existent a la cistella:</label>
+                  <select onchange="updateReceiptMatchedItem(${idx}, this.value)"
+                    class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-800 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+                    <option value="">-- Tria un article existent --</option>
+                    ${sortedItems.map(it => {
+                      const isSel = it.id === m.matchedItemId;
+                      const sObj = STORES.find(s => s.id === it.store);
+                      return `<option value="${it.id}" ${isSel ? 'selected' : ''}>${it.name} (${sObj ? sObj.name : it.store})</option>`;
+                    }).join("")}
+                  </select>
+                </div>
+
+                ${prevPriceStr ? `
+                  <p class="text-[10px] text-gray-500">
+                    Preu actual a la fitxa: <span class="font-bold text-gray-700">${prevPriceStr}</span> ➔ Passarà a: <span class="font-bold text-emerald-700">${m.price.toFixed(2)} €</span>
+                  </p>
+                ` : ''}
+
+                ${m.action === 'rename' ? `
+                  <div class="pt-1">
+                    <label class="block text-[10px] text-amber-800 font-semibold mb-0.5">Nou nom que tindrà l'article:</label>
+                    <input type="text" value="${m.customName}" 
+                           oninput="updateReceiptCustomName(${idx}, this.value)"
+                           placeholder="Ex: Mel Granja San Francisco"
+                           class="w-full text-xs border border-amber-300 rounded-lg px-2 py-1.5 bg-amber-50/30 text-gray-900 focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium">
+                  </div>
+                ` : ''}
+              </div>
+            ` : `
+              <!-- OPCIÓ CREAR NOU -->
+              <div class="space-y-1.5 pt-0.5">
+                <div>
+                  <label class="block text-[10px] text-blue-800 font-semibold mb-0.5">Nom del nou producte:</label>
+                  <input type="text" value="${m.customName}" 
+                         oninput="updateReceiptCustomName(${idx}, this.value)"
+                         placeholder="Ex: Mel Granja San Francisco"
+                         class="w-full text-xs border border-blue-300 rounded-lg px-2 py-1.5 bg-blue-50/30 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+                </div>
+                <p class="text-[10px] text-gray-400 italic">S'afegirà a la botiga seleccionada amb el preu de ${m.price.toFixed(2)} €.</p>
+              </div>
+            `}
           </div>
         `;
       }).join("");
     }
 
+    function setReceiptAction(idx, action) {
+      if (detectedReceiptItems[idx]) {
+        detectedReceiptItems[idx].action = action;
+        // Si no tenia nom personalitzat o canvia a rename/create, posem un nom ben formatat
+        if (!detectedReceiptItems[idx].customName) {
+          detectedReceiptItems[idx].customName = toTitleCase(detectedReceiptItems[idx].rawName);
+        }
+        renderReceiptMatches(detectedReceiptItems);
+      }
+    }
+
+    function updateReceiptMatchedItem(idx, itemId) {
+      if (detectedReceiptItems[idx]) {
+        detectedReceiptItems[idx].matchedItemId = itemId;
+        const it = items.find(x => x.id === itemId);
+        if (it) {
+          // Si està en rename i el nom és buit, posem el nom del tiquet net
+          if (!detectedReceiptItems[idx].customName) {
+            detectedReceiptItems[idx].customName = toTitleCase(detectedReceiptItems[idx].rawName);
+          }
+        }
+        renderReceiptMatches(detectedReceiptItems);
+      }
+    }
+
+    function updateReceiptCustomName(idx, val) {
+      if (detectedReceiptItems[idx]) {
+        detectedReceiptItems[idx].customName = val;
+      }
+    }
+
     function toggleReceiptMatchSelected(idx, isChecked) {
       if (detectedReceiptItems[idx]) {
         detectedReceiptItems[idx].selected = isChecked;
+        renderReceiptMatches(detectedReceiptItems);
       }
     }
 
@@ -2878,67 +2985,83 @@
     }
 
     function selectAllReceiptMatches(check) {
-      detectedReceiptItems.forEach((m, idx) => {
+      detectedReceiptItems.forEach(m => {
         m.selected = check;
-        const el = document.getElementById(`receipt-chk-${idx}`);
-        if (el) el.checked = check;
       });
+      renderReceiptMatches(detectedReceiptItems);
     }
 
     function applyReceiptPrices() {
       const storeId = document.getElementById("receipt-store-select").value || "mercadona";
       const nowISO = new Date().toISOString();
-      let updatedCount = 0;
-      let addedCount = 0;
+      let updatedPricesCount = 0;
+      let renamedCount = 0;
+      let createdCount = 0;
 
       detectedReceiptItems.forEach(m => {
         if (!m.selected) return;
 
-        if (m.matchedItem) {
-          // Actualitzar article existent
-          const it = m.matchedItem;
-          it.price = m.price;
-          it.price_date = nowISO;
-          if (!Array.isArray(it.price_history)) it.price_history = [];
-          it.price_history.unshift({
-            price: m.price,
-            store: storeId,
-            date: nowISO
-          });
-          if (it.price_history.length > 7) {
-            it.price_history = it.price_history.slice(0, 7);
+        if (m.action === "link" || m.action === "rename") {
+          // Relacionar amb ítem existent
+          const it = items.find(x => x.id === m.matchedItemId);
+          if (it) {
+            // Actualitzar nom si s'ha triat l'opció de renombrar
+            if (m.action === "rename" && m.customName && m.customName.trim()) {
+              it.name = m.customName.trim();
+              renamedCount++;
+            }
+
+            it.price = m.price;
+            it.price_date = nowISO;
+            if (!Array.isArray(it.price_history)) it.price_history = [];
+            it.price_history.unshift({
+              price: m.price,
+              store: storeId,
+              date: nowISO
+            });
+            if (it.price_history.length > 7) {
+              it.price_history = it.price_history.slice(0, 7);
+            }
+            updatedPricesCount++;
           }
-          updatedCount++;
-        } else {
-          // Afegir nou article si estava marcat
+        } else if (m.action === "create") {
+          // Crear com a nou producte
+          const finalName = (m.customName && m.customName.trim()) ? m.customName.trim() : toTitleCase(m.rawName);
           const newItem = {
             id: "p_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-            name: m.rawName,
+            name: finalName,
             qty: "1",
             unit: "ud",
             price: m.price,
             price_date: nowISO,
             price_history: [{ price: m.price, store: storeId, date: nowISO }],
             store: storeId,
-            category: detectSemanticCategory(m.rawName) || "General",
-            note: "Preu extret de tiquet",
+            category: detectSemanticCategory(finalName) || "General",
+            note: "Afegit des de tiquet",
             photo: "",
             crossed_off: false,
             created_at: nowISO
           };
           items.unshift(newItem);
-          addedCount++;
+          createdCount++;
         }
       });
 
-      if (updatedCount > 0 || addedCount > 0) {
+      const totalApplied = updatedPricesCount + createdCount;
+      if (totalApplied > 0) {
         saveToLocalStorage();
         renderLists();
         renderStoreTabs();
         closeReceiptScannerModal();
-        showToast(`${updatedCount} preus actualitzats ${addedCount > 0 ? ` i ${addedCount} articles afegits` : ''} des del tiquet!`, "fa-receipt");
+
+        const msgParts = [];
+        if (updatedPricesCount > 0) msgParts.push(`${updatedPricesCount} preus actualitzats`);
+        if (renamedCount > 0) msgParts.push(`${renamedCount} renombrats`);
+        if (createdCount > 0) msgParts.push(`${createdCount} nous creats`);
+
+        showToast(msgParts.join(", ") + "!", "fa-receipt");
       } else {
-        alert("No has seleccionat cap article per actualitzar.");
+        alert("No s'ha seleccionat cap article vàlid per aplicar. Revisa que les caselles estiguin marcades i tinguin un article associat.");
       }
     }
 
