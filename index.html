@@ -93,7 +93,7 @@
       background-color: #e11d48 !important;
     }
 
-    /* Scrollbar invisible però funcional */
+    /* Scrollbar invisible però funcional per elements secundaris */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -101,6 +101,30 @@
     .no-scrollbar {
       -ms-overflow-style: none;
       scrollbar-width: none;
+    }
+
+    /* Scrollbar estilitzada i accessible per a les pestanyes de botigues a escriptori */
+    #store-tabs::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    #store-tabs::-webkit-scrollbar-track {
+      background: rgba(6, 78, 59, 0.4);
+      border-radius: 4px;
+    }
+
+    #store-tabs::-webkit-scrollbar-thumb {
+      background: rgba(52, 211, 153, 0.5);
+      border-radius: 4px;
+    }
+
+    #store-tabs::-webkit-scrollbar-thumb:hover {
+      background: rgba(52, 211, 153, 0.9);
+    }
+
+    #store-tabs {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(52, 211, 153, 0.5) rgba(6, 78, 59, 0.4);
     }
   </style>
 </head>
@@ -168,9 +192,21 @@
       </div>
     </div>
 
-    <!-- PESTANYES DE BOTIGUES AMB DESPLAÇAMENT HORITZONTAL -->
-    <div id="store-tabs" class="flex space-x-1.5 px-3 pb-2 overflow-x-auto text-xs whitespace-nowrap no-scrollbar">
-      <!-- Injecció dinàmica de botigues -->
+    <!-- PESTANYES DE BOTIGUES AMB DESPLAÇAMENT HORITZONTAL I CONTROLS PER A ESCRIPTORI -->
+    <div class="relative flex items-center px-2 pb-2">
+      <button onclick="scrollStoreTabs(-240)" id="store-tabs-prev-btn" title="Desplaçar pestanyes a l'esquerra"
+        class="hidden sm:flex z-10 w-6 h-6 bg-emerald-900/90 hover:bg-emerald-700 text-emerald-200 rounded-full items-center justify-center flex-shrink-0 mr-1 shadow transition">
+        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+      </button>
+
+      <div id="store-tabs" class="flex space-x-1.5 px-1 py-0.5 overflow-x-auto text-xs whitespace-nowrap scroll-smooth flex-1 select-none cursor-grab active:cursor-grabbing">
+        <!-- Injecció dinàmica de botigues -->
+      </div>
+
+      <button onclick="scrollStoreTabs(240)" id="store-tabs-next-btn" title="Desplaçar pestanyes a la dreta"
+        class="hidden sm:flex z-10 w-6 h-6 bg-emerald-900/90 hover:bg-emerald-700 text-emerald-200 rounded-full items-center justify-center flex-shrink-0 ml-1 shadow transition">
+        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+      </button>
     </div>
   </header>
 
@@ -908,7 +944,7 @@
       if (/formatge|queso|parmes|mozzarella|gouda|cheddar|brie|roquefort|manchego/i.test(n)) return "Formatges";
       if (/poma|manzana|pl[àa]tan|taronja|naranja|llimona|lim[oó]n|maduixa|fresa|ra[ïi]m|uva|pera|pr[eé]ssec|mel[oó]|s[ií]ndria|tom[àa]quet|tomate|enciam|lechuga|ceba|cebolla|patata|pastanaga|zanahoria|pebrot|pimiento|all\b|ajo|calabac|alberg|espinac|br[oò]quil|mongeta|alvocat|aguacate|bolets|setas/i.test(n)) return "Fruita i Verdura";
       if (/detergent|suavitzant|rentavaixelles|lavavajillas|lleixiu|lej[ií]a|fregona|baieta|estropajo|escombraries|basura|quitagrasas|desgreixador|paper de cuina|papel cocina|sab[oó] rentadora/i.test(n)) return "Neteja";
-      if (/xamp[uú]|champ[uú]|gel de bany|col[oò]nia|perfum|desodorant|desodorante|pasta de dents|dents|dent[ií]fric|crema|afaitar|compresa|tampon|paper higi[eè]nic|papel higi[eé]nico|toallit/i.test(n)) return "Perfumeria";
+      if (/xamp[uú]|champ[uú]|gel de bany|col[oò]nia|perfum|desodorant|desodorante|pasta de dents|dents|dent[ií]fric|crema|afaitar|compresa|tampon|paper higi[eè]nic|papel higi[eé]nico|toallit|esmalte|quitaesmalte|reafirmante|anticelul|corporal|hidratant|maquill|cosm[eè]tic|mascareta|s[eé]rum|b[aà]lsam|uñas|ungles/i.test(n)) return "Perfumeria";
       if (/pollastre|pollo|vedella|ternera|porc|cerdo|hamburguesa|botifarra|llonza|costell|conill|conejo|pavo|gall dindi|carn picada|carne picada|bistec/i.test(n)) return "Carnisseria";
       if (/peix|pescado|salm[oó]|llu[çc]|merluza|bacall[àa]|bacalao|daurada|dorada|llobarro|lubina|gamba|llagost|musclo|mejillon|calamar|s[ií]pia|sepia|pop\b|pulpo|tonyina|at[uú]n|sardina/i.test(n)) return "Peixateria";
       if (/aigua|agua|suc\b|zumo|cervesa|cerveza|vi\b|vino|cava|refresc|cola|fanta|t[oò]nica|beguda/i.test(n)) return "Begudes";
@@ -920,7 +956,7 @@
       if (/oli\b|aceite|vinagre/i.test(n)) return "Oli i Vinagre";
       if (/macarr[oó]|espaguet|pasta|fideu|arr[oò]s|arroz|llentia|lenteja|cigr[oó]|garbanzo|mongeta seca|jud[ií]a|fava|quinoa|cusc[uú]s/i.test(n)) return "Pasta i Llegums";
       if (/farina|harina|llevat|levadura|sucre|az[uú]car|cacau|xocolata|chocolate|vainilla|maizena/i.test(n)) return "Farines i Reposteria";
-      if (/caf[eè]|te\b|infusi|cereal|muesli|avena|civada|galet|melmelada|mermelada|mel\b|miel|nutella|nocilla|colacao|nesquik/i.test(n)) return "Esmorzar";
+      if (/(?:^|\s)(?:te|té)(?:\s|$)|caf[eè]|infusi|cereal|muesli|avena|civada|galet|melmelada|mermelada|\bmel\b|miel|nutella|nocilla|colacao|nesquik/i.test(n)) return "Esmorzar";
       if (/pa\b|pan\b|croissant|brioix|magdalena|torrada|tostada|ensaimada/i.test(n)) return "Forn";
       if (/paper d'alumini|papel aluminio|film|paper forn|tupper|carmanyola|tovalló|servilleta/i.test(n)) return "Cuina";
       if (/sal\b|pebre|pimienta|llorer|laurel|orenga|or[eé]gano|roman[ií]|romero|farigola|tomillo|canyella|canela|curri|curry|com[ií]|piment[oó]|safr[àa]/i.test(n)) return "Espècies";
@@ -1090,7 +1126,8 @@
         const pendingCount = items.filter(it => !it.crossed_off && (store.id === "all" || it.store === store.id)).length;
 
         return `
-          <button onclick="setStoreFilter('${store.id}')" 
+          <button data-store-id="${store.id}" 
+                  onclick="setStoreFilter('${store.id}')" 
                   class="px-2.5 py-1 rounded-full font-medium transition flex items-center gap-1.5 flex-shrink-0 ${isActive
             ? 'bg-white text-emerald-800 shadow-sm font-bold'
             : 'bg-emerald-800/80 text-emerald-100 hover:bg-emerald-600'
@@ -1114,6 +1151,49 @@
       `;
 
       container.innerHTML = html;
+    }
+
+    function scrollStoreTabs(amount) {
+      const container = document.getElementById("store-tabs");
+      if (container) {
+        container.scrollBy({ left: amount, behavior: "smooth" });
+      }
+    }
+
+    function initStoreTabsDesktopScroll() {
+      const container = document.getElementById("store-tabs");
+      if (!container) return;
+
+      // Desplaçament horitzontal directe amb la roda del ratolí a PC
+      container.addEventListener("wheel", (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          container.scrollLeft += (e.deltaY * 1.5);
+        }
+      }, { passive: false });
+
+      // Arrossegar (drag-to-scroll) amb el ratolí
+      let isDown = false;
+      let startX = 0;
+      let scrollLeftPos = 0;
+
+      container.addEventListener("mousedown", (e) => {
+        isDown = true;
+        startX = e.pageX - container.offsetLeft;
+        scrollLeftPos = container.scrollLeft;
+      });
+
+      window.addEventListener("mouseup", () => {
+        isDown = false;
+      });
+
+      container.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        container.scrollLeft = scrollLeftPos - walk;
+      });
     }
 
     function promptCreateNewStore() {
@@ -1175,6 +1255,11 @@
       saveToLocalStorage();
       renderStoreTabs();
       renderLists();
+
+      const activeBtn = document.querySelector(`[data-store-id="${storeId}"]`);
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
     }
 
     function toggleGrouping() {
@@ -1757,8 +1842,14 @@
                 it.store = "marroqui";
                 hadMigration = true;
               }
-              if ((it.store === "mercadona" || it.store === "caprabo") && /portell|reserva 2019/i.test(lower)) {
-                it.store = "bodega";
+              // Vi Portell pertany a Caprabo (és l'únic lloc on el troben)
+              if (/portell/i.test(lower)) {
+                it.store = "caprabo";
+                hadMigration = true;
+              }
+              // Correcció de cosmètics/farmàcia erròniament a Esmorzar
+              if (it.category === "Esmorzar" && /esmalte|quitaesmalte|reafirmante|corporal/i.test(lower)) {
+                it.category = "Perfumeria";
                 hadMigration = true;
               }
             });
@@ -2058,18 +2149,25 @@
           if (!finalName) return;
 
           const rawCat = (it.category || "").toLowerCase().trim();
-          const finalCat = OG_CAT_MAP[rawCat] || detectSemanticCategory(finalName) || "General";
+          let finalCat = OG_CAT_MAP[rawCat] || detectSemanticCategory(finalName) || "General";
+          if (finalCat === "Esmorzar" && /esmalte|quitaesmalte|reafirmante|corporal/i.test(finalName)) {
+            finalCat = "Perfumeria";
+          }
+          let itemStore = targetStore;
+          if (/portell/i.test(finalName)) {
+            itemStore = "caprabo";
+          }
           const isCrossed = it.crossed_off === true;
           const note = (it.note || "").trim();
           const photo = (it.photo_url || "").trim();
 
-          const dedupKey = `${targetStore}::${finalName.toLowerCase()}`;
+          const dedupKey = `${itemStore}::${finalName.toLowerCase()}`;
 
           if (!seenMap.has(dedupKey)) {
             seenMap.set(dedupKey, {
               id: "og_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
               name: finalName,
-              store: targetStore,
+              store: itemStore,
               category: finalCat,
               qty: "1",
               unit: "ud",
@@ -2157,8 +2255,11 @@
         if (it.store === "bazar" && /cardamomo|azahar|guindilla fresca|pasta curry/i.test(lower)) {
           it.store = "marroqui";
         }
-        if ((it.store === "mercadona" || it.store === "caprabo") && /portell|reserva 2019/i.test(lower)) {
-          it.store = "bodega";
+        if (/portell/i.test(lower)) {
+          it.store = "caprabo";
+        }
+        if (it.category === "Esmorzar" && /esmalte|quitaesmalte|reafirmante|corporal/i.test(lower)) {
+          it.category = "Perfumeria";
         }
 
         // Buscar si ja tenim un article igual o similar a la mateixa botiga
@@ -2313,6 +2414,7 @@
       updateLangLabels();
       populateSelectOptions();
       renderStoreTabs();
+      initStoreTabsDesktopScroll();
       renderLists();
 
       if (isRunningStandalone()) {
