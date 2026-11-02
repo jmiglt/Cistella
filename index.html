@@ -852,7 +852,36 @@
       if (!str) return "";
       let s = str.trim();
       s = s.replace(/^(P\d+|0\d+)[\.\-\s:]+\s*/i, '');
+      s = s.replace(/^\d+[\.\-:]\s*/i, '');
       return s.trim();
+    }
+
+    // Comparador intel·ligent de noms de producte (tolerant a l'ordre de paraules, plurals i accents)
+    function areProductNamesSimilar(nameA, nameB) {
+      if (!nameA || !nameB) return false;
+      const a = cleanName(nameA).toLowerCase().trim();
+      const b = cleanName(nameB).toLowerCase().trim();
+      if (a === b) return true;
+
+      // Treure accents i normalitzar
+      const normA = a.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const normB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (normA === normB) return true;
+
+      // Comparar conjunts de paraules ordenats (ex: "vino cocina blanco" vs "vino blanco cocina")
+      const wordsA = normA.split(/\s+/).filter(w => w.length > 1).sort().join(" ");
+      const wordsB = normB.split(/\s+/).filter(w => w.length > 1).sort().join(" ");
+      if (wordsA === wordsB) return true;
+
+      // Coincidència de subcadena de paraules significatives (per exemple "vino cocina" dins "vino cocina blanco")
+      const setA = new Set(normA.split(/\s+/).filter(w => w.length > 2));
+      const setB = new Set(normB.split(/\s+/).filter(w => w.length > 2));
+      const intersection = [...setA].filter(x => setB.has(x));
+      if (intersection.length >= 2 && (intersection.length === setA.size || intersection.length === setB.size)) {
+        return true;
+      }
+
+      return false;
     }
 
     function detectSemanticCategory(name) {
@@ -889,24 +918,33 @@
     function processVoiceSentence(sentence) {
       const parsed = parseProductInput(sentence);
       const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
-      const normalizedTarget = cleanName(parsed.name).toLowerCase();
 
-      // Comprovar si ja existeix aquest producte a la botiga de destí
-      const existingIndex = items.findIndex(it => 
+      // Comprovar si ja existeix aquest producte o un de similar
+      // 1r intent: a la botiga sol·licitada
+      let existingIndex = items.findIndex(it => 
         (it.store === targetStore || targetStore === "all" || it.store === "all") &&
-        cleanName(it.name).toLowerCase() === normalizedTarget
+        areProductNamesSimilar(it.name, parsed.name)
       );
+
+      // 2n intent: si no es troba a la botiga de destí però existeix a una altra botiga
+      if (existingIndex === -1) {
+        existingIndex = items.findIndex(it => areProductNamesSimilar(it.name, parsed.name));
+      }
 
       if (existingIndex !== -1) {
         const existingItem = items[existingIndex];
+        // Si la veu ha especificat expressament una botiga, assignem-li
+        if (parsed.store && existingItem.store !== targetStore) {
+          existingItem.store = targetStore;
+        }
+
         if (existingItem.crossed_off) {
-          // Si ja estava a la llista però ratllat (comprat), el recuperem a pendents dalt de tot!
+          // Si estava ratllat (comprat), el reactivem a pendents dalt de tot!
           existingItem.crossed_off = false;
           if (parsed.qty && parsed.qty !== "1") {
             existingItem.qty = parsed.qty;
             existingItem.unit = parsed.unit;
           }
-          existingItem.note = `Reactivat per veu: "${sentence}"`;
           items.splice(existingIndex, 1);
           items.unshift(existingItem);
           saveToLocalStorage();
@@ -915,12 +953,11 @@
           showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
           return;
         } else {
-          // Si ja és a pendents, actualitzem quantitat i nota, sense duplicar
+          // Si ja és a pendents, actualitzem quantitat sense duplicar ni embrutar la nota
           if (parsed.qty && parsed.qty !== "1") {
             existingItem.qty = parsed.qty;
             existingItem.unit = parsed.unit;
           }
-          existingItem.note = `Actualitzat per veu: "${sentence}"`;
           saveToLocalStorage();
           renderLists();
           showToast(`Ja és a la llista: ${existingItem.name}`, "fa-circle-check");
@@ -936,7 +973,7 @@
         qty: parsed.qty,
         unit: parsed.unit,
         price: 0.0,
-        note: `Afegit per veu: "${sentence}"`,
+        note: "",
         photo: "",
         crossed_off: false
       };
@@ -957,16 +994,23 @@
 
       const parsed = parseProductInput(val);
       const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
-      const normalizedTarget = cleanName(parsed.name).toLowerCase();
 
-      // Comprovar si ja existeix aquest producte
-      const existingIndex = items.findIndex(it => 
+      // Comprovar si ja existeix aquest producte o un de similar
+      let existingIndex = items.findIndex(it => 
         (it.store === targetStore || targetStore === "all" || it.store === "all") &&
-        cleanName(it.name).toLowerCase() === normalizedTarget
+        areProductNamesSimilar(it.name, parsed.name)
       );
+
+      if (existingIndex === -1 && parsed.store) {
+        existingIndex = items.findIndex(it => areProductNamesSimilar(it.name, parsed.name));
+      }
 
       if (existingIndex !== -1) {
         const existingItem = items[existingIndex];
+        if (parsed.store && existingItem.store !== targetStore) {
+          existingItem.store = targetStore;
+        }
+
         if (existingItem.crossed_off) {
           existingItem.crossed_off = false;
           if (parsed.qty && parsed.qty !== "1") {
@@ -1013,7 +1057,8 @@
       renderLists();
       renderStoreTabs();
 
-      showToast(`Afegit: ${parsed.name}`, "fa-check");
+      const storeObj = STORES.find(s => s.id === targetStore);
+      showToast(`Afegit: ${parsed.name} (${storeObj ? storeObj.name : targetStore})`, "fa-plus");
     }
 
     // ==========================================
@@ -1194,36 +1239,39 @@
       const catIcon = CATEGORY_ICONS[item.category] || "fa-basket-shopping";
       const totalItemPrice = (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
 
-      // Només mostrem la botiga si som a la vista general "Totes"
+      // Només mostrem la botiga si som a la vista general "Totes" (a una botiga específica ja se sap)
       const showStore = !isSpecificStore;
       // Només mostrem la categoria si NO està ja sota la capçalera d'aquesta categoria
       const showCategory = !isCategorized;
-      const hasSubtitle = showStore || showCategory || (item.note && item.note.trim() !== "");
+      const hasNote = Boolean(item.note && item.note.trim() !== "");
+      const hasSubtitle = showStore || showCategory || hasNote;
 
       return `
         <div onclick="toggleItemCheck('${item.id}')"
-             class="flex items-center justify-between pl-0 pr-2 py-1 rounded-xl border transition-all duration-150 active:scale-[0.985] select-none cursor-pointer w-full overflow-hidden ${
+             class="flex items-stretch justify-between p-0 pr-2 sm:pr-2.5 rounded-xl border transition-all duration-150 active:scale-[0.985] select-none cursor-pointer w-full overflow-hidden ${
+               hasSubtitle ? 'min-h-[42px]' : 'h-10 sm:h-11'
+             } ${
                isCrossed
                  ? 'bg-gray-100/70 border-gray-200/80 opacity-60'
                  : 'bg-white border-gray-200/90 shadow-2xs hover:border-emerald-300'
              }">
-          <!-- ESQUERRA: FOTO A ALÇADA COMPLETA O ICONA COMPACTA -->
-          <div class="flex items-center space-x-2.5 flex-1 min-w-0 mr-1.5">
+          <!-- ESQUERRA: FOTO A ALÇADA TOTAL DE LA CARD O ICONA A ALÇADA TOTAL -->
+          <div class="flex items-center flex-1 min-w-0 mr-1.5">
             ${item.photo
-              ? `<div class="w-11 self-stretch min-h-[38px] max-h-[46px] bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+              ? `<div class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center">
                    <img src="${item.photo}" class="w-full h-full object-cover">
                  </div>`
-              : `<div class="w-8 h-8 ml-2 rounded-lg ${
-                   isCrossed ? 'bg-gray-200 text-gray-400' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-                 } flex items-center justify-center flex-shrink-0 text-xs">
+              : `<div class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
+                   isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60'
+                 } flex items-center justify-center text-xs">
                    <i class="fa-solid ${catIcon}"></i>
                  </div>`
             }
 
-            <!-- CENTRE: NOM + DETALLS -->
-            <div class="flex-1 min-w-0 ${hasSubtitle ? 'py-0.5' : 'py-1'}">
-              <div class="flex items-center gap-1.5 leading-tight">
-                <span class="font-bold text-sm sm:text-[15px] truncate ${
+            <!-- CENTRE: NOM + DETALLS (COMPACTE I SENSE DUPLICATS) -->
+            <div class="flex-1 min-w-0 pl-2.5 py-1 flex flex-col justify-center">
+              <div class="flex items-center gap-1.5 leading-snug">
+                <span class="font-bold text-sm truncate ${
                   isCrossed ? 'line-through-gray text-gray-400 font-medium' : 'text-gray-900'
                 }">
                   ${item.name}
@@ -1233,24 +1281,24 @@
                       isCrossed ? 'text-gray-400 bg-gray-200/70' : 'text-emerald-800 bg-emerald-100/80'
                     } px-1.5 py-0.2 rounded-md flex-shrink-0">x${item.qty} ${item.unit || ''}</span>`
                   : ''}
-                ${item.note && !hasSubtitle
+                ${hasNote && !hasSubtitle
                   ? `<i class="fa-regular fa-note-sticky text-amber-500 text-[11px]" title="${item.note}"></i>`
                   : ''}
               </div>
 
               ${hasSubtitle ? `
-                <div class="flex items-center space-x-1.5 text-[10px] sm:text-[11px] text-gray-400 truncate mt-0.5 font-medium leading-none">
+                <div class="flex items-center space-x-1.5 text-[10px] sm:text-[10.5px] text-gray-400 truncate mt-0.5 font-medium leading-none">
                   ${showStore ? `<span class="${storeObj.badgeText || 'text-gray-600'} font-semibold">${storeObj.name}</span>` : ''}
                   ${showStore && showCategory ? `<span>•</span>` : ''}
                   ${showCategory ? `<span class="truncate">${item.category}</span>` : ''}
-                  ${item.note ? `<span>• <i class="fa-regular fa-note-sticky text-amber-500" title="${item.note}"></i></span>` : ''}
+                  ${hasNote ? `<span>• <i class="fa-regular fa-note-sticky text-amber-500 text-[10px]"></i> <span class="italic text-gray-500 truncate max-w-[140px] inline-block align-bottom">${item.note}</span></span>` : ''}
                 </div>
               ` : ''}
             </div>
           </div>
 
           <!-- DRETA: PREU I BOTÓ EDITAR -->
-          <div class="flex items-center space-x-1 flex-shrink-0">
+          <div class="flex items-center space-x-1 flex-shrink-0 py-1 pl-1">
             ${totalItemPrice > 0
               ? `<span class="text-xs sm:text-sm font-bold ${isCrossed ? 'text-gray-400 line-through' : 'text-gray-800'} mr-0.5">${totalItemPrice.toFixed(2)} €</span>`
               : ''}
@@ -1957,28 +2005,34 @@
 
     function cleanTestListDuplicates() {
       const initialCount = items.length;
-      const seen = new Set();
       const cleaned = [];
 
       items.forEach(it => {
         // Normalitzar el nom per netejar números de passadís (ex: '03 Detergent' -> 'Detergent')
         it.name = cleanName(it.name || "");
-        const normName = it.name.toLowerCase();
-        if (!normName) return;
+        if (!it.name) return;
 
-        const key = `${it.store}::${normName}`;
-        if (seen.has(key)) {
-          // Si ja tenim aquest article a la botiga, si un estava actiu (pendent), mantenir-lo actiu
-          const existing = cleaned.find(x => `${x.store}::${(x.name || "").toLowerCase()}` === key);
-          if (existing && it.crossed_off === false) {
+        // Netejar notes residuals tipus "Afegit per veu..."
+        if (it.note && it.note.startsWith("Afegit per veu")) {
+          it.note = "";
+        }
+
+        // Buscar si ja tenim un article igual o similar a la mateixa botiga
+        const existing = cleaned.find(x => x.store === it.store && areProductNamesSimilar(x.name, it.name));
+        if (existing) {
+          // Si un dels dos estava pendent, mantenim-lo pendent
+          if (it.crossed_off === false) {
             existing.crossed_off = false;
           }
-          if (existing && !existing.note && it.note) existing.note = it.note;
-          if (existing && !existing.photo && it.photo) existing.photo = it.photo;
+          if (it.qty && it.qty !== "1" && (!existing.qty || existing.qty === "1")) {
+            existing.qty = it.qty;
+            existing.unit = it.unit;
+          }
+          if (!existing.note && it.note) existing.note = it.note;
+          if (!existing.photo && it.photo) existing.photo = it.photo;
           return;
         }
 
-        seen.add(key);
         cleaned.push(it);
       });
 
