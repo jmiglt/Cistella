@@ -675,12 +675,38 @@
       </div>
 
       <!-- PAS 2: RESULTATS DETECTATS I CONFIRMACIÓ -->
-      <div id="receipt-step-results" class="hidden flex-1 overflow-y-auto space-y-2 max-h-[55vh] flex flex-col">
+      <div id="receipt-step-results" class="hidden flex-1 overflow-y-auto space-y-2.5 max-h-[60vh] flex flex-col">
+        
+        <!-- RESUM I CONTROLS DE SELECCIÓ -->
         <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 flex items-center justify-between text-xs">
           <span class="font-semibold text-emerald-900" id="receipt-found-count">0 preus detectats</span>
-          <button onclick="selectAllReceiptMatches(true)" class="text-[11px] font-bold text-emerald-700 hover:underline">Marcar tots</button>
+          <div class="flex gap-2">
+            <button onclick="selectAllReceiptMatches(true)" class="text-[11px] font-bold text-emerald-700 hover:underline">Tots</button>
+            <span class="text-gray-300">•</span>
+            <button onclick="selectAllReceiptMatches(false)" class="text-[11px] font-medium text-gray-500 hover:underline">Cap</button>
+          </div>
         </div>
 
+        <!-- ACORDIÓ TRANSPARENT: VEURE EL TEXT EXACTE QUE HA DETECTAT L'OCR -->
+        <details id="receipt-raw-details" class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs">
+          <summary class="font-semibold text-gray-700 cursor-pointer flex items-center justify-between">
+            <span class="flex items-center gap-1.5 text-emerald-800">
+              <i class="fa-solid fa-align-left text-emerald-600"></i> Veure text detectat per l'escàner
+            </span>
+            <span class="text-[10px] text-gray-400">Toca per obrir / editar</span>
+          </summary>
+          <div class="mt-2 space-y-1.5 pt-1 border-t border-gray-200">
+            <p class="text-[10px] text-gray-500">Pots revisar o corregir el text extret directament:</p>
+            <textarea id="receipt-detected-raw-text" rows="5"
+              class="w-full text-xs font-mono border border-gray-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none"></textarea>
+            <button onclick="reprocessRawReceiptText()"
+              class="w-full py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold rounded-lg text-xs transition flex items-center justify-center gap-1">
+              <i class="fa-solid fa-rotate"></i> Reanalitzar aquest text
+            </button>
+          </div>
+        </details>
+
+        <!-- LLISTA D'ARTICLES DETECTATS -->
         <div id="receipt-matches-list" class="space-y-1.5 divide-y divide-gray-100">
           <!-- Injecció dinàmica de línies de producte i preus -->
         </div>
@@ -2537,9 +2563,10 @@
 
 
     // ==========================================
-    // EXTRACCIÓ DE PREUS DE TIQUET DE COMPRA (OCR)
+    // EXTRACCIÓ DE PREUS DE TIQUET DE COMPRA (OCR MILLORAT)
     // ==========================================
     let detectedReceiptItems = [];
+    let lastExtractedRawText = "";
 
     function openReceiptScannerModal() {
       const modal = document.getElementById("receipt-scanner-modal");
@@ -2566,7 +2593,10 @@
       document.getElementById("receipt-camera-input").value = "";
       document.getElementById("receipt-file-input").value = "";
       document.getElementById("receipt-raw-text").value = "";
+      const rawDetails = document.getElementById("receipt-raw-details");
+      if (rawDetails) rawDetails.removeAttribute("open");
       detectedReceiptItems = [];
+      lastExtractedRawText = "";
     }
 
     function loadTesseract() {
@@ -2575,8 +2605,67 @@
         const script = document.createElement("script");
         script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
         script.onload = () => resolve(window.Tesseract);
-        script.onerror = () => reject(new Error("No s'ha pogut carregar Tesseract.js. Revisa la connexió a internet."));
+        script.onerror = () => reject(new Error("No s'ha pogut carregar el motor OCR. Revisa la connexió a internet."));
         document.head.appendChild(script);
+      });
+    }
+
+    // Preprocessament de la imatge: redueix resolucions gegants de mòbils a ~1500px i augmenta el contrast
+    function preprocessReceiptImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onerror = reject;
+          img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            const maxDim = 1500;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+
+            // Fons blanc
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+
+            // Filtre d'escala de grisos i realçament de contrast per facilitar la lectura del text
+            try {
+              const imgData = ctx.getImageData(0, 0, w, h);
+              const d = imgData.data;
+              const contrastFactor = 1.3; // Augment moderat de contrast
+              const factor = (259 * (contrastFactor * 255 + 255)) / (255 * (259 - contrastFactor * 255));
+
+              for (let i = 0; i < d.length; i += 4) {
+                const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+                const adjusted = Math.min(255, Math.max(0, factor * (gray - 128) + 128));
+                d[i] = adjusted;
+                d[i + 1] = adjusted;
+                d[i + 2] = adjusted;
+              }
+              ctx.putImageData(imgData, 0, 0);
+            } catch (filterErr) {
+              console.warn("Filtre de contrast no aplicat:", filterErr);
+            }
+
+            resolve(canvas);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
       });
     }
 
@@ -2590,25 +2679,47 @@
       const progressBar = document.getElementById("receipt-progress-bar");
 
       try {
-        statusText.innerText = "Carregant motor de reconeixement òptic...";
-        progressBar.style.width = "20%";
+        statusText.innerText = "Optimizant mida i contrast de la imatge...";
+        progressBar.style.width = "15%";
+
+        const processedCanvas = await preprocessReceiptImage(file);
+
+        statusText.innerText = "Inicialitzant motor OCR...";
+        progressBar.style.width = "30%";
         const Tesseract = await loadTesseract();
 
-        statusText.innerText = "Llegint tiquet i detectant preus...";
+        statusText.innerText = "Llegint tiquet... (0%)";
         progressBar.style.width = "40%";
 
-        const result = await Tesseract.recognize(file, 'cat+spa', {
-          logger: m => {
-            if (m.status === 'recognizing text' && m.progress) {
-              const pct = Math.round(m.progress * 100);
-              progressBar.style.width = `${Math.max(40, pct)}%`;
-              statusText.innerText = `Analitzant text del tiquet... ${pct}%`;
+        let result;
+        try {
+          // Intentem amb model espanyol
+          result = await Tesseract.recognize(processedCanvas, 'spa', {
+            logger: m => {
+              if (m.status === 'recognizing text' && m.progress !== undefined) {
+                const pct = Math.round(m.progress * 100);
+                progressBar.style.width = `${Math.max(40, pct)}%`;
+                statusText.innerText = `Llegint caràcters del tiquet... ${pct}%`;
+              }
             }
-          }
-        });
+          });
+        } catch (langErr) {
+          console.warn("Error amb model spa, intentant amb model bàsic eng:", langErr);
+          result = await Tesseract.recognize(processedCanvas, 'eng', {
+            logger: m => {
+              if (m.status === 'recognizing text' && m.progress !== undefined) {
+                const pct = Math.round(m.progress * 100);
+                progressBar.style.width = `${Math.max(40, pct)}%`;
+                statusText.innerText = `Llegint caràcters del tiquet... ${pct}%`;
+              }
+            }
+          });
+        }
 
         progressBar.style.width = "100%";
         const extractedText = (result && result.data && result.data.text) ? result.data.text : "";
+        lastExtractedRawText = extractedText;
+
         processReceiptText(extractedText);
       } catch (err) {
         console.error("Error OCR tiquet:", err);
@@ -2617,37 +2728,49 @@
       }
     }
 
+    function reprocessRawReceiptText() {
+      const text = document.getElementById("receipt-detected-raw-text").value;
+      processReceiptText(text);
+    }
+
     function processReceiptText(rawText) {
-      if (!rawText || !rawText.trim()) {
-        alert("No s'ha pogut detectar cap text al tiquet. Prova amb una altra foto més clara.");
-        resetReceiptScanner();
-        return;
-      }
+      lastExtractedRawText = rawText || "";
+      const rawTextarea = document.getElementById("receipt-detected-raw-text");
+      if (rawTextarea) rawTextarea.value = lastExtractedRawText;
 
       const storeId = document.getElementById("receipt-store-select").value || "mercadona";
-      const lines = rawText.split(/\r?\n/);
+      const lines = (rawText || "").split(/\r?\n/);
       const matches = [];
 
       // Filtres de línies no pertinents de tiquets
-      const ignoreRegex = /total|subtotal|iva|base|impuesto|tarjeta|visa|mastercard|caja|cajero|fecha|ticket|factura|nif|cif|gracias|visita|atendido|cambio|efectivo|euros|eur|descuento|dto/i;
+      const ignoreRegex = /total|subtotal|iva|base|impuesto|tarjeta|visa|mastercard|caja|cajero|fecha|ticket|factura|nif|cif|gracias|visita|atendido|cambio|efectivo|euros|eur|descuento|dto|supermercado|mercadona|bonpreu|caprabo|carrefour|dia|lidl|alcampo/i;
 
       lines.forEach(line => {
         const cleanLine = line.trim();
-        if (cleanLine.length < 4 || ignoreRegex.test(cleanLine)) return;
+        if (cleanLine.length < 3 || ignoreRegex.test(cleanLine)) return;
 
-        // Expressió regular per a imports de preu (ex: 2.45, 1,99, 12.00€)
-        const priceMatch = cleanLine.match(/(\d{1,3}[\.,]\d{2})\s*(?:€|eur)?(?:\s|$)/i);
-        if (priceMatch) {
-          const rawPriceStr = priceMatch[1].replace(',', '.');
+        // Expressió regular flexible per trobar preus
+        // Busca imports típics: números seguits de coma/punt i 2 decimals, possiblement seguits de tipus d'IVA (ex: 1,19 B, 2.45 A, 0,85€)
+        const priceRegex = /(\d{1,3}[\.,]\d{2})(?:\s*[a-zA-Z%€])?(?:\s*$|\s+)/g;
+        let lastMatch = null;
+        let m;
+
+        while ((m = priceRegex.exec(cleanLine)) !== null) {
+          lastMatch = m;
+        }
+
+        if (lastMatch) {
+          const rawPriceStr = lastMatch[1].replace(',', '.');
           const priceVal = parseFloat(rawPriceStr);
 
-          // El nom del producte és la part anterior al preu
-          let rawProdName = cleanLine.substring(0, priceMatch.index).trim();
-          // Netejar quantitats inicials com "1 ", "2x ", etc.
+          // El nom del producte és tot el que hi ha abans del preu
+          let rawProdName = cleanLine.substring(0, lastMatch.index).trim();
+          // Netejar quantitats inicials com "1 ", "2x ", "01 ", etc.
           rawProdName = rawProdName.replace(/^(\d+[xX\*\s]+)/, '').replace(/^[\d\.\-\s]+/, '').trim();
+          // Eliminar codis de barres o números de 8-13 dígits
+          rawProdName = rawProdName.replace(/\b\d{8,14}\b/g, '').trim();
 
-          if (rawProdName.length >= 3 && priceVal > 0 && priceVal < 500) {
-            // Cercar millor coincidència a la nostra llista
+          if (rawProdName.length >= 2 && priceVal > 0.05 && priceVal < 500) {
             const matchedItem = findBestMatchingItem(rawProdName, storeId);
             matches.push({
               rawName: rawProdName,
@@ -2659,14 +2782,16 @@
         }
       });
 
-      if (matches.length === 0) {
-        alert("No s'han trobat línies de producte amb preu vàlid al tiquet. Pots enganxar el text a la secció inferior.");
-        resetReceiptScanner();
-        return;
-      }
-
       detectedReceiptItems = matches;
       renderReceiptMatches(matches);
+
+      // Si no ha detectat cap preu automàticament, obrim directament l'acordió perquè l'usuari vegi què s'ha llegit
+      const rawDetails = document.getElementById("receipt-raw-details");
+      if (rawDetails) {
+        if (matches.length === 0) {
+          rawDetails.setAttribute("open", "true");
+        }
+      }
     }
 
     function findBestMatchingItem(receiptName, storeId) {
@@ -2689,9 +2814,21 @@
       resultsDiv.classList.remove("hidden");
 
       const countEl = document.getElementById("receipt-found-count");
-      countEl.innerText = `${matches.length} línies de preu detectades`;
+      countEl.innerText = matches.length > 0 
+        ? `${matches.length} articles amb preu detectats` 
+        : `0 preus detectats automàticament`;
 
       const listContainer = document.getElementById("receipt-matches-list");
+      if (matches.length === 0) {
+        listContainer.innerHTML = `
+          <div class="p-3 text-center bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 space-y-1">
+            <p class="font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i> No s'han detectat línies amb preu automàticament.</p>
+            <p class="text-[11px] text-amber-700">Pots obrir el text extret a dalt per revisar-lo o escriure el nom i preu directament.</p>
+          </div>
+        `;
+        return;
+      }
+
       listContainer.innerHTML = matches.map((m, idx) => {
         const item = m.matchedItem;
         const prevPrice = item && item.price ? Number(item.price).toFixed(2) + " €" : "Cap";
@@ -2711,7 +2848,7 @@
                     <span class="text-gray-400">(Abans: ${prevPrice})</span>
                   </p>
                 ` : `
-                  <p class="text-[10px] text-amber-700 italic">No trobat a la llista (es pot afegir nou)</p>
+                  <p class="text-[10px] text-amber-700 italic">No trobat a la llista (es pot afegir com a nou)</p>
                 `}
               </div>
             </div>
@@ -2773,7 +2910,7 @@
           }
           updatedCount++;
         } else {
-          // Opcionalment afegir nou si estava marcat
+          // Afegir nou article si estava marcat
           const newItem = {
             id: "p_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
             name: m.rawName,
@@ -2805,7 +2942,7 @@
       }
     }
 
-      function populateSelectOptions() {
+    function populateSelectOptions() {
         const storeSelect = document.getElementById("edit-store");
         storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s =>
           `<option value="${s.id}">${s.name}</option>`
