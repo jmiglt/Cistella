@@ -214,10 +214,25 @@
   <div id="options-menu"
     class="hidden absolute top-12 right-3 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 w-52 py-1.5 text-xs text-gray-700 divide-y divide-gray-100">
     <div class="px-3 py-2 font-semibold text-gray-500 text-[10px] uppercase">Opcions de llista</div>
-    <button onclick="promptCreateNewStore(); toggleOptionsMenu();"
+    <button onclick="openManageStoresModal(); toggleOptionsMenu();"
       class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-800 font-semibold flex items-center justify-between">
+      <span>Gestionar llistes / botigues</span>
+      <i class="fa-solid fa-list-check text-emerald-600"></i>
+    </button>
+    <button onclick="promptCreateNewStore(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700 flex items-center justify-between">
       <span>+ Nova llista / botiga</span>
       <i class="fa-solid fa-folder-plus text-emerald-600"></i>
+    </button>
+    <button onclick="cycleStoreSortMode(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700 flex items-center justify-between">
+      <span id="menu-store-sort-label">Ordre llistes: Pendents 1r</span>
+      <i class="fa-solid fa-arrow-down-wide-short text-emerald-600"></i>
+    </button>
+    <button onclick="toggleCheckMode(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700 flex items-center justify-between">
+      <span id="menu-check-mode-label">Mode ratllar: Swipe</span>
+      <i class="fa-solid fa-hand-pointer text-emerald-600"></i>
     </button>
     <button onclick="toggleGrouping(); toggleOptionsMenu();"
       class="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between">
@@ -277,6 +292,19 @@
 
   <!-- LLISTA PRINCIPAL COMPACTA D'ALTA DENSITAT (VERTICAL DE DALT A BAIX) -->
   <main class="flex-1 overflow-y-auto px-2 py-2 space-y-3 pb-24 flex flex-col" id="main-scroll-area">
+
+    <!-- BARRA DE CERCA I FILTRATGE RÀPID -->
+    <div class="px-0.5 pt-0.5 pb-1">
+      <div class="relative flex items-center">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 text-gray-400 text-xs pointer-events-none"></i>
+        <input type="search" id="list-search-input" oninput="handleSearchFilter(this.value)" onkeydown="handleSearchKeydown(event)"
+          placeholder="Cercar article a la llista (prem Enter per anar-hi)..."
+          class="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-8 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 shadow-2xs">
+        <button id="search-clear-btn" onclick="clearSearchFilter()" class="hidden absolute right-2.5 text-gray-400 hover:text-gray-600 p-0.5" title="Netejar cerca">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+    </div>
 
     <!-- PENDENTS -->
     <section class="w-full flex flex-col">
@@ -467,6 +495,19 @@
           class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none resize-y min-h-[90px] max-h-[300px] leading-relaxed"></textarea>
       </div>
 
+      <!-- HISTÒRIC DE PREUS (ÚLTIMS 6-7 PREUS PER BOTIGA) -->
+      <div class="bg-gray-50 rounded-xl p-2.5 border border-gray-200/80">
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="font-semibold text-gray-700 text-[11px] flex items-center gap-1">
+            <i class="fa-solid fa-chart-line text-emerald-600"></i> Històric de preus
+          </label>
+          <span class="text-[10px] text-gray-400">Últims 6-7 registres</span>
+        </div>
+        <div id="edit-price-history-container" class="space-y-1">
+          <!-- Injecció dinàmica de l'històric -->
+        </div>
+      </div>
+
       <!-- ACCIONS -->
       <div class="pt-2 flex gap-2">
         <button type="button" onclick="deleteCurrentProduct()"
@@ -479,6 +520,53 @@
         </button>
       </div>
     </form>
+  </div>
+
+  <!-- MODAL DE GESTIÓ DE LLISTES / BOTIGUES -->
+  <div id="manage-stores-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col">
+      <!-- CAPÇALERA -->
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-store text-emerald-600 text-lg"></i>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900">Gestionar llistes i botigues</h3>
+            <p class="text-[11px] text-gray-500">Edita noms, elimina o reordena llistes</p>
+          </div>
+        </div>
+        <button onclick="closeManageStoresModal()" class="text-gray-400 hover:text-gray-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- CRITERI D'ORDRE -->
+      <div class="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold text-emerald-900">Ordre de les pestanyes:</span>
+        <select id="store-sort-mode-select" onchange="setStoreSortMode(this.value)"
+          class="text-xs bg-white border border-emerald-300 rounded-lg px-2 py-1 font-medium text-emerald-800 focus:outline-none">
+          <option value="active_first">Amb articles primer</option>
+          <option value="alphabetical">Alfabètic (A-Z)</option>
+          <option value="default">Ordre per defecte</option>
+        </select>
+      </div>
+
+      <!-- LLISTA DE BOTIGUES -->
+      <div id="manage-stores-list" class="flex-1 overflow-y-auto space-y-1 pr-1 divide-y divide-gray-100 max-h-[50vh]">
+        <!-- Renderització dinàmica -->
+      </div>
+
+      <!-- PEU / BOTÓ NOVA LLISTA -->
+      <div class="pt-2 border-t flex gap-2">
+        <button onclick="promptCreateNewStore()"
+          class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow">
+          <i class="fa-solid fa-plus"></i> Nova llista
+        </button>
+        <button onclick="closeManageStoresModal()"
+          class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold transition">
+          Tancar
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL INFORMATIU D'INSTAL·LACIÓ PWA -->
@@ -629,6 +717,10 @@
       { id: "bazar", name: "Bazar Xinès", online: false, color: "purple", badgeBg: "bg-purple-50", badgeText: "text-purple-700" },
       { id: "bodega", name: "Bodega", online: false, color: "rose", badgeBg: "bg-rose-50", badgeText: "text-rose-800" },
       { id: "marroqui", name: "Marroquí", online: false, color: "orange", badgeBg: "bg-amber-100", badgeText: "text-amber-800" },
+      { id: "esclat", name: "Esclat", online: true, color: "orange", badgeBg: "bg-orange-50", badgeText: "text-orange-700" },
+      { id: "forn", name: "Forn", online: false, color: "amber", badgeBg: "bg-amber-50", badgeText: "text-amber-800" },
+      { id: "pescaderia", name: "Peixateria", online: false, color: "blue", badgeBg: "bg-blue-50", badgeText: "text-blue-700" },
+      { id: "jane", name: "Jané", online: false, color: "teal", badgeBg: "bg-teal-50", badgeText: "text-teal-700" },
       { id: "bruno", name: "Bruno", online: false, color: "stone", badgeBg: "bg-stone-100", badgeText: "text-stone-700" }
     ];
 
@@ -678,6 +770,9 @@
     ];
 
     // ESTAT DE L'APLICACIÓ
+    const STORAGE_KEY_STORE_SORT = "cistella_store_sort_mode";
+    const STORAGE_KEY_CHECK_MODE = "cistella_check_mode";
+
     let items = [];
     let currentStoreFilter = "all";
     let groupByCategories = true;
@@ -688,6 +783,9 @@
     let isVoiceActive = false;
     let voiceRecognitionInstance = null;
     let deferredPrompt = null;
+    let storeSortMode = "active_first"; // "active_first" | "alphabetical" | "default"
+    let checkMode = "swipe"; // "swipe" | "click"
+    let searchQuery = "";
 
     // ==========================================
     // RECONEIXEMENT DE VEU AMB WEB SPEECH API
@@ -1114,15 +1212,74 @@
       showToast(`Afegit: ${parsed.name} (${storeObj ? storeObj.name : targetStore})`, "fa-plus");
     }
 
+
+    // ==========================================
+    // CERCA I FILTRATGE A LA LLISTA
+    // ==========================================
+    function handleSearchFilter(query) {
+      searchQuery = (query || "").trim();
+      const clearBtn = document.getElementById("search-clear-btn");
+      if (clearBtn) {
+        if (searchQuery) clearBtn.classList.remove("hidden");
+        else clearBtn.classList.add("hidden");
+      }
+      renderLists();
+    }
+
+    function clearSearchFilter() {
+      const input = document.getElementById("list-search-input");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+      handleSearchFilter("");
+    }
+
+    function handleSearchKeydown(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const firstMatch = document.querySelector("#pending-list .item-card, #completed-list .item-card");
+        if (firstMatch) {
+          firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+          firstMatch.classList.add("ring-4", "ring-emerald-500", "scale-[1.02]");
+          setTimeout(() => {
+            firstMatch.classList.remove("ring-4", "ring-emerald-500", "scale-[1.02]");
+          }, 1800);
+          showToast("Article trobat a la pantalla", "fa-crosshairs");
+        } else {
+          showToast("Cap article coincideix amb la cerca", "fa-magnifying-glass");
+        }
+      }
+    }
+
     // ==========================================
     // RENDERITZAT DE LA INTERFÍCIE (DENSITAT ALTA)
     // ==========================================
     function renderStoreTabs() {
       const container = document.getElementById("store-tabs");
 
-      let html = STORES.map(store => {
+      // Ordenació dinàmica de botigues: "all" sempre primera
+      const allStore = STORES.find(s => s.id === "all") || { id: "all", name: "Totes", color: "gray" };
+      let otherStores = STORES.filter(s => s.id !== "all");
+
+      if (storeSortMode === "active_first") {
+        otherStores.sort((a, b) => {
+          const countA = items.filter(it => !it.crossed_off && it.store === a.id).length;
+          const countB = items.filter(it => !it.crossed_off && it.store === b.id).length;
+          if (countA > 0 && countB === 0) return -1;
+          if (countB > 0 && countA === 0) return 1;
+          if (countA !== countB) return countB - countA; // més pendents primer
+          return a.name.localeCompare(b.name, 'ca');
+        });
+      } else if (storeSortMode === "alphabetical") {
+        otherStores.sort((a, b) => a.name.localeCompare(b.name, 'ca'));
+      }
+      // "default" manté l'ordre definit a STORES
+
+      const storesToRender = [allStore, ...otherStores];
+
+      let html = storesToRender.map(store => {
         const isActive = store.id === currentStoreFilter;
-        // Comptar pendents per botiga
         const pendingCount = items.filter(it => !it.crossed_off && (store.id === "all" || it.store === store.id)).length;
 
         return `
@@ -1140,13 +1297,13 @@
         `;
       }).join("");
 
-      // Botó per afegir llista o botiga nova ràpidament
+      // Botó de gestionar llistes i afegir llista
       html += `
-        <button onclick="promptCreateNewStore()" 
-                title="Crear nova llista o botiga"
+        <button onclick="openManageStoresModal()" 
+                title="Gestionar llistes i ordre"
                 class="px-2.5 py-1 rounded-full font-medium transition flex items-center gap-1 flex-shrink-0 bg-emerald-900/60 hover:bg-emerald-700 text-emerald-200 hover:text-white border border-emerald-700/50">
-          <i class="fa-solid fa-plus text-[10px]"></i>
-          <span>Nova llista</span>
+          <i class="fa-solid fa-gear text-[10px]"></i>
+          <span>Llistes</span>
         </button>
       `;
 
@@ -1305,12 +1462,79 @@
       }
     }
 
+
+    // ==========================================
+    // GESTIÓ D'HISTÒRIC DE PREUS I DETECCIÓ DE PREU ANTIC
+    // ==========================================
+    function isPriceStale(item) {
+      if (!item.price || parseFloat(item.price) <= 0) return false;
+      if (!item.price_date) return true; // Sense data registrada es considera antic
+      try {
+        const pDate = new Date(item.price_date);
+        // Si la data del preu és anterior al moment en què es va crear l'article
+        if (item.created_at && pDate < new Date(item.created_at)) {
+          return true;
+        }
+        // O si té més de 30 dies d'antiguitat
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        if (pDate.getTime() < thirtyDaysAgo) {
+          return true;
+        }
+      } catch (e) {
+        return true;
+      }
+      return false;
+    }
+
+    function promptQuickPriceUpdate(id) {
+      const it = items.find(x => x.id === id);
+      if (!it) return;
+      const currentPrice = it.price ? it.price.toString() : "";
+      const sObj = STORES.find(s => s.id === it.store) || { name: it.store };
+      const val = prompt(`Actualitzar preu per "${it.name}" (a ${sObj.name}):`, currentPrice);
+      if (val === null) return;
+      const parsed = parseFloat(val.replace(',', '.'));
+      if (isNaN(parsed) || parsed < 0) {
+        showToast("Preu no vàlid", "fa-triangle-exclamation");
+        return;
+      }
+
+      it.price = parsed;
+      it.price_date = new Date().toISOString();
+      if (!Array.isArray(it.price_history)) it.price_history = [];
+      it.price_history.unshift({
+        price: parsed,
+        store: it.store,
+        date: it.price_date
+      });
+      if (it.price_history.length > 7) {
+        it.price_history = it.price_history.slice(0, 7);
+      }
+      saveToLocalStorage();
+      renderLists();
+      showToast(`Preu actualitzat: ${parsed.toFixed(2)} €`, "fa-tag");
+    }
+
     function renderLists() {
       const pendingContainer = document.getElementById("pending-list");
       const completedContainer = document.getElementById("completed-list");
 
       // Filtrar per botiga activa
-      const filtered = items.filter(it => currentStoreFilter === "all" || it.store === currentStoreFilter);
+      let filtered = items.filter(it => currentStoreFilter === "all" || it.store === currentStoreFilter);
+
+      // Filtrar per cerca de text (nom, notes, categoria, botiga)
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        filtered = filtered.filter(it => {
+          const n = (it.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const note = (it.note || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const cat = (it.category || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const sObj = STORES.find(s => s.id === it.store);
+          const storeName = sObj ? sObj.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+          return n.includes(q) || note.includes(q) || cat.includes(q) || storeName.includes(q);
+        });
+      }
+
       const pending = filtered.filter(it => !it.crossed_off);
       const completed = filtered.filter(it => it.crossed_off);
 
@@ -1397,6 +1621,7 @@
       }
 
       updateCompletedCollapseUI();
+      initSwipeOnCards();
     }
 
     function createItemRowHTML(item, isCrossed, isCategorized = false) {
@@ -1404,6 +1629,7 @@
       const storeObj = STORES.find(s => s.id === item.store) || { name: item.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
       const catIcon = CATEGORY_ICONS[item.category] || "fa-basket-shopping";
       const totalItemPrice = (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
+      const isStale = isPriceStale(item);
 
       // Només mostrem la botiga si som a la vista general "Totes" (a una botiga específica ja se sap)
       const showStore = !isSpecificStore;
@@ -1412,24 +1638,28 @@
       const hasNote = Boolean(item.note && item.note.trim() !== "");
       const hasSubtitle = showStore || showCategory || hasNote;
 
+      // Mode de ratllar: si és "click", el clic global ratlla. Si és "swipe", el clic global obre l'edició
+      const cardClickAction = checkMode === "click" ? `toggleItemCheck('${item.id}')` : `openEditModal('${item.id}')`;
+
       return `
-        <div onclick="toggleItemCheck('${item.id}')"
-             class="flex items-stretch justify-between p-0 pr-2 sm:pr-2.5 rounded-xl border transition-all duration-150 active:scale-[0.985] select-none cursor-pointer w-full overflow-hidden ${
+        <div data-item-id="${item.id}"
+             onclick="${cardClickAction}"
+             class="item-card relative flex items-stretch justify-between p-0 pr-2 sm:pr-2.5 rounded-xl border transition-all duration-150 select-none cursor-pointer w-full overflow-hidden ${
                hasSubtitle ? 'min-h-[42px]' : 'h-10 sm:h-11'
              } ${
                isCrossed
                  ? 'bg-gray-100/70 border-gray-200/80 opacity-60'
                  : 'bg-white border-gray-200/90 shadow-2xs hover:border-emerald-300'
              }">
-          <!-- ESQUERRA: FOTO A ALÇADA TOTAL DE LA CARD O ICONA A ALÇADA TOTAL -->
-          <div class="flex items-center flex-1 min-w-0 mr-1.5">
+          <!-- ESQUERRA: FOTO O ICONA (Clic aquí sempre ratlla/desratlla directament com a drecera) -->
+          <div class="flex items-center flex-1 min-w-0 mr-1.5" onclick="event.stopPropagation(); ${checkMode === 'swipe' ? `toggleItemCheck('${item.id}')` : ''}">
             ${item.photo
-              ? `<div class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center">
+              ? `<div class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-pointer" title="Toca per ratllar">
                    <img src="${item.photo}" class="w-full h-full object-cover">
                  </div>`
               : `<div class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
                    isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60'
-                 } flex items-center justify-center text-xs">
+                 } flex items-center justify-center text-xs cursor-pointer" title="Toca per ratllar">
                    <i class="fa-solid ${catIcon}"></i>
                  </div>`
             }
@@ -1463,11 +1693,31 @@
             </div>
           </div>
 
-          <!-- DRETA: PREU I BOTÓ EDITAR -->
+          <!-- DRETA: PREU ACTUALITZABLE I BOTÓ EDITAR -->
           <div class="flex items-center space-x-1 flex-shrink-0 py-1 pl-1">
             ${totalItemPrice > 0
-              ? `<span class="text-xs sm:text-sm font-bold ${isCrossed ? 'text-gray-400 line-through' : 'text-gray-800'} mr-0.5">${totalItemPrice.toFixed(2)} €</span>`
-              : ''}
+              ? (isCrossed
+                  ? `<span class="text-xs sm:text-sm font-bold text-gray-400 line-through mr-0.5">${totalItemPrice.toFixed(2)} €</span>`
+                  : (isStale
+                      ? `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
+                                 title="Preu antic: fes clic per actualitzar"
+                                 class="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-700 text-xs font-medium mr-0.5 transition">
+                           <i class="fa-regular fa-clock text-[9px]"></i>
+                           <span>${totalItemPrice.toFixed(2)} €</span>
+                         </button>`
+                      : `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
+                                 title="Preu actualitzat: fes clic per modificar"
+                                 class="text-xs sm:text-sm font-bold text-gray-800 hover:text-emerald-700 mr-0.5 transition">
+                           ${totalItemPrice.toFixed(2)} €
+                         </button>`
+                    )
+                )
+              : `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
+                         title="Afegir preu"
+                         class="text-[10px] text-gray-300 hover:text-emerald-600 px-1 py-0.5 rounded transition">
+                   <i class="fa-solid fa-tag"></i>
+                 </button>`
+            }
             <button onclick="event.stopPropagation(); openEditModal('${item.id}')" 
                     title="Editar fitxa" 
                     class="text-gray-400 hover:text-emerald-700 w-7 h-7 rounded-full flex items-center justify-center hover:bg-gray-100 active:bg-gray-200 transition">
@@ -1608,6 +1858,213 @@
         }
       }
 
+
+    // ==========================================
+    // INTERACCIÓ TÀCTIL SWIPE A LES TARGETES
+    // ==========================================
+    function initSwipeOnCards() {
+      const cards = document.querySelectorAll(".item-card[data-item-id]");
+      cards.forEach(card => {
+        if (card._swipeInitialized) return;
+        card._swipeInitialized = true;
+
+        const itemId = card.getAttribute("data-item-id");
+        let startX = 0;
+        let startY = 0;
+        let deltaX = 0;
+        let isSwiping = false;
+
+        card.addEventListener("touchstart", (e) => {
+          if (e.touches.length !== 1) return;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          deltaX = 0;
+          isSwiping = false;
+        }, { passive: true });
+
+        card.addEventListener("touchmove", (e) => {
+          if (e.touches.length !== 1) return;
+          const currentX = e.touches[0].clientX;
+          const currentY = e.touches[0].clientY;
+          const dx = currentX - startX;
+          const dy = currentY - startY;
+
+          // Si és moviment vertical, permetem scroll natiu sense interferir
+          if (!isSwiping && Math.abs(dy) > Math.abs(dx)) {
+            return;
+          }
+
+          if (Math.abs(dx) > 12) {
+            isSwiping = true;
+            deltaX = dx;
+            // Limitem el desplaçament a màxim 100px
+            const clamped = Math.max(-100, Math.min(100, dx));
+            card.style.transform = `translateX(${clamped}px)`;
+            if (clamped > 30) {
+              card.style.backgroundColor = '#ecfdf5'; // emerald-50
+            } else if (clamped < -30) {
+              card.style.backgroundColor = '#fef2f2'; // red-50
+            }
+          }
+        }, { passive: true });
+
+        card.addEventListener("touchend", () => {
+          card.style.transition = 'transform 0.2s ease, background-color 0.2s ease';
+          card.style.transform = '';
+          card.style.backgroundColor = '';
+
+          if (isSwiping && Math.abs(deltaX) > 55) {
+            toggleItemCheck(itemId);
+          }
+
+          setTimeout(() => {
+            card.style.transition = '';
+          }, 220);
+        });
+      });
+    }
+
+    // ==========================================
+    // GESTIÓ DE BOTIGUES I LLISTES (MODAL)
+    // ==========================================
+    function openManageStoresModal() {
+      renderManageStoresList();
+      const sortSelect = document.getElementById("store-sort-mode-select");
+      if (sortSelect) sortSelect.value = storeSortMode;
+      const modal = document.getElementById("manage-stores-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeManageStoresModal() {
+      const modal = document.getElementById("manage-stores-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function renderManageStoresList() {
+      const container = document.getElementById("manage-stores-list");
+      if (!container) return;
+
+      const nonAllStores = STORES.filter(s => s.id !== "all");
+
+      container.innerHTML = nonAllStores.map(store => {
+        const isDefault = DEFAULT_STORES.some(d => d.id === store.id);
+        const storeItems = items.filter(it => it.store === store.id);
+        const pendingCount = storeItems.filter(it => !it.crossed_off).length;
+        const totalCount = storeItems.length;
+
+        return `
+          <div class="flex items-center justify-between py-2 px-1 hover:bg-gray-50 rounded-lg group">
+            <div class="flex items-center space-x-2 min-w-0 flex-1">
+              <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${store.badgeBg || 'bg-emerald-100'} ${store.badgeText || 'text-emerald-800'}"></span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-gray-800 truncate">${store.name}</p>
+                <p class="text-[10px] text-gray-400">${pendingCount} pendents (${totalCount} en total)</p>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-1 flex-shrink-0">
+              <button onclick="renameStore('${store.id}')" title="Canviar nom de la llista"
+                class="w-7 h-7 rounded-lg text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center transition">
+                <i class="fa-solid fa-pen text-[11px]"></i>
+              </button>
+              ${!isDefault || totalCount === 0
+                ? `<button onclick="deleteStore('${store.id}')" title="Eliminar llista"
+                     class="w-7 h-7 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition">
+                     <i class="fa-solid fa-trash text-[11px]"></i>
+                   </button>`
+                : `<button onclick="deleteStore('${store.id}')" title="Eliminar botiga"
+                     class="w-7 h-7 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition">
+                     <i class="fa-solid fa-trash text-[11px]"></i>
+                   </button>`
+              }
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renameStore(storeId) {
+      const store = STORES.find(s => s.id === storeId);
+      if (!store) return;
+
+      const newName = prompt(`Canviar nom de la llista "${store.name}":`, store.name);
+      if (!newName || !newName.trim() || newName.trim() === store.name) return;
+
+      store.name = newName.trim();
+      saveCustomStores();
+      renderStoreTabs();
+      renderManageStoresList();
+      populateSelectOptions();
+      renderLists();
+      showToast(`Llista reanomenada: ${store.name}`, "fa-check");
+    }
+
+    function deleteStore(storeId) {
+      const store = STORES.find(s => s.id === storeId);
+      if (!store) return;
+
+      const storeItems = items.filter(it => it.store === storeId);
+      if (storeItems.length > 0) {
+        const ok = confirm(`La llista "${store.name}" conté ${storeItems.length} articles. Vols moure'ls a la botiga Mercadona/general abans d'eliminar-la?`);
+        if (!ok) return;
+        storeItems.forEach(it => it.store = "mercadona");
+        saveToLocalStorage();
+      } else {
+        if (!confirm(`Vols eliminar la llista "${store.name}"?`)) return;
+      }
+
+      STORES = STORES.filter(s => s.id !== storeId);
+      if (currentStoreFilter === storeId) {
+        currentStoreFilter = "all";
+      }
+      saveCustomStores();
+      renderStoreTabs();
+      renderManageStoresList();
+      populateSelectOptions();
+      renderLists();
+      showToast(`Llista eliminada: ${store.name}`, "fa-trash");
+    }
+
+    function setStoreSortMode(mode) {
+      storeSortMode = mode;
+      localStorage.setItem(STORAGE_KEY_STORE_SORT, mode);
+      renderStoreTabs();
+      updateMenuLabels();
+      showToast("Ordre de llistes actualitzat", "fa-arrow-down-wide-short");
+    }
+
+    function cycleStoreSortMode() {
+      if (storeSortMode === "active_first") {
+        setStoreSortMode("alphabetical");
+      } else if (storeSortMode === "alphabetical") {
+        setStoreSortMode("default");
+      } else {
+        setStoreSortMode("active_first");
+      }
+    }
+
+    function toggleCheckMode() {
+      checkMode = checkMode === "swipe" ? "click" : "swipe";
+      localStorage.setItem(STORAGE_KEY_CHECK_MODE, checkMode);
+      updateMenuLabels();
+      renderLists();
+      showToast(`Mode de ratllar: ${checkMode === 'swipe' ? 'Lliscament (Swipe)' : 'Clic directe'}`, "fa-hand-pointer");
+    }
+
+    function updateMenuLabels() {
+      const sortLabel = document.getElementById("menu-store-sort-label");
+      if (sortLabel) {
+        if (storeSortMode === "active_first") sortLabel.innerText = "Ordre: Pendents 1r";
+        else if (storeSortMode === "alphabetical") sortLabel.innerText = "Ordre: Alfabètic (A-Z)";
+        else sortLabel.innerText = "Ordre: Per defecte";
+      }
+
+      const checkLabel = document.getElementById("menu-check-mode-label");
+      if (checkLabel) {
+        checkLabel.innerText = checkMode === "swipe" ? "Mode ratllar: Swipe" : "Mode ratllar: Clic";
+      }
+    }
+
       // ==========================================
       // FULL INFERIOR (BOTTOM SHEET) D'EDICIÓ
       // ==========================================
@@ -1626,6 +2083,33 @@
         document.getElementById("edit-photo-url").value = it.photo || "";
 
         updatePhotoPreview(it.photo);
+
+        // Renderitzar historial de preus (fins a 7 registres per supermercat)
+        const historyContainer = document.getElementById("edit-price-history-container");
+        if (historyContainer) {
+          const history = Array.isArray(it.price_history) ? it.price_history : [];
+          if (history.length === 0) {
+            historyContainer.innerHTML = `<p class="text-[11px] text-gray-400 italic">Sense preus anteriors registrats per a aquest producte.</p>`;
+          } else {
+            historyContainer.innerHTML = `
+              <div class="divide-y divide-gray-100">
+                ${history.slice(0, 7).map((h, idx) => {
+                  const d = h.date ? new Date(h.date).toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-';
+                  const sObj = STORES.find(s => s.id === h.store) || { name: h.store };
+                  return `
+                    <div class="flex items-center justify-between py-1 text-[11px] ${idx === 0 ? 'font-semibold text-emerald-900 bg-emerald-50/60 px-1 rounded' : 'text-gray-600'}">
+                      <span class="flex items-center gap-1.5">
+                        <span class="font-bold">${Number(h.price).toFixed(2)} €</span>
+                        <span class="text-[10px] text-gray-500">(${sObj.name})</span>
+                      </span>
+                      <span class="text-[10px] text-gray-400">${d}</span>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `;
+          }
+        }
 
         document.getElementById("modal-backdrop").classList.remove("hidden");
         document.getElementById("edit-modal").classList.remove("closed");
@@ -1731,8 +2215,28 @@
         it.name = document.getElementById("edit-name").value.trim();
         it.qty = document.getElementById("edit-qty").value.trim();
         it.unit = document.getElementById("edit-unit").value.trim();
-        it.price = parseFloat(document.getElementById("edit-price").value) || 0.0;
-        it.store = document.getElementById("edit-store").value;
+        
+        const newPrice = parseFloat(document.getElementById("edit-price").value) || 0.0;
+        const newStore = document.getElementById("edit-store").value;
+
+        // Si el preu ha canviat o s'ha indicat
+        if (newPrice !== it.price || !it.price_date) {
+          it.price = newPrice;
+          it.price_date = new Date().toISOString();
+          if (newPrice > 0) {
+            if (!Array.isArray(it.price_history)) it.price_history = [];
+            it.price_history.unshift({
+              price: newPrice,
+              store: newStore,
+              date: it.price_date
+            });
+            if (it.price_history.length > 7) {
+              it.price_history = it.price_history.slice(0, 7);
+            }
+          }
+        }
+
+        it.store = newStore;
         it.category = document.getElementById("edit-category").value;
         it.note = document.getElementById("edit-note").value.trim();
         it.photo = document.getElementById("edit-photo-url").value.trim();
@@ -1877,6 +2381,17 @@
           if (storedLang) {
             voiceLanguage = storedLang;
           }
+
+          const storedSort = localStorage.getItem(STORAGE_KEY_STORE_SORT);
+          if (storedSort) {
+            storeSortMode = storedSort;
+          }
+
+          const storedCheckMode = localStorage.getItem(STORAGE_KEY_CHECK_MODE);
+          if (storedCheckMode) {
+            checkMode = storedCheckMode;
+          }
+          updateMenuLabels();
 
           const storedGroup = localStorage.getItem(STORAGE_KEY_GROUP_MODE);
           if (storedGroup !== null) {
@@ -2067,19 +2582,19 @@
         "bruno": "bruno",
         "drudis": "bruno",
         "cabina": "bruno",
-        "esclat": "bonpreu",
+        "esclat": "esclat",
         "bonpreu": "bonpreu",
         "colet": "ferreteria",
         "fruteria": "mercadona",
         "bodega": "bodega",
         "carnicer": "mercadona",
-        "pescader": "mercadona",
-        "forn": "bonpreu",
+        "pescader": "pescaderia",
+        "forn": "forn",
         "sirena": "caprabo",
         "veritas": "ametller",
         "corte": "carrefour",
         "marroqui": "marroqui",
-        "jane": "farmacia"
+        "jane": "jane"
       };
 
       const OG_CAT_MAP = {
