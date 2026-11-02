@@ -255,6 +255,11 @@
       <span>Instal·lar com a App</span>
       <i class="fa-solid fa-download"></i>
     </button>
+    <button onclick="openReceiptScannerModal(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-800 font-semibold flex items-center justify-between">
+      <span>Llegir tiquet (extreure preus)</span>
+      <i class="fa-solid fa-receipt text-emerald-600"></i>
+    </button>
     <button onclick="openImportModal(); toggleOptionsMenu();"
       class="w-full text-left px-3 py-2 hover:bg-gray-50 text-emerald-800 font-medium flex items-center justify-between">
       <span>Importar d'OurGroceries (.json / .zip)</span>
@@ -404,11 +409,15 @@
 
       <!-- FOTO DEL PRODUCTE I CÀMERA -->
       <div class="flex items-center space-x-3 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
-        <div
-          class="relative w-16 h-16 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+        <div onclick="openCurrentImageLightbox()"
+          title="Toca per veure la foto en gran"
+          class="relative w-16 h-16 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm cursor-pointer group">
           <img id="edit-image-preview" src="" alt="" class="w-full h-full object-cover hidden">
           <div id="edit-image-placeholder" class="text-2xl text-gray-300">
             <i class="fa-solid fa-image"></i>
+          </div>
+          <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-xs">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
           </div>
         </div>
         <div class="flex-1 space-y-1">
@@ -540,14 +549,19 @@
       </div>
 
       <!-- CRITERI D'ORDRE -->
-      <div class="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 flex items-center justify-between gap-2">
-        <span class="text-xs font-semibold text-emerald-900">Ordre de les pestanyes:</span>
-        <select id="store-sort-mode-select" onchange="setStoreSortMode(this.value)"
-          class="text-xs bg-white border border-emerald-300 rounded-lg px-2 py-1 font-medium text-emerald-800 focus:outline-none">
-          <option value="active_first">Amb articles primer</option>
-          <option value="alphabetical">Alfabètic (A-Z)</option>
-          <option value="default">Ordre per defecte</option>
-        </select>
+      <div class="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 space-y-1.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-semibold text-emerald-900">Ordre de les pestanyes:</span>
+          <select id="store-sort-mode-select" onchange="setStoreSortMode(this.value)"
+            class="text-xs bg-white border border-emerald-300 rounded-lg px-2 py-1 font-medium text-emerald-800 focus:outline-none">
+            <option value="active_first">Amb articles primer</option>
+            <option value="alphabetical">Alfabètic (A-Z)</option>
+            <option value="default">Ordre manual / per defecte</option>
+          </select>
+        </div>
+        <p id="store-drag-hint" class="text-[10px] text-emerald-700 italic hidden">
+          💡 En mode manual, pots arrossegar o utilitzar les fletxes (▲/▼) per canviar l'ordre.
+        </p>
       </div>
 
       <!-- LLISTA DE BOTIGUES -->
@@ -569,7 +583,123 @@
     </div>
   </div>
 
-  <!-- MODAL INFORMATIU D'INSTAL·LACIÓ PWA -->
+  <!-- MODAL DE VISUALITZACIÓ D'IMATGE EN GRAN (LIGHTBOX) -->
+  <div id="image-lightbox-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in" onclick="closeImageLightbox()">
+    <div class="relative max-w-lg w-full flex flex-col items-center" onclick="event.stopPropagation()">
+      <button onclick="closeImageLightbox()" 
+              title="Tancar foto"
+              class="absolute -top-10 right-0 sm:right-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+      <div class="bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border border-white/15 flex items-center justify-center max-h-[80vh] w-full p-1">
+        <img id="lightbox-image" src="" alt="Foto en gran" class="max-h-[75vh] w-full object-contain rounded-xl">
+      </div>
+      <p id="lightbox-caption" class="text-center text-white text-xs sm:text-sm font-semibold mt-2.5 px-3 truncate max-w-full text-white/90"></p>
+    </div>
+  </div>
+
+  <!-- MODAL D'EXTRACCIÓ DE PREUS DE TIQUET (OCR) -->
+  <div id="receipt-scanner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col">
+      <!-- CAPÇALERA -->
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-receipt text-emerald-600 text-lg"></i>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900">Llegir tiquet de compra</h3>
+            <p class="text-[11px] text-gray-500">Extreu preus automàticament des d'una foto</p>
+          </div>
+        </div>
+        <button onclick="closeReceiptScannerModal()" class="text-gray-400 hover:text-gray-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- PAS 1: SELECCIÓ DE BOTIGA I FOTO -->
+      <div id="receipt-step-upload" class="space-y-3">
+        <div>
+          <label class="block font-semibold text-gray-700 text-xs mb-1">Supermercat del tiquet:</label>
+          <select id="receipt-store-select" class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+            <!-- Injecció de botigues -->
+          </select>
+        </div>
+
+        <div class="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-xl p-4 text-center space-y-2.5 bg-gray-50/70 transition">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-xl">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-gray-800">Fes una foto o puja una imatge del tiquet</p>
+            <p class="text-[10px] text-gray-500">Assegura't que els noms i els preus siguin llegibles</p>
+          </div>
+          <div class="flex gap-2 justify-center pt-1">
+            <button type="button" onclick="document.getElementById('receipt-camera-input').click()"
+              class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-camera"></i> Fer foto
+            </button>
+            <button type="button" onclick="document.getElementById('receipt-file-input').click()"
+              class="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-image"></i> Triar arxiu
+            </button>
+          </div>
+          <input type="file" id="receipt-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleReceiptImage(event)">
+          <input type="file" id="receipt-file-input" accept="image/*" class="hidden" onchange="handleReceiptImage(event)">
+        </div>
+
+        <!-- Opció d'enganxar text manual -->
+        <details class="text-[11px] text-gray-500">
+          <summary class="cursor-pointer font-semibold text-emerald-800 hover:underline">O enganxar el text d'un tiquet digital</summary>
+          <div class="mt-2 space-y-2">
+            <textarea id="receipt-raw-text" rows="3" placeholder="Enganxa aquí el text o les línies del tiquet digital..."
+              class="w-full text-xs border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-emerald-600 focus:outline-none"></textarea>
+            <button onclick="processReceiptText(document.getElementById('receipt-raw-text').value)"
+              class="w-full py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg text-xs transition">
+              Processar text
+            </button>
+          </div>
+        </details>
+      </div>
+
+      <!-- ESTAT DE PROGRESS (LLEGINT OCR) -->
+      <div id="receipt-step-loading" class="hidden py-6 text-center space-y-3">
+        <div class="inline-block animate-spin text-emerald-600 text-3xl">
+          <i class="fa-solid fa-circle-notch"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-gray-800" id="receipt-status-text">Carregant motor OCR...</p>
+          <p class="text-[11px] text-gray-500">Això pot trigar uns segons la primera vegada.</p>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+          <div id="receipt-progress-bar" class="bg-emerald-600 h-1.5 transition-all duration-200" style="width: 10%"></div>
+        </div>
+      </div>
+
+      <!-- PAS 2: RESULTATS DETECTATS I CONFIRMACIÓ -->
+      <div id="receipt-step-results" class="hidden flex-1 overflow-y-auto space-y-2 max-h-[55vh] flex flex-col">
+        <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100 flex items-center justify-between text-xs">
+          <span class="font-semibold text-emerald-900" id="receipt-found-count">0 preus detectats</span>
+          <button onclick="selectAllReceiptMatches(true)" class="text-[11px] font-bold text-emerald-700 hover:underline">Marcar tots</button>
+        </div>
+
+        <div id="receipt-matches-list" class="space-y-1.5 divide-y divide-gray-100">
+          <!-- Injecció dinàmica de línies de producte i preus -->
+        </div>
+
+        <div class="pt-2 border-t flex gap-2">
+          <button onclick="applyReceiptPrices()"
+            class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow">
+            <i class="fa-solid fa-check"></i> Aplicar preus
+          </button>
+          <button onclick="resetReceiptScanner()"
+            class="px-3 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold transition">
+            Altre tiquet
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- MODAL INFORMATIU D'INSTAL·LACIÓ PWA -->
   <div id="pwa-help-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl animate-fade-in text-gray-800">
       <div class="flex items-center justify-between border-b pb-2">
@@ -772,6 +902,7 @@
     // ESTAT DE L'APLICACIÓ
     const STORAGE_KEY_STORE_SORT = "cistella_store_sort_mode";
     const STORAGE_KEY_CHECK_MODE = "cistella_check_mode";
+    const STORAGE_KEY_STORES_ORDER = "cistella_stores_order_v1";
 
     let items = [];
     let currentStoreFilter = "all";
@@ -1651,13 +1782,19 @@
                  ? 'bg-gray-100/70 border-gray-200/80 opacity-60'
                  : 'bg-white border-gray-200/90 shadow-2xs hover:border-emerald-300'
              }">
-          <!-- ESQUERRA: FOTO O ICONA (Clic aquí sempre ratlla/desratlla directament com a drecera) -->
-          <div class="flex items-center flex-1 min-w-0 mr-1.5" onclick="event.stopPropagation(); ${checkMode === 'swipe' ? `toggleItemCheck('${item.id}')` : ''}">
+          <!-- ESQUERRA: FOTO (Clic obre en gran) O ICONA (Clic ratlla/desratlla) -->
+          <div class="flex items-center flex-1 min-w-0 mr-1.5">
             ${item.photo
-              ? `<div class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-pointer" title="Toca per ratllar">
+              ? `<div onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(item.photo)}', '${encodeURIComponent(item.name || '')}')"
+                      class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-zoom-in relative group" 
+                      title="Toca per veure la foto en gran">
                    <img src="${item.photo}" class="w-full h-full object-cover">
+                   <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] transition">
+                     <i class="fa-solid fa-magnifying-glass-plus"></i>
+                   </div>
                  </div>`
-              : `<div class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
+              : `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
+                      class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
                    isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60'
                  } flex items-center justify-center text-xs cursor-pointer" title="Toca per ratllar">
                    <i class="fa-solid ${catIcon}"></i>
@@ -1925,12 +2062,55 @@
     }
 
     // ==========================================
-    // GESTIÓ DE BOTIGUES I LLISTES (MODAL)
+    // VISOR D'IMATGES EN GRAN (LIGHTBOX)
     // ==========================================
+    function openImageLightbox(photoUrl, name) {
+      if (!photoUrl) return;
+      const modal = document.getElementById("image-lightbox-modal");
+      const img = document.getElementById("lightbox-image");
+      const caption = document.getElementById("lightbox-caption");
+      if (!modal || !img) return;
+
+      try {
+        img.src = decodeURIComponent(photoUrl);
+      } catch (e) {
+        img.src = photoUrl;
+      }
+      caption.innerText = name ? (function() { try { return decodeURIComponent(name); } catch(e){ return name; } })() : "";
+      modal.classList.remove("hidden");
+    }
+
+    function closeImageLightbox() {
+      const modal = document.getElementById("image-lightbox-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function openCurrentImageLightbox() {
+      const img = document.getElementById("edit-image-preview");
+      const name = document.getElementById("edit-name").value;
+      if (img && img.src && !img.classList.contains("hidden")) {
+        openImageLightbox(img.src, name);
+      }
+    }
+
+    // Tancar amb la tecla Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeImageLightbox();
+        closeReceiptScannerModal();
+        closeManageStoresModal();
+      }
+    });
+
+    // ==========================================
+    // GESTIÓ DE BOTIGUES I LLISTES (MODAL & REORDENACIÓ)
+    // ==========================================
+    let draggedStoreId = null;
+
     function openManageStoresModal() {
-      renderManageStoresList();
       const sortSelect = document.getElementById("store-sort-mode-select");
       if (sortSelect) sortSelect.value = storeSortMode;
+      renderManageStoresList();
       const modal = document.getElementById("manage-stores-modal");
       if (modal) modal.classList.remove("hidden");
     }
@@ -1944,17 +2124,48 @@
       const container = document.getElementById("manage-stores-list");
       if (!container) return;
 
-      const nonAllStores = STORES.filter(s => s.id !== "all");
+      const isManual = storeSortMode === "default";
+      const hintEl = document.getElementById("store-drag-hint");
+      if (hintEl) {
+        if (isManual) hintEl.classList.remove("hidden");
+        else hintEl.classList.add("hidden");
+      }
 
-      container.innerHTML = nonAllStores.map(store => {
+      // Filtrar botigues (sense 'all' que sempre és fixa)
+      let list = STORES.filter(s => s.id !== "all");
+
+      // Ordenar la llista del modal segons el mode triat al desplegable
+      if (storeSortMode === "active_first") {
+        list.sort((a, b) => {
+          const countA = items.filter(it => !it.crossed_off && it.store === a.id).length;
+          const countB = items.filter(it => !it.crossed_off && it.store === b.id).length;
+          if (countA > 0 && countB === 0) return -1;
+          if (countB > 0 && countA === 0) return 1;
+          if (countA !== countB) return countB - countA;
+          return a.name.localeCompare(b.name, 'ca');
+        });
+      } else if (storeSortMode === "alphabetical") {
+        list.sort((a, b) => a.name.localeCompare(b.name, 'ca'));
+      }
+      // Si és 'default', es respecta la posició manual actual de STORES
+
+      container.innerHTML = list.map((store, index) => {
         const isDefault = DEFAULT_STORES.some(d => d.id === store.id);
         const storeItems = items.filter(it => it.store === store.id);
         const pendingCount = storeItems.filter(it => !it.crossed_off).length;
         const totalCount = storeItems.length;
 
         return `
-          <div class="flex items-center justify-between py-2 px-1 hover:bg-gray-50 rounded-lg group">
+          <div class="flex items-center justify-between py-2 px-1 hover:bg-gray-50 rounded-lg group transition ${
+            isManual ? 'cursor-grab active:cursor-grabbing border border-transparent hover:border-gray-200' : ''
+          }"
+               ${isManual ? `draggable="true" ondragstart="handleStoreDragStart(event, '${store.id}')" ondragover="handleStoreDragOver(event)" ondrop="handleStoreDrop(event, '${store.id}')"` : ''}>
             <div class="flex items-center space-x-2 min-w-0 flex-1">
+              ${isManual ? `
+                <div class="text-gray-400 hover:text-gray-600 px-0.5 cursor-grab" title="Arrossega amunt o avall per ordenar">
+                  <i class="fa-solid fa-grip-vertical text-xs"></i>
+                </div>
+              ` : ''}
               <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${store.badgeBg || 'bg-emerald-100'} ${store.badgeText || 'text-emerald-800'}"></span>
               <div class="min-w-0">
                 <p class="text-xs font-bold text-gray-800 truncate">${store.name}</p>
@@ -1963,6 +2174,14 @@
             </div>
 
             <div class="flex items-center space-x-1 flex-shrink-0">
+              ${isManual ? `
+                <button onclick="moveStoreOrder('${store.id}', -1)" title="Pujar" ${index === 0 ? 'disabled class="w-6 h-6 rounded text-gray-200 flex items-center justify-center text-[10px]"' : 'class="w-6 h-6 rounded text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center text-[10px] transition"'}>
+                  <i class="fa-solid fa-chevron-up"></i>
+                </button>
+                <button onclick="moveStoreOrder('${store.id}', 1)" title="Baixar" ${index === list.length - 1 ? 'disabled class="w-6 h-6 rounded text-gray-200 flex items-center justify-center text-[10px]"' : 'class="w-6 h-6 rounded text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center text-[10px] transition"'}>
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
+              ` : ''}
               <button onclick="renameStore('${store.id}')" title="Canviar nom de la llista"
                 class="w-7 h-7 rounded-lg text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center transition">
                 <i class="fa-solid fa-pen text-[11px]"></i>
@@ -1981,6 +2200,62 @@
           </div>
         `;
       }).join("");
+    }
+
+    // Controls d'arrossegar (Drag and Drop) per a botigues
+    function handleStoreDragStart(e, storeId) {
+      draggedStoreId = storeId;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', storeId);
+    }
+
+    function handleStoreDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleStoreDrop(e, targetStoreId) {
+      e.preventDefault();
+      if (!draggedStoreId || draggedStoreId === targetStoreId) return;
+
+      const fromIdx = STORES.findIndex(s => s.id === draggedStoreId);
+      const toIdx = STORES.findIndex(s => s.id === targetStoreId);
+      if (fromIdx === -1 || toIdx === -1) return;
+
+      const moved = STORES.splice(fromIdx, 1)[0];
+      STORES.splice(toIdx, 0, moved);
+
+      saveStoresOrder();
+      renderManageStoresList();
+      renderStoreTabs();
+      showToast(`Llista "${moved.name}" moguda`, "fa-up-down");
+      draggedStoreId = null;
+    }
+
+    function moveStoreOrder(storeId, direction) {
+      const idx = STORES.findIndex(s => s.id === storeId);
+      if (idx === -1) return;
+
+      const targetIdx = idx + direction;
+      // Assegurem que no salti per davant de 'all' (índex 0)
+      if (targetIdx < 1 || targetIdx >= STORES.length) return;
+
+      const temp = STORES[idx];
+      STORES[idx] = STORES[targetIdx];
+      STORES[targetIdx] = temp;
+
+      saveStoresOrder();
+      renderManageStoresList();
+      renderStoreTabs();
+    }
+
+    function saveStoresOrder() {
+      try {
+        const orderIds = STORES.map(s => s.id);
+        localStorage.setItem(STORAGE_KEY_STORES_ORDER, JSON.stringify(orderIds));
+      } catch (e) {
+        console.error("Error desant ordre de botigues:", e);
+      }
     }
 
     function renameStore(storeId) {
@@ -2018,6 +2293,7 @@
         currentStoreFilter = "all";
       }
       saveCustomStores();
+      saveStoresOrder();
       renderStoreTabs();
       renderManageStoresList();
       populateSelectOptions();
@@ -2029,6 +2305,7 @@
       storeSortMode = mode;
       localStorage.setItem(STORAGE_KEY_STORE_SORT, mode);
       renderStoreTabs();
+      renderManageStoresList();
       updateMenuLabels();
       showToast("Ordre de llistes actualitzat", "fa-arrow-down-wide-short");
     }
@@ -2258,6 +2535,276 @@
         showToast("Producte eliminat", "fa-trash");
       }
 
+
+    // ==========================================
+    // EXTRACCIÓ DE PREUS DE TIQUET DE COMPRA (OCR)
+    // ==========================================
+    let detectedReceiptItems = [];
+
+    function openReceiptScannerModal() {
+      const modal = document.getElementById("receipt-scanner-modal");
+      const storeSelect = document.getElementById("receipt-store-select");
+      if (!modal || !storeSelect) return;
+
+      storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => 
+        `<option value="${s.id}" ${(currentStoreFilter === s.id || (currentStoreFilter === 'all' && s.id === 'mercadona')) ? 'selected' : ''}>${s.name}</option>`
+      ).join("");
+
+      resetReceiptScanner();
+      modal.classList.remove("hidden");
+    }
+
+    function closeReceiptScannerModal() {
+      const modal = document.getElementById("receipt-scanner-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function resetReceiptScanner() {
+      document.getElementById("receipt-step-upload").classList.remove("hidden");
+      document.getElementById("receipt-step-loading").classList.add("hidden");
+      document.getElementById("receipt-step-results").classList.add("hidden");
+      document.getElementById("receipt-camera-input").value = "";
+      document.getElementById("receipt-file-input").value = "";
+      document.getElementById("receipt-raw-text").value = "";
+      detectedReceiptItems = [];
+    }
+
+    function loadTesseract() {
+      return new Promise((resolve, reject) => {
+        if (window.Tesseract) return resolve(window.Tesseract);
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+        script.onload = () => resolve(window.Tesseract);
+        script.onerror = () => reject(new Error("No s'ha pogut carregar Tesseract.js. Revisa la connexió a internet."));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function handleReceiptImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      document.getElementById("receipt-step-upload").classList.add("hidden");
+      document.getElementById("receipt-step-loading").classList.remove("hidden");
+      const statusText = document.getElementById("receipt-status-text");
+      const progressBar = document.getElementById("receipt-progress-bar");
+
+      try {
+        statusText.innerText = "Carregant motor de reconeixement òptic...";
+        progressBar.style.width = "20%";
+        const Tesseract = await loadTesseract();
+
+        statusText.innerText = "Llegint tiquet i detectant preus...";
+        progressBar.style.width = "40%";
+
+        const result = await Tesseract.recognize(file, 'cat+spa', {
+          logger: m => {
+            if (m.status === 'recognizing text' && m.progress) {
+              const pct = Math.round(m.progress * 100);
+              progressBar.style.width = `${Math.max(40, pct)}%`;
+              statusText.innerText = `Analitzant text del tiquet... ${pct}%`;
+            }
+          }
+        });
+
+        progressBar.style.width = "100%";
+        const extractedText = (result && result.data && result.data.text) ? result.data.text : "";
+        processReceiptText(extractedText);
+      } catch (err) {
+        console.error("Error OCR tiquet:", err);
+        alert("Hi ha hagut un problema llegint la foto: " + (err.message || err));
+        resetReceiptScanner();
+      }
+    }
+
+    function processReceiptText(rawText) {
+      if (!rawText || !rawText.trim()) {
+        alert("No s'ha pogut detectar cap text al tiquet. Prova amb una altra foto més clara.");
+        resetReceiptScanner();
+        return;
+      }
+
+      const storeId = document.getElementById("receipt-store-select").value || "mercadona";
+      const lines = rawText.split(/\r?\n/);
+      const matches = [];
+
+      // Filtres de línies no pertinents de tiquets
+      const ignoreRegex = /total|subtotal|iva|base|impuesto|tarjeta|visa|mastercard|caja|cajero|fecha|ticket|factura|nif|cif|gracias|visita|atendido|cambio|efectivo|euros|eur|descuento|dto/i;
+
+      lines.forEach(line => {
+        const cleanLine = line.trim();
+        if (cleanLine.length < 4 || ignoreRegex.test(cleanLine)) return;
+
+        // Expressió regular per a imports de preu (ex: 2.45, 1,99, 12.00€)
+        const priceMatch = cleanLine.match(/(\d{1,3}[\.,]\d{2})\s*(?:€|eur)?(?:\s|$)/i);
+        if (priceMatch) {
+          const rawPriceStr = priceMatch[1].replace(',', '.');
+          const priceVal = parseFloat(rawPriceStr);
+
+          // El nom del producte és la part anterior al preu
+          let rawProdName = cleanLine.substring(0, priceMatch.index).trim();
+          // Netejar quantitats inicials com "1 ", "2x ", etc.
+          rawProdName = rawProdName.replace(/^(\d+[xX\*\s]+)/, '').replace(/^[\d\.\-\s]+/, '').trim();
+
+          if (rawProdName.length >= 3 && priceVal > 0 && priceVal < 500) {
+            // Cercar millor coincidència a la nostra llista
+            const matchedItem = findBestMatchingItem(rawProdName, storeId);
+            matches.push({
+              rawName: rawProdName,
+              price: priceVal,
+              matchedItem: matchedItem,
+              selected: Boolean(matchedItem)
+            });
+          }
+        }
+      });
+
+      if (matches.length === 0) {
+        alert("No s'han trobat línies de producte amb preu vàlid al tiquet. Pots enganxar el text a la secció inferior.");
+        resetReceiptScanner();
+        return;
+      }
+
+      detectedReceiptItems = matches;
+      renderReceiptMatches(matches);
+    }
+
+    function findBestMatchingItem(receiptName, storeId) {
+      // 1r: buscar a la mateixa botiga
+      const storeItems = items.filter(it => it.store === storeId);
+      for (const it of storeItems) {
+        if (areProductNamesSimilar(it.name, receiptName)) return it;
+      }
+      // 2n: buscar a totes les botigues
+      for (const it of items) {
+        if (areProductNamesSimilar(it.name, receiptName)) return it;
+      }
+      return null;
+    }
+
+    function renderReceiptMatches(matches) {
+      document.getElementById("receipt-step-upload").classList.add("hidden");
+      document.getElementById("receipt-step-loading").classList.add("hidden");
+      const resultsDiv = document.getElementById("receipt-step-results");
+      resultsDiv.classList.remove("hidden");
+
+      const countEl = document.getElementById("receipt-found-count");
+      countEl.innerText = `${matches.length} línies de preu detectades`;
+
+      const listContainer = document.getElementById("receipt-matches-list");
+      listContainer.innerHTML = matches.map((m, idx) => {
+        const item = m.matchedItem;
+        const prevPrice = item && item.price ? Number(item.price).toFixed(2) + " €" : "Cap";
+
+        return `
+          <div class="py-2 px-1 flex items-center justify-between gap-2 ${m.selected ? 'bg-emerald-50/50' : 'opacity-70'} rounded-lg">
+            <div class="flex items-center space-x-2 min-w-0 flex-1">
+              <input type="checkbox" id="receipt-chk-${idx}" ${m.selected ? 'checked' : ''} 
+                     onchange="toggleReceiptMatchSelected(${idx}, this.checked)"
+                     class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold text-gray-800 truncate">${m.rawName}</p>
+                ${item ? `
+                  <p class="text-[10px] text-emerald-700 flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-right text-[8px]"></i>
+                    <span class="font-semibold">${item.name}</span>
+                    <span class="text-gray-400">(Abans: ${prevPrice})</span>
+                  </p>
+                ` : `
+                  <p class="text-[10px] text-amber-700 italic">No trobat a la llista (es pot afegir nou)</p>
+                `}
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-1 flex-shrink-0">
+              <input type="number" step="0.01" min="0" value="${m.price.toFixed(2)}" 
+                     onchange="updateReceiptMatchPrice(${idx}, this.value)"
+                     class="w-16 h-7 text-xs font-bold text-center border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600">
+              <span class="text-xs font-bold text-gray-500">€</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function toggleReceiptMatchSelected(idx, isChecked) {
+      if (detectedReceiptItems[idx]) {
+        detectedReceiptItems[idx].selected = isChecked;
+      }
+    }
+
+    function updateReceiptMatchPrice(idx, newPrice) {
+      const p = parseFloat(newPrice);
+      if (!isNaN(p) && p >= 0 && detectedReceiptItems[idx]) {
+        detectedReceiptItems[idx].price = p;
+      }
+    }
+
+    function selectAllReceiptMatches(check) {
+      detectedReceiptItems.forEach((m, idx) => {
+        m.selected = check;
+        const el = document.getElementById(`receipt-chk-${idx}`);
+        if (el) el.checked = check;
+      });
+    }
+
+    function applyReceiptPrices() {
+      const storeId = document.getElementById("receipt-store-select").value || "mercadona";
+      const nowISO = new Date().toISOString();
+      let updatedCount = 0;
+      let addedCount = 0;
+
+      detectedReceiptItems.forEach(m => {
+        if (!m.selected) return;
+
+        if (m.matchedItem) {
+          // Actualitzar article existent
+          const it = m.matchedItem;
+          it.price = m.price;
+          it.price_date = nowISO;
+          if (!Array.isArray(it.price_history)) it.price_history = [];
+          it.price_history.unshift({
+            price: m.price,
+            store: storeId,
+            date: nowISO
+          });
+          if (it.price_history.length > 7) {
+            it.price_history = it.price_history.slice(0, 7);
+          }
+          updatedCount++;
+        } else {
+          // Opcionalment afegir nou si estava marcat
+          const newItem = {
+            id: "p_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+            name: m.rawName,
+            qty: "1",
+            unit: "ud",
+            price: m.price,
+            price_date: nowISO,
+            price_history: [{ price: m.price, store: storeId, date: nowISO }],
+            store: storeId,
+            category: detectSemanticCategory(m.rawName) || "General",
+            note: "Preu extret de tiquet",
+            photo: "",
+            crossed_off: false,
+            created_at: nowISO
+          };
+          items.unshift(newItem);
+          addedCount++;
+        }
+      });
+
+      if (updatedCount > 0 || addedCount > 0) {
+        saveToLocalStorage();
+        renderLists();
+        renderStoreTabs();
+        closeReceiptScannerModal();
+        showToast(`${updatedCount} preus actualitzats ${addedCount > 0 ? ` i ${addedCount} articles afegits` : ''} des del tiquet!`, "fa-receipt");
+      } else {
+        alert("No has seleccionat cap article per actualitzar.");
+      }
+    }
+
       function populateSelectOptions() {
         const storeSelect = document.getElementById("edit-store");
         storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s =>
@@ -2385,6 +2932,38 @@
           const storedSort = localStorage.getItem(STORAGE_KEY_STORE_SORT);
           if (storedSort) {
             storeSortMode = storedSort;
+          }
+
+          const storedOrder = localStorage.getItem(STORAGE_KEY_STORES_ORDER);
+          if (storedOrder) {
+            try {
+              const orderIds = JSON.parse(storedOrder);
+              if (Array.isArray(orderIds)) {
+                // Reordenar STORES respectant la posició de "all" primer
+                const orderedStores = [];
+                const allStore = STORES.find(s => s.id === "all");
+                if (allStore) orderedStores.push(allStore);
+
+                orderIds.forEach(id => {
+                  if (id === "all") return;
+                  const found = STORES.find(s => s.id === id);
+                  if (found && !orderedStores.some(s => s.id === id)) {
+                    orderedStores.push(found);
+                  }
+                });
+
+                // Afegir botigues que no fossin a l'ordre guardat
+                STORES.forEach(s => {
+                  if (!orderedStores.some(os => os.id === s.id)) {
+                    orderedStores.push(s);
+                  }
+                });
+
+                STORES = orderedStores;
+              }
+            } catch (e) {
+              console.error("Error carregant ordre de botigues:", e);
+            }
           }
 
           const storedCheckMode = localStorage.getItem(STORAGE_KEY_CHECK_MODE);
