@@ -418,9 +418,12 @@
 
       <!-- NOTES -->
       <div>
-        <label class="block font-semibold text-gray-600 mb-1">Notes o marca concreta</label>
-        <input type="text" id="edit-note" placeholder="Ex: ampolla de vidre, sense lactosa..."
-          class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+        <div class="flex items-center justify-between mb-1">
+          <label class="block font-semibold text-gray-600">Notes i detalls</label>
+          <span class="text-[10px] text-gray-400">Pots escriure en diverses línies i estirar per ampliar</span>
+        </div>
+        <textarea id="edit-note" rows="4" placeholder="Ex: ampolla de vidre, notes de tast, marca, detalls..."
+          class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none resize-y min-h-[90px] max-h-[300px] leading-relaxed"></textarea>
       </div>
 
       <!-- ACCIONS -->
@@ -582,6 +585,7 @@
       { id: "ferreteria", name: "Ferreteria", online: false, color: "amber", badgeBg: "bg-amber-50", badgeText: "text-amber-800" },
       { id: "garden", name: "Garden", online: false, color: "emerald", badgeBg: "bg-emerald-50", badgeText: "text-emerald-800" },
       { id: "bazar", name: "Bazar Xinès", online: false, color: "purple", badgeBg: "bg-purple-50", badgeText: "text-purple-700" },
+      { id: "marroqui", name: "Marroquí", online: false, color: "orange", badgeBg: "bg-amber-100", badgeText: "text-amber-800" },
       { id: "bruno", name: "Bruno", online: false, color: "stone", badgeBg: "bg-stone-100", badgeText: "text-stone-700" }
     ];
 
@@ -781,6 +785,8 @@
           pattern = `\\b(en|al|a)\\s+(bonpreu|bon preu|esclat)\\b|\\b(bonpreu|esclat)\\b`;
         } else if (s.id === "bazar") {
           pattern = `\\b(en el|al|al bazar|en)\\s+(bazar xinès|bazar chino|bazar|chino|xino)\\b|\\b(bazar)\\b`;
+        } else if (s.id === "marroqui") {
+          pattern = `\\b(en el|al|a la|en)\\s+(marroquí|marroqui|botiga marroquina|marroc)\\b|\\b(marroquí|marroqui)\\b`;
         }
 
         const storeRegex = new RegExp(pattern, "i");
@@ -1650,6 +1656,23 @@
               localStorage.setItem(STORAGE_KEY_COLLAPSED, "1");
               saveToLocalStorage();
             }
+
+            // AUTO-MIGRACIÓ: Reassignació de botigues per imports previs
+            let hadMigration = false;
+            items.forEach(it => {
+              const lower = (it.name || "").toLowerCase();
+              if (it.store === "bazar" && /cardamomo|azahar|guindilla fresca|pasta curry/i.test(lower)) {
+                it.store = "marroqui";
+                hadMigration = true;
+              }
+              if (it.store === "mercadona" && /portell|reserva 2019/i.test(lower)) {
+                it.store = "caprabo";
+                hadMigration = true;
+              }
+            });
+            if (hadMigration) {
+              saveToLocalStorage();
+            }
           } else {
             items = [...DEFAULT_SEED_ITEMS];
             saveToLocalStorage();
@@ -1858,14 +1881,14 @@
         "bonpreu": "bonpreu",
         "colet": "ferreteria",
         "fruteria": "mercadona",
-        "bodega": "mercadona",
+        "bodega": "caprabo",
         "carnicer": "mercadona",
         "pescader": "mercadona",
         "forn": "bonpreu",
         "sirena": "caprabo",
         "veritas": "ametller",
         "corte": "carrefour",
-        "marroqui": "bazar",
+        "marroqui": "marroqui",
         "jane": "farmacia"
       };
 
@@ -1925,7 +1948,7 @@
           const rawCat = (it.category || "").toLowerCase().trim();
           const finalCat = OG_CAT_MAP[rawCat] || detectSemanticCategory(finalName) || "General";
           const isCrossed = it.crossed_off === true;
-          const note = (it.note || "").trim().slice(0, 300);
+          const note = (it.note || "").trim();
           const photo = (it.photo_url || "").trim();
 
           const dedupKey = `${targetStore}::${finalName.toLowerCase()}`;
@@ -2015,6 +2038,15 @@
         // Netejar notes residuals tipus "Afegit per veu..."
         if (it.note && it.note.startsWith("Afegit per veu")) {
           it.note = "";
+        }
+
+        // Reassignació de botigues si provenien d'imports amb mapeig previ incorrecte
+        const lower = (it.name || "").toLowerCase();
+        if (it.store === "bazar" && /cardamomo|azahar|guindilla fresca|pasta curry/i.test(lower)) {
+          it.store = "marroqui";
+        }
+        if (it.store === "mercadona" && /portell|reserva 2019/i.test(lower)) {
+          it.store = "caprabo";
         }
 
         // Buscar si ja tenim un article igual o similar a la mateixa botiga
