@@ -246,7 +246,7 @@
       </div>
 
       <div id="pending-list"
-        class="flex flex-col space-y-2 w-full">
+        class="flex flex-col space-y-1 sm:space-y-1.5 w-full">
         <!-- Renderitzat dinàmic de pendents de dalt a baix -->
       </div>
     </section>
@@ -272,7 +272,7 @@
       </div>
       <div id="completed-list-wrapper" class="mt-2 transition-all duration-200 w-full">
         <div id="completed-list"
-          class="flex flex-col space-y-2 w-full">
+          class="flex flex-col space-y-1 sm:space-y-1.5 w-full">
           <!-- Renderitzat dinàmic de comprats de dalt a baix -->
         </div>
       </div>
@@ -652,13 +652,19 @@
       recognition.interimResults = false;
       recognition.lang = voiceLanguage;
 
+      let isVoiceProcessing = false;
+
       recognition.onstart = () => {
+        isVoiceProcessing = false;
         isVoiceActive = true;
         updateVoiceUI(true);
         if (navigator.vibrate) navigator.vibrate(40);
       };
 
       recognition.onresult = (event) => {
+        if (isVoiceProcessing) return;
+        if (!event.results || !event.results[0] || !event.results[0][0]) return;
+        isVoiceProcessing = true;
         const transcript = event.results[0][0].transcript;
         processVoiceSentence(transcript);
         stopVoiceRecognition();
@@ -883,6 +889,44 @@
     function processVoiceSentence(sentence) {
       const parsed = parseProductInput(sentence);
       const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      const normalizedTarget = cleanName(parsed.name).toLowerCase();
+
+      // Comprovar si ja existeix aquest producte a la botiga de destí
+      const existingIndex = items.findIndex(it => 
+        (it.store === targetStore || targetStore === "all" || it.store === "all") &&
+        cleanName(it.name).toLowerCase() === normalizedTarget
+      );
+
+      if (existingIndex !== -1) {
+        const existingItem = items[existingIndex];
+        if (existingItem.crossed_off) {
+          // Si ja estava a la llista però ratllat (comprat), el recuperem a pendents dalt de tot!
+          existingItem.crossed_off = false;
+          if (parsed.qty && parsed.qty !== "1") {
+            existingItem.qty = parsed.qty;
+            existingItem.unit = parsed.unit;
+          }
+          existingItem.note = `Reactivat per veu: "${sentence}"`;
+          items.splice(existingIndex, 1);
+          items.unshift(existingItem);
+          saveToLocalStorage();
+          renderLists();
+          renderStoreTabs();
+          showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
+          return;
+        } else {
+          // Si ja és a pendents, actualitzem quantitat i nota, sense duplicar
+          if (parsed.qty && parsed.qty !== "1") {
+            existingItem.qty = parsed.qty;
+            existingItem.unit = parsed.unit;
+          }
+          existingItem.note = `Actualitzat per veu: "${sentence}"`;
+          saveToLocalStorage();
+          renderLists();
+          showToast(`Ja és a la llista: ${existingItem.name}`, "fa-circle-check");
+          return;
+        }
+      }
 
       const newItem = {
         id: "p_" + Date.now(),
@@ -913,6 +957,42 @@
 
       const parsed = parseProductInput(val);
       const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      const normalizedTarget = cleanName(parsed.name).toLowerCase();
+
+      // Comprovar si ja existeix aquest producte
+      const existingIndex = items.findIndex(it => 
+        (it.store === targetStore || targetStore === "all" || it.store === "all") &&
+        cleanName(it.name).toLowerCase() === normalizedTarget
+      );
+
+      if (existingIndex !== -1) {
+        const existingItem = items[existingIndex];
+        if (existingItem.crossed_off) {
+          existingItem.crossed_off = false;
+          if (parsed.qty && parsed.qty !== "1") {
+            existingItem.qty = parsed.qty;
+            existingItem.unit = parsed.unit;
+          }
+          items.splice(existingIndex, 1);
+          items.unshift(existingItem);
+          input.value = "";
+          saveToLocalStorage();
+          renderLists();
+          renderStoreTabs();
+          showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
+          return;
+        } else {
+          if (parsed.qty && parsed.qty !== "1") {
+            existingItem.qty = parsed.qty;
+            existingItem.unit = parsed.unit;
+          }
+          input.value = "";
+          saveToLocalStorage();
+          renderLists();
+          showToast(`Ja és a la llista: ${existingItem.name}`, "fa-circle-check");
+          return;
+        }
+      }
 
       const newItem = {
         id: "p_" + Date.now(),
@@ -1063,12 +1143,12 @@
               <span class="text-gray-400 font-normal text-[11px]">(${groups[cat].length})</span>
             </div>
           `;
-          html += groups[cat].map(item => createItemRowHTML(item, false)).join("");
+          html += groups[cat].map(item => createItemRowHTML(item, false, true)).join("");
         });
 
         if (pending.length > visiblePending.length) {
           html += `
-            <div class="p-3 text-center bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-emerald-100 select-none" onclick="loadMorePending()">
+            <div class="p-2.5 text-center bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-emerald-100 select-none" onclick="loadMorePending()">
               <i class="fa-solid fa-chevron-down mr-1"></i> Mostrar 50 pendents més (${visiblePending.length} de ${pending.length})
             </div>
           `;
@@ -1076,10 +1156,10 @@
         pendingContainer.innerHTML = html;
       } else {
         const visiblePending = pending.slice(0, pendingVisibleLimit);
-        let pendingHTML = visiblePending.map(item => createItemRowHTML(item, false)).join("");
+        let pendingHTML = visiblePending.map(item => createItemRowHTML(item, false, false)).join("");
         if (pending.length > visiblePending.length) {
           pendingHTML += `
-            <div class="p-3 text-center bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-emerald-100 select-none" onclick="loadMorePending()">
+            <div class="p-2.5 text-center bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-emerald-100 select-none" onclick="loadMorePending()">
               <i class="fa-solid fa-chevron-down mr-1"></i> Mostrar 50 pendents més (${visiblePending.length} de ${pending.length})
             </div>
           `;
@@ -1091,13 +1171,13 @@
       if (completed.length === 0) {
         completedContainer.innerHTML = `<div class="p-3 text-center text-xs text-gray-400 w-full bg-white/60 rounded-xl border border-gray-200/50">Cap article ratllat en aquesta botiga.</div>`;
       } else if (isCompletedCollapsed) {
-        completedContainer.innerHTML = `<div class="p-3 text-center text-xs text-gray-500 w-full italic cursor-pointer hover:bg-gray-100 bg-white/70 rounded-xl border border-gray-200" onclick="toggleCompletedCollapse()">Llista plegada (${completed.length} articles). Toca per desplegar.</div>`;
+        completedContainer.innerHTML = `<div class="p-2.5 text-center text-xs text-gray-500 w-full italic cursor-pointer hover:bg-gray-100 bg-white/70 rounded-xl border border-gray-200" onclick="toggleCompletedCollapse()">Llista plegada (${completed.length} articles). Toca per desplegar.</div>`;
       } else {
         const visibleCompleted = completed.slice(0, completedVisibleLimit);
-        let completedHTML = visibleCompleted.map(item => createItemRowHTML(item, true)).join("");
+        let completedHTML = visibleCompleted.map(item => createItemRowHTML(item, true, false)).join("");
         if (completed.length > visibleCompleted.length) {
           completedHTML += `
-            <div class="p-3 text-center bg-gray-100 hover:bg-gray-200 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-gray-200 select-none" onclick="loadMoreCompleted()">
+            <div class="p-2.5 text-center bg-gray-100 hover:bg-gray-200 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-gray-200 select-none" onclick="loadMoreCompleted()">
               <i class="fa-solid fa-chevron-down mr-1"></i> Mostrar 50 més (${visibleCompleted.length} de ${completed.length})
             </div>
           `;
@@ -1108,64 +1188,76 @@
       updateCompletedCollapseUI();
     }
 
-    function createItemRowHTML(item, isCrossed) {
+    function createItemRowHTML(item, isCrossed, isCategorized = false) {
+      const isSpecificStore = currentStoreFilter !== "all";
       const storeObj = STORES.find(s => s.id === item.store) || { name: item.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
       const catIcon = CATEGORY_ICONS[item.category] || "fa-basket-shopping";
       const totalItemPrice = (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
 
+      // Només mostrem la botiga si som a la vista general "Totes"
+      const showStore = !isSpecificStore;
+      // Només mostrem la categoria si NO està ja sota la capçalera d'aquesta categoria
+      const showCategory = !isCategorized;
+      const hasSubtitle = showStore || showCategory || (item.note && item.note.trim() !== "");
+
       return `
         <div onclick="toggleItemCheck('${item.id}')"
-             class="flex items-center justify-between px-3.5 py-3 rounded-2xl border transition-all duration-150 active:scale-[0.98] select-none cursor-pointer w-full ${
+             class="flex items-center justify-between pl-0 pr-2 py-1 rounded-xl border transition-all duration-150 active:scale-[0.985] select-none cursor-pointer w-full overflow-hidden ${
                isCrossed
                  ? 'bg-gray-100/70 border-gray-200/80 opacity-60'
-                 : 'bg-white border-gray-200 shadow-2xs hover:border-emerald-300 hover:shadow-xs'
+                 : 'bg-white border-gray-200/90 shadow-2xs hover:border-emerald-300'
              }">
-          <!-- ZONA CONTINGUT: ICONA/FOTO + TEXT -->
-          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-2">
-            <!-- Miniatura foto o icona categoria -->
-            <div class="w-9 h-9 rounded-xl ${
-              isCrossed 
-                ? 'bg-gray-200 text-gray-400' 
-                : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-            } flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs">
-              ${item.photo
-                ? `<img src="${item.photo}" class="w-full h-full object-cover">`
-                : `<i class="fa-solid ${catIcon} text-sm"></i>`
-              }
-            </div>
+          <!-- ESQUERRA: FOTO A ALÇADA COMPLETA O ICONA COMPACTA -->
+          <div class="flex items-center space-x-2.5 flex-1 min-w-0 mr-1.5">
+            ${item.photo
+              ? `<div class="w-11 self-stretch min-h-[38px] max-h-[46px] bg-gray-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                   <img src="${item.photo}" class="w-full h-full object-cover">
+                 </div>`
+              : `<div class="w-8 h-8 ml-2 rounded-lg ${
+                   isCrossed ? 'bg-gray-200 text-gray-400' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+                 } flex items-center justify-center flex-shrink-0 text-xs">
+                   <i class="fa-solid ${catIcon}"></i>
+                 </div>`
+            }
 
-            <!-- Nom i informació -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1.5 flex-wrap leading-snug">
-                <span class="font-bold text-[15px] sm:text-[16px] truncate ${
+            <!-- CENTRE: NOM + DETALLS -->
+            <div class="flex-1 min-w-0 ${hasSubtitle ? 'py-0.5' : 'py-1'}">
+              <div class="flex items-center gap-1.5 leading-tight">
+                <span class="font-bold text-sm sm:text-[15px] truncate ${
                   isCrossed ? 'line-through-gray text-gray-400 font-medium' : 'text-gray-900'
                 }">
                   ${item.name}
                 </span>
                 ${item.qty && (item.qty !== '1' || item.unit !== 'ud')
-                  ? `<span class="text-[11px] font-bold ${
+                  ? `<span class="text-[10px] sm:text-[11px] font-bold ${
                       isCrossed ? 'text-gray-400 bg-gray-200/70' : 'text-emerald-800 bg-emerald-100/80'
-                    } px-2 py-0.5 rounded-lg flex-shrink-0">x${item.qty} ${item.unit || ''}</span>`
+                    } px-1.5 py-0.2 rounded-md flex-shrink-0">x${item.qty} ${item.unit || ''}</span>`
+                  : ''}
+                ${item.note && !hasSubtitle
+                  ? `<i class="fa-regular fa-note-sticky text-amber-500 text-[11px]" title="${item.note}"></i>`
                   : ''}
               </div>
-              <div class="flex items-center space-x-1.5 text-xs text-gray-400 truncate mt-0.5 font-medium">
-                <span class="${storeObj.badgeText || 'text-gray-600'}">${storeObj.name}</span>
-                <span>•</span>
-                <span class="truncate">${item.category}</span>
-                ${item.note ? `<span>• <i class="fa-regular fa-note-sticky text-amber-500" title="${item.note}"></i></span>` : ''}
-              </div>
+
+              ${hasSubtitle ? `
+                <div class="flex items-center space-x-1.5 text-[10px] sm:text-[11px] text-gray-400 truncate mt-0.5 font-medium leading-none">
+                  ${showStore ? `<span class="${storeObj.badgeText || 'text-gray-600'} font-semibold">${storeObj.name}</span>` : ''}
+                  ${showStore && showCategory ? `<span>•</span>` : ''}
+                  ${showCategory ? `<span class="truncate">${item.category}</span>` : ''}
+                  ${item.note ? `<span>• <i class="fa-regular fa-note-sticky text-amber-500" title="${item.note}"></i></span>` : ''}
+                </div>
+              ` : ''}
             </div>
           </div>
 
-          <!-- PREU I BOTÓ D'EDICIÓ -->
-          <div class="flex items-center space-x-1.5 flex-shrink-0">
+          <!-- DRETA: PREU I BOTÓ EDITAR -->
+          <div class="flex items-center space-x-1 flex-shrink-0">
             ${totalItemPrice > 0
-              ? `<span class="text-xs sm:text-sm font-bold ${isCrossed ? 'text-gray-400 line-through' : 'text-gray-800'}">${totalItemPrice.toFixed(2)} €</span>`
+              ? `<span class="text-xs sm:text-sm font-bold ${isCrossed ? 'text-gray-400 line-through' : 'text-gray-800'} mr-0.5">${totalItemPrice.toFixed(2)} €</span>`
               : ''}
             <button onclick="event.stopPropagation(); openEditModal('${item.id}')" 
                     title="Editar fitxa" 
-                    class="text-gray-400 hover:text-emerald-700 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 active:bg-gray-200 transition">
-              <i class="fa-solid fa-pen text-xs"></i>
+                    class="text-gray-400 hover:text-emerald-700 w-7 h-7 rounded-full flex items-center justify-center hover:bg-gray-100 active:bg-gray-200 transition">
+              <i class="fa-solid fa-pen text-[10px]"></i>
             </button>
           </div>
         </div>
