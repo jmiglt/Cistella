@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cistella-cache-v16';
+const CACHE_NAME = 'cistella-cache-v17';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -39,8 +39,18 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http')) return;
 
-  // En desenvolupament local (127.0.0.1 o localhost), no servir index.html de memòria cau
   const url = new URL(event.request.url);
+
+  // No interceptar ni desar en cau streams SSE ni crides a canals de sincronització o QR externs
+  if (url.hostname.includes('ntfy.sh') || url.hostname.includes('qrserver.com')) {
+    return;
+  }
+  const acceptHeader = event.request.headers.get('accept') || '';
+  if (acceptHeader.includes('text/event-stream')) {
+    return;
+  }
+
+  // En desenvolupament local (127.0.0.1 o localhost), no servir index.html de memòria cau
   if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
     if (url.pathname.endsWith('index.html') || url.pathname.endsWith('/')) {
       event.respondWith(fetch(event.request));

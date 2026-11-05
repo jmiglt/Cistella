@@ -178,6 +178,26 @@
           <i class="fa-solid fa-download"></i> App
         </button>
 
+        <!-- BOTÓ COMPARTIR LLISTA -->
+        <button onclick="openShareModal()" title="Compartir llista per WhatsApp o text"
+          class="bg-emerald-800 hover:bg-emerald-600 text-emerald-100 w-7 h-7 rounded-full flex items-center justify-center text-xs focus:outline-none transition active:scale-95 shadow-xs">
+          <i class="fa-solid fa-share-nodes text-[11px]"></i>
+        </button>
+
+        <!-- INDICADOR / BOTÓ DE SINCRONITZACIÓ EN DIRECTE -->
+        <button onclick="openSyncModal()" id="header-sync-btn" title="Sincronització familiar en temps real"
+          class="bg-emerald-800 hover:bg-emerald-600 text-emerald-100 px-2 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-xs">
+          <span id="sync-dot" class="w-2 h-2 rounded-full bg-gray-400"></span>
+          <i class="fa-solid fa-cloud text-[10px]"></i>
+          <span id="sync-code-label" class="hidden sm:inline text-[10px] font-mono font-bold tracking-tight">Local</span>
+        </button>
+
+        <!-- BOTÓ ESTADÍSTIQUES RÀPIDES -->
+        <button onclick="openStatsModal()" title="Estadístiques i despesa total"
+          class="bg-emerald-800 hover:bg-emerald-600 text-emerald-100 w-7 h-7 rounded-full flex items-center justify-center text-xs focus:outline-none transition active:scale-95 shadow-xs">
+          <i class="fa-solid fa-chart-pie text-[11px]"></i>
+        </button>
+
         <!-- SELECTOR IDIOMA DE VEU -->
         <button onclick="cycleVoiceLanguage()" id="header-lang-btn" title="Canviar idioma de reconeixement de veu"
           class="bg-emerald-800 hover:bg-emerald-600 text-emerald-200 px-2 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1">
@@ -213,6 +233,23 @@
   <!-- MENÚ DESPLEGABLE D'OPCIONS -->
   <div id="options-menu"
     class="hidden absolute top-12 right-3 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 w-52 py-1.5 text-xs text-gray-700 divide-y divide-gray-100">
+    <div class="px-3 py-1.5 font-semibold text-gray-500 text-[10px] uppercase">Compartir i Sincronització</div>
+    <button onclick="openShareModal(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-900 font-semibold flex items-center justify-between transition">
+      <span class="flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-600 text-base"></i> Compartir per WhatsApp</span>
+      <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+    </button>
+    <button onclick="openSyncModal(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-900 font-semibold flex items-center justify-between transition">
+      <span class="flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-sm"></i> Sincronització familiar al núvol</span>
+      <span id="menu-sync-badge" class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-mono">Local</span>
+    </button>
+    <button onclick="openStatsModal(); toggleOptionsMenu();"
+      class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-900 font-semibold flex items-center justify-between transition">
+      <span class="flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-600 text-sm"></i> Estadístiques i despesa</span>
+      <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+    </button>
+    <div class="border-t border-gray-100 my-1"></div>
     <div class="px-3 py-2 font-semibold text-gray-500 text-[10px] uppercase">Opcions de llista</div>
     <button onclick="openManageStoresModal(); toggleOptionsMenu();"
       class="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-800 font-semibold flex items-center justify-between">
@@ -882,6 +919,160 @@
             Triar un altre fitxer
           </button>
         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: COMPARTIR LLISTA (WHATSAPP & TEXT)
+       ========================================== -->
+  <div id="share-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-3">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Capçalera -->
+      <div class="px-4 py-3 bg-emerald-700 text-white flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-emerald-100">
+            <i class="fa-solid fa-share-nodes text-sm"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm leading-tight">Compartir llista de la compra</h3>
+            <p class="text-[10px] text-emerald-200">Envia els productes pendents amb format bonic</p>
+          </div>
+        </div>
+        <button onclick="closeShareModal()" class="text-emerald-200 hover:text-white p-1 rounded-lg transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Contingut -->
+      <div class="p-4 overflow-y-auto space-y-3.5 text-xs">
+        
+        <!-- Filtre de botiga a compartir -->
+        <div>
+          <label class="block font-semibold text-gray-700 mb-1">Botiga o llista a compartir:</label>
+          <select id="share-store-select" onchange="updateSharePreview()"
+            class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <!-- Omplert dinàmicament per JS -->
+          </select>
+        </div>
+
+        <!-- Opcions de contingut -->
+        <div class="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-2">
+          <div class="font-semibold text-gray-700 text-[11px] mb-1">Opcions del missatge:</div>
+          <label class="flex items-center gap-2 cursor-pointer text-gray-700 select-none">
+            <input type="checkbox" id="share-opt-prices" checked onchange="updateSharePreview()"
+              class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300">
+            <span>Incloure preus estimats i total (€)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-gray-700 select-none">
+            <input type="checkbox" id="share-opt-notes" checked onchange="updateSharePreview()"
+              class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300">
+            <span>Incloure notes i quantitats dels productes</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-gray-700 select-none">
+            <input type="checkbox" id="share-opt-link" checked onchange="updateSharePreview()"
+              class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300">
+            <span>Incloure enllaç per obrir a l'app Cistella</span>
+          </label>
+        </div>
+
+        <!-- Previsualització del missatge -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <span class="font-semibold text-gray-700">Previsualització del missatge:</span>
+            <span id="share-preview-count" class="text-[10px] text-gray-500">0 productes</span>
+          </div>
+          <div class="relative">
+            <textarea id="share-preview-text" readonly rows="7"
+              class="w-full bg-emerald-50/50 border border-emerald-200/70 rounded-xl p-2.5 font-mono text-[11px] text-gray-800 focus:outline-none resize-none leading-relaxed select-all"></textarea>
+          </div>
+        </div>
+
+        <!-- Botons d'acció de compartir -->
+        <div class="space-y-2 pt-1">
+          <!-- WhatsApp principal -->
+          <button onclick="executeShareWhatsApp()"
+            class="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 active:scale-98">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+            <span>Compartir per WhatsApp</span>
+          </button>
+
+          <!-- Copiar i Native Share en graella -->
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="executeShareCopy()"
+              class="py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-xs transition flex items-center justify-center gap-1.5 active:scale-98">
+              <i class="fa-solid fa-copy text-gray-500"></i>
+              <span>Copiar text</span>
+            </button>
+            <button id="share-native-btn" onclick="executeShareNative()"
+              class="py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-xl text-xs transition flex items-center justify-center gap-1.5 active:scale-98">
+              <i class="fa-solid fa-share-nodes text-emerald-600"></i>
+              <span>Altres apps...</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: SINCRONITZACIÓ FAMILIAR AL NÚVOL
+       ========================================== -->
+  <div id="sync-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-3">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Capçalera -->
+      <div class="px-4 py-3 bg-emerald-800 text-white flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-emerald-200">
+            <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm leading-tight">Sincronització familiar en directe</h3>
+            <p class="text-[10px] text-emerald-300">Múltiples telèfons connectats a la mateixa cistella</p>
+          </div>
+        </div>
+        <button onclick="closeSyncModal()" class="text-emerald-300 hover:text-white p-1 rounded-lg transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Contingut dinàmic (Active vs Inactive) -->
+      <div id="sync-modal-body" class="p-4 overflow-y-auto space-y-3.5 text-xs">
+        <!-- Generat dinàmicament per renderSyncModalUI() -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: ESTADÍSTIQUES I DESPESA TOTAL
+       ========================================== -->
+  <div id="stats-modal" class="fixed inset-0 bg-black/60 z-[70] hidden flex items-center justify-center p-3">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Capçalera -->
+      <div class="px-4 py-3 bg-emerald-700 text-white flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-emerald-100">
+            <i class="fa-solid fa-chart-pie text-sm"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm leading-tight">Resum de despesa i estadístiques</h3>
+            <p class="text-[10px] text-emerald-200">Totals pendents, comprat i desglossament per botiga</p>
+          </div>
+        </div>
+        <button onclick="closeStatsModal()" class="text-emerald-200 hover:text-white p-1 rounded-lg transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Contingut estadístiques -->
+      <div id="stats-modal-body" class="p-4 overflow-y-auto space-y-3.5 text-xs">
+        <!-- Generat dinàmicament per renderStatsContent() -->
       </div>
 
     </div>
@@ -3432,8 +3623,16 @@
 
       function saveToLocalStorage() {
         try {
+          // Assegurem que cada item tingui updatedAt
+          const now = Date.now();
+          items.forEach(it => { if (!it.updatedAt) it.updatedAt = now; });
+
           localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(items));
           localStorage.setItem(STORAGE_KEY_STORE, currentStoreFilter);
+
+          if (typeof scheduleCloudSync === 'function') {
+            scheduleCloudSync();
+          }
         } catch (err) {
           console.error("Error desant a localStorage:", err);
         }
@@ -3953,6 +4152,9 @@
       renderStoreTabs();
       initStoreTabsDesktopScroll();
       renderLists();
+      if (typeof initCloudSync === 'function') {
+        initCloudSync();
+      }
 
       if (isRunningStandalone()) {
         const installBtn = document.getElementById('pwa-install-btn');
@@ -3967,6 +4169,881 @@
           ? "fa-solid fa-check text-emerald-600"
           : "fa-solid fa-xmark text-gray-300";
       }
+
+    // =========================================================================
+    // FASE 4: COMPARTIR LLISTA, SINCRONITZACIÓ EN DIRECTE I ESTADÍSTIQUES
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // 4.1 COMPARTIR LLISTA (WHATSAPP, TEXT, NATIVE SHARE)
+    // -------------------------------------------------------------------------
+    function openShareModal() {
+      const select = document.getElementById('share-store-select');
+      if (select) {
+        select.innerHTML = '';
+        
+        // Opció per a totes les llistes
+        const totalPending = items.filter(it => !it.completed).length;
+        const optAll = document.createElement('option');
+        optAll.value = 'all';
+        optAll.textContent = `🛒 Totes les botigues (${totalPending} pendents)`;
+        select.appendChild(optAll);
+
+        // Opcions per botiga existent
+        const storeMap = getStoreMap();
+        stores.forEach(s => {
+          if (s.id === 'all') return;
+          const count = items.filter(it => !it.completed && it.store === s.id).length;
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = `${s.name} (${count} pendents)`;
+          select.appendChild(opt);
+        });
+
+        // Seleccionar per defecte la botiga activa
+        if (currentStoreFilter && currentStoreFilter !== 'all') {
+          select.value = currentStoreFilter;
+        } else {
+          select.value = 'all';
+        }
+      }
+
+      // Amagar botó native share si no està suportat pel navegador
+      const nativeBtn = document.getElementById('share-native-btn');
+      if (nativeBtn) {
+        if (!navigator.share) {
+          nativeBtn.classList.add('hidden');
+        } else {
+          nativeBtn.classList.remove('hidden');
+        }
+      }
+
+      updateSharePreview();
+      const modal = document.getElementById('share-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeShareModal() {
+      const modal = document.getElementById('share-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function generateShareText() {
+      const select = document.getElementById('share-store-select');
+      const storeFilter = select ? select.value : 'all';
+      const incPrices = document.getElementById('share-opt-prices')?.checked ?? true;
+      const incNotes = document.getElementById('share-opt-notes')?.checked ?? true;
+      const incLink = document.getElementById('share-opt-link')?.checked ?? true;
+
+      // Filtrar items pendents segons la botiga triada
+      const pendingItems = items.filter(it => {
+        if (it.completed) return false;
+        if (storeFilter === 'all') return true;
+        return it.store === storeFilter;
+      });
+
+      const storeMap = getStoreMap();
+      let text = '';
+
+      if (storeFilter === 'all') {
+        text += '🛒 *Cistella de la compra* (Totes les botigues)\n';
+      } else {
+        const storeName = storeMap[storeFilter]?.name || storeFilter;
+        text += `🛒 *Cistella de la compra* - *${storeName}*\n`;
+      }
+
+      if (pendingItems.length === 0) {
+        text += '\n✨ No hi ha cap producte pendent de comprar!';
+        return text;
+      }
+
+      text += `📋 *${pendingItems.length}* producte${pendingItems.length > 1 ? 's' : ''} pendent${pendingItems.length > 1 ? 's' : ''}:\n\n`;
+
+      let totalEstimated = 0;
+      let hasEstimatedPrices = false;
+
+      // Si s'han triat totes les botigues, agrupem visualment per botiga
+      if (storeFilter === 'all') {
+        const grouped = {};
+        pendingItems.forEach(it => {
+          const sId = it.store || 'altres';
+          if (!grouped[sId]) grouped[sId] = [];
+          grouped[sId].push(it);
+        });
+
+        Object.keys(grouped).forEach(sId => {
+          const sName = storeMap[sId]?.name || sId;
+          text += `📍 *${sName}*:\n`;
+          grouped[sId].forEach(it => {
+            text += `▫️ ${it.name}`;
+            if (incPrices && typeof it.price === 'number' && it.price > 0) {
+              text += ` · ${it.price.toFixed(2).replace('.', ',')} €`;
+              totalEstimated += it.price;
+              hasEstimatedPrices = true;
+            }
+            if (incNotes && it.note && it.note.trim()) {
+              text += ` (${it.note.trim()})`;
+            }
+            text += '\n';
+          });
+          text += '\n';
+        });
+      } else {
+        pendingItems.forEach(it => {
+          text += `▫️ ${it.name}`;
+          if (incPrices && typeof it.price === 'number' && it.price > 0) {
+            text += ` · ${it.price.toFixed(2).replace('.', ',')} €`;
+            totalEstimated += it.price;
+            hasEstimatedPrices = true;
+          }
+          if (incNotes && it.note && it.note.trim()) {
+            text += ` (${it.note.trim()})`;
+          }
+          text += '\n';
+        });
+        text += '\n';
+      }
+
+      if (incPrices && hasEstimatedPrices) {
+        text += `💶 *Total estimat*: ~${totalEstimated.toFixed(2).replace('.', ',')} €\n\n`;
+      }
+
+      if (incLink) {
+        const baseUrl = window.location.origin + window.location.pathname;
+        if (currentSyncCode) {
+          text += `🔗 *Obre en directe a Cistella*:\n${baseUrl}?sync=${encodeURIComponent(currentSyncCode)}\n`;
+        } else {
+          text += `🔗 *Obre l'app Cistella*:\n${baseUrl}\n`;
+        }
+      }
+
+      return text.trim();
+    }
+
+    function updateSharePreview() {
+      const text = generateShareText();
+      const textarea = document.getElementById('share-preview-text');
+      if (textarea) textarea.value = text;
+
+      const select = document.getElementById('share-store-select');
+      const storeFilter = select ? select.value : 'all';
+      const count = items.filter(it => !it.completed && (storeFilter === 'all' || it.store === storeFilter)).length;
+      const countEl = document.getElementById('share-preview-count');
+      if (countEl) countEl.textContent = `${count} producte${count !== 1 ? 's' : ''}`;
+    }
+
+    function executeShareWhatsApp() {
+      const text = generateShareText();
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function executeShareCopy() {
+      const text = generateShareText();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('✅ Llista copiada al porta-retalls');
+        }).catch(err => {
+          console.error('Error al copiar:', err);
+          showToast('❌ No s\'ha pogut copiar');
+        });
+      } else {
+        const textarea = document.getElementById('share-preview-text');
+        if (textarea) {
+          textarea.select();
+          document.execCommand('copy');
+          showToast('✅ Llista copiada al porta-retalls');
+        }
+      }
+    }
+
+    function executeShareNative() {
+      const text = generateShareText();
+      if (navigator.share) {
+        navigator.share({
+          title: 'Cistella de la compra',
+          text: text
+        }).catch(err => {
+          if (err.name !== 'AbortError') {
+            console.error('Error a navigator.share:', err);
+          }
+        });
+      } else {
+        executeShareCopy();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 4.2 SINCRONITZACIÓ FAMILIAR EN TEMPS REAL (MULTI-USUARI & NÚVOL)
+    // -------------------------------------------------------------------------
+    const STORAGE_KEY_SYNC_CODE = "cistella_sync_code_v1";
+    let currentSyncCode = null;
+    let syncEventSource = null;
+    let syncClientId = "client_" + Math.random().toString(36).substring(2, 9);
+    let syncDebounceTimer = null;
+    let isProcessingIncomingSync = false;
+
+    function initCloudSync() {
+      // 1. Comprovar si rebem un codi per paràmetre de la URL (?sync=CIST-XXXX)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlSync = urlParams.get('sync');
+      
+      const savedSync = localStorage.getItem(STORAGE_KEY_SYNC_CODE);
+      const codeToUse = (urlSync && urlSync.trim()) ? urlSync.trim().toUpperCase() : (savedSync || null);
+
+      if (codeToUse) {
+        joinFamilySync(codeToUse, !!urlSync);
+        // Si venia per paràmetre a la URL, netegem la barra de navegació sense recarregar
+        if (urlSync && window.history && window.history.replaceState) {
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      } else {
+        updateSyncBadgeUI('local');
+      }
+
+      // Escoltar estat de xarxa per reconnectar automàticament
+      window.addEventListener('online', () => {
+        if (currentSyncCode) {
+          console.log('Connexió a internet restablerta. Reconnectant sala...');
+          joinFamilySync(currentSyncCode, false);
+          scheduleCloudSync();
+        }
+      });
+      window.addEventListener('offline', () => {
+        if (currentSyncCode) {
+          updateSyncBadgeUI('offline');
+        }
+      });
+    }
+
+    function updateSyncBadgeUI(status, label) {
+      const dot = document.getElementById('sync-dot');
+      const textLabel = document.getElementById('sync-code-label');
+      const menuBadge = document.getElementById('menu-sync-badge');
+
+      if (!dot || !textLabel) return;
+
+      dot.className = "w-2 h-2 rounded-full transition";
+
+      if (status === 'online') {
+        dot.classList.add('bg-emerald-400', 'animate-pulse');
+        textLabel.textContent = label || currentSyncCode || 'Online';
+        textLabel.className = "hidden sm:inline text-[10px] font-mono font-bold text-emerald-200";
+        if (menuBadge) {
+          menuBadge.textContent = label || currentSyncCode;
+          menuBadge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.5 rounded-full font-bold";
+        }
+      } else if (status === 'syncing') {
+        dot.classList.add('bg-amber-400');
+        textLabel.textContent = 'Sync...';
+        textLabel.className = "hidden sm:inline text-[10px] font-mono font-bold text-amber-200";
+      } else if (status === 'offline') {
+        dot.classList.add('bg-red-400');
+        textLabel.textContent = 'Offline';
+        textLabel.className = "hidden sm:inline text-[10px] font-mono font-bold text-red-200";
+        if (menuBadge) {
+          menuBadge.textContent = 'Sense connexió';
+          menuBadge.className = "text-[10px] bg-red-100 text-red-700 font-mono px-1.5 py-0.5 rounded-full";
+        }
+      } else {
+        // Local
+        dot.classList.add('bg-gray-400');
+        textLabel.textContent = 'Local';
+        textLabel.className = "hidden sm:inline text-[10px] font-mono text-emerald-200";
+        if (menuBadge) {
+          menuBadge.textContent = 'Local';
+          menuBadge.className = "text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-mono";
+        }
+      }
+    }
+
+    function getCleanSyncChannel(code) {
+      if (!code) return '';
+      // Normalitzem el codi per a l'endpoint ntfy (només lletres minúscules i números)
+      const sanitized = code.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return `cistella_v4_${sanitized}`;
+    }
+
+    function joinFamilySync(rawCode, isNewFromUrl = false) {
+      if (!rawCode || !rawCode.trim()) return;
+      const code = rawCode.trim().toUpperCase();
+
+      // Si ja teníem una connexió oberta, la tanquem
+      if (syncEventSource) {
+        try { syncEventSource.close(); } catch(e){}
+        syncEventSource = null;
+      }
+
+      currentSyncCode = code;
+      localStorage.setItem(STORAGE_KEY_SYNC_CODE, code);
+      updateSyncBadgeUI('syncing');
+
+      const channel = getCleanSyncChannel(code);
+      console.log('Connectant a sala familiar:', code, 'Canal:', channel);
+
+      // Iniciar connexió SSE (Server-Sent Events) en temps real
+      try {
+        const streamUrl = `https://ntfy.sh/${channel}/sse`;
+        syncEventSource = new EventSource(streamUrl);
+
+        syncEventSource.onopen = () => {
+          console.log('Sincronització en directe establerta amb el canal:', channel);
+          updateSyncBadgeUI('online', code);
+          if (isNewFromUrl) {
+            showToast(`🔗 Connectat a la sala familiar ${code}`);
+          }
+          // Enviar un missatge HELLO per demanar als altres l'estat o publicar el nostre
+          broadcastSyncPayload('HELLO');
+        };
+
+        syncEventSource.onmessage = (event) => {
+          try {
+            const rawData = JSON.parse(event.data);
+            if (!rawData || !rawData.message) return;
+            const payload = JSON.parse(rawData.message);
+            handleIncomingSync(payload);
+          } catch (e) {
+            // Missatge de sistema de ntfy (keepalive) o no JSON
+          }
+        };
+
+        syncEventSource.onerror = (err) => {
+          console.warn('Alerta connexió sync SSE:', err);
+          if (!navigator.onLine) {
+            updateSyncBadgeUI('offline');
+          }
+        };
+      } catch (err) {
+        console.error('Error iniciant EventSource:', err);
+        updateSyncBadgeUI('offline');
+      }
+
+      // També fem un polling inicial dels darrers missatges del canal per descarregar canvis recents
+      fetch(`https://ntfy.sh/${channel}/json?poll=1`)
+        .then(res => res.text())
+        .then(text => {
+          const lines = text.trim().split('\n');
+          lines.forEach(line => {
+            if (!line.trim()) return;
+            try {
+              const msgObj = JSON.parse(line);
+              if (msgObj && msgObj.message) {
+                const payload = JSON.parse(msgObj.message);
+                handleIncomingSync(payload);
+              }
+            } catch(e){}
+          });
+        })
+        .catch(e => console.log('Poll inicial finalitzat'));
+
+      renderSyncModalUI();
+    }
+
+    function disconnectFamilySync() {
+      if (confirm('Vols desconnectar d\'aquesta cistella familiar i tornar al mode local? Les teves dades locals es conservaran.')) {
+        if (syncEventSource) {
+          try { syncEventSource.close(); } catch(e){}
+          syncEventSource = null;
+        }
+        currentSyncCode = null;
+        localStorage.removeItem(STORAGE_KEY_SYNC_CODE);
+        updateSyncBadgeUI('local');
+        renderSyncModalUI();
+        showToast('ℹ️ Has tornat al mode local');
+      }
+    }
+
+    function createNewFamilyRoom() {
+      // Generar codi tipus CIST-4821
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const newCode = `CIST-${randomSuffix}`;
+      joinFamilySync(newCode);
+      // Pugi l'estat actual immediatament a la nova sala
+      scheduleCloudSync(true);
+      showToast(`✅ Sala familiar creada: ${newCode}`);
+    }
+
+    function submitCustomSyncCode() {
+      const input = document.getElementById('sync-join-input');
+      if (!input || !input.value.trim()) {
+        alert('Introdueix un codi de sala o família vàlid.');
+        return;
+      }
+      joinFamilySync(input.value.trim());
+      showToast(`Connectant a ${input.value.trim().toUpperCase()}...`);
+    }
+
+    function scheduleCloudSync(immediate = false) {
+      if (!currentSyncCode) return;
+      if (isProcessingIncomingSync) return; // Evitar eco de sincronització
+
+      if (syncDebounceTimer) {
+        clearTimeout(syncDebounceTimer);
+        syncDebounceTimer = null;
+      }
+
+      if (immediate) {
+        broadcastSyncPayload('UPDATE');
+      } else {
+        syncDebounceTimer = setTimeout(() => {
+          broadcastSyncPayload('UPDATE');
+        }, 600); // 600ms debounce
+      }
+    }
+
+    function broadcastSyncPayload(type = 'UPDATE') {
+      if (!currentSyncCode) return;
+      const channel = getCleanSyncChannel(currentSyncCode);
+      if (!channel) return;
+
+      const payload = {
+        type: type,
+        clientId: syncClientId,
+        syncCode: currentSyncCode,
+        timestamp: Date.now(),
+        items: items,
+        customStores: customStores
+      };
+
+      updateSyncBadgeUI('syncing');
+
+      fetch(`https://ntfy.sh/${channel}`, {
+        method: 'POST',
+        headers: {
+          'Title': 'Cistella Sync',
+          'Priority': '1'
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(res => {
+        if (res.ok) {
+          updateSyncBadgeUI('online', currentSyncCode);
+        } else {
+          updateSyncBadgeUI('offline');
+        }
+      })
+      .catch(err => {
+        console.warn('Error transmetent canvis al núvol:', err);
+        updateSyncBadgeUI('offline');
+      });
+    }
+
+    function handleIncomingSync(payload) {
+      if (!payload || typeof payload !== 'object') return;
+      // Ignorar els nostres propis missatges
+      if (payload.clientId === syncClientId) return;
+      if (payload.syncCode && currentSyncCode && payload.syncCode !== currentSyncCode) return;
+
+      if (payload.type === 'HELLO') {
+        // Un nou dispositiu s'ha connectat a la sala. Li enviem el nostre estat actualitzat
+        scheduleCloudSync(true);
+        return;
+      }
+
+      if (payload.type === 'UPDATE' && Array.isArray(payload.items)) {
+        isProcessingIncomingSync = true;
+        try {
+          console.log('Rebuts canvis remots de:', payload.clientId);
+          
+          // Fusió intel·ligent d'items
+          const merged = mergeSyncItems(items, payload.items);
+          items = merged;
+          localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(items));
+
+          // Si portava botigues noves, fusionar-les
+          if (Array.isArray(payload.customStores) && payload.customStores.length > 0) {
+            let hasNewStores = false;
+            payload.customStores.forEach(rs => {
+              if (rs && rs.id && !stores.some(s => s.id === rs.id)) {
+                customStores.push(rs);
+                hasNewStores = true;
+              }
+            });
+            if (hasNewStores) {
+              localStorage.setItem(STORAGE_KEY_CUSTOM_STORES, JSON.stringify(customStores));
+              rebuildStoresList();
+              renderStoreTabs();
+            }
+          }
+
+          // Actualitzar la interfície en viu
+          renderLists();
+          updateSyncBadgeUI('online', currentSyncCode);
+          showToast('🔄 Llista actualitzada en directe!');
+        } finally {
+          setTimeout(() => { isProcessingIncomingSync = false; }, 300);
+        }
+      }
+    }
+
+    function mergeSyncItems(localList, remoteList) {
+      const map = new Map();
+      localList.forEach(item => {
+        if (item && item.id) map.set(item.id, { ...item });
+      });
+
+      remoteList.forEach(rItem => {
+        if (!rItem || !rItem.id) return;
+        const lItem = map.get(rItem.id);
+        if (!lItem) {
+          map.set(rItem.id, { ...rItem });
+        } else {
+          const lTime = lItem.updatedAt || 0;
+          const rTime = rItem.updatedAt || 0;
+          if (rTime >= lTime) {
+            map.set(rItem.id, { ...lItem, ...rItem });
+          }
+        }
+      });
+
+      return Array.from(map.values());
+    }
+
+    function openSyncModal() {
+      renderSyncModalUI();
+      const modal = document.getElementById('sync-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeSyncModal() {
+      const modal = document.getElementById('sync-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function renderSyncModalUI() {
+      const container = document.getElementById('sync-modal-body');
+      if (!container) return;
+
+      if (currentSyncCode) {
+        // ESTAT ACTIU: CONNECTAT A UNA SALA FAMILIAR
+        const inviteUrl = `${window.location.origin}${window.location.pathname}?sync=${encodeURIComponent(currentSyncCode)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(inviteUrl)}`;
+
+        container.innerHTML = `
+          <!-- Estat de connexió -->
+          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider mb-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connexió en directe activa
+            </div>
+            <div class="text-xs text-gray-600 mb-1">Codi de la teva cistella familiar:</div>
+            <div class="font-mono text-2xl font-black text-emerald-900 tracking-wider bg-white py-2 px-3 rounded-xl border border-emerald-200 inline-block shadow-xs">
+              ${currentSyncCode}
+            </div>
+            <p class="text-[11px] text-gray-500 mt-2">
+              Qualsevol persona amb aquest codi veurà els canvis, compres i preus a l'instant.
+            </p>
+          </div>
+
+          <!-- Codi QR per escanejar des d'un altre mòbil -->
+          <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 flex flex-col items-center text-center">
+            <div class="text-xs font-bold text-gray-800 mb-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-qrcode text-emerald-600"></i> Escaneja per connectar-te
+            </div>
+            <div class="p-2 bg-white rounded-xl shadow-xs border border-gray-100 mb-2">
+              <img src="${qrUrl}" alt="Codi QR de connexió" class="w-36 h-36 rounded-lg object-contain">
+            </div>
+            <div class="text-[11px] text-gray-500 max-w-xs">
+              Apunta amb la càmera del mòbil de la teva parella o familiar per obrir directament aquesta cistella.
+            </div>
+          </div>
+
+          <!-- Botons d'invitació -->
+          <div class="space-y-2">
+            <button onclick="shareSyncInviteWhatsApp()"
+              class="w-full py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+              <i class="fa-brands fa-whatsapp text-base"></i> Convidar per WhatsApp
+            </button>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="copySyncInviteLink()"
+                class="py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-link text-emerald-600"></i> Copiar enllaç
+              </button>
+              <button onclick="scheduleCloudSync(true); showToast('Sincronitzant...');"
+                class="py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-rotate text-gray-500"></i> Forçar sync
+              </button>
+            </div>
+          </div>
+
+          <!-- Botó desconnectar -->
+          <div class="pt-2 border-t border-gray-100">
+            <button onclick="disconnectFamilySync()"
+              class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i> Desconnectar de la sala familiar
+            </button>
+          </div>
+        `;
+      } else {
+        // ESTAT LOCAL: NO CONNECTAT
+        container.innerHTML = `
+          <div class="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-4 text-center">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-2 text-lg">
+              <i class="fa-solid fa-people-roof"></i>
+            </div>
+            <h4 class="font-bold text-gray-900 text-sm">Cistella familiar en temps real</h4>
+            <p class="text-[11px] text-gray-600 mt-1 leading-relaxed">
+              Connecta dos o més telèfons a la mateixa llista. Si un de vosaltres tatxa una llet al supermercat, l'altre ho veurà tatxat al mateix segon!
+            </p>
+          </div>
+
+          <!-- Opció 1: Crear nova sala -->
+          <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 space-y-2">
+            <div class="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-sparkles text-emerald-600"></i> Nova sala familiar
+            </div>
+            <p class="text-[11px] text-gray-500">
+              Crea un codi automàtic per començar a compartir la teva cistella actual.
+            </p>
+            <button onclick="createNewFamilyRoom()"
+              class="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+              <i class="fa-solid fa-plus"></i> Crear sala familiar ara
+            </button>
+          </div>
+
+          <!-- Opció 2: Unir-se a una sala existent -->
+          <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 space-y-2">
+            <div class="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-right-to-bracket text-emerald-600"></i> Ja tens un codi?
+            </div>
+            <p class="text-[11px] text-gray-500">
+              Escriu o enganxa el codi de la cistella que t'ha enviat la teva parella o familiar:
+            </p>
+            <div class="flex gap-2">
+              <input type="text" id="sync-join-input" placeholder="Ex: CIST-4821"
+                class="flex-1 uppercase font-mono font-bold bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <button onclick="submitCustomSyncCode()"
+                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-xs">
+                Unir-me
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function copySyncInviteLink() {
+      if (!currentSyncCode) return;
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?sync=${encodeURIComponent(currentSyncCode)}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(inviteUrl).then(() => {
+          showToast('✅ Enllaç d\'invitació copiat');
+        });
+      } else {
+        showToast('Enllaç: ' + inviteUrl);
+      }
+    }
+
+    function shareSyncInviteWhatsApp() {
+      if (!currentSyncCode) return;
+      const inviteUrl = `${window.location.origin}${window.location.pathname}?sync=${encodeURIComponent(currentSyncCode)}`;
+      const msg = `🛒 Hola! T'envio la nostra cistella de la compra compartida en directe a Cistella.\n\nCodi: *${currentSyncCode}*\n\nObre aquest enllaç al mòbil per sincronitzar-te a l'instant:\n${inviteUrl}`;
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+    }
+
+    // -------------------------------------------------------------------------
+    // 4.3 ESTADÍSTIQUES I RESUM DE DESPESA
+    // -------------------------------------------------------------------------
+    function openStatsModal() {
+      renderStatsContent();
+      const modal = document.getElementById('stats-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeStatsModal() {
+      const modal = document.getElementById('stats-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function renderStatsContent() {
+      const container = document.getElementById('stats-modal-body');
+      if (!container) return;
+
+      const totalItems = items.length;
+      const pendingItems = items.filter(it => !it.completed);
+      const boughtItems = items.filter(it => it.completed);
+
+      let pendingEuros = 0;
+      let boughtEuros = 0;
+      let itemsWithPrice = 0;
+
+      items.forEach(it => {
+        const p = (typeof it.price === 'number' && it.price > 0) ? it.price : 0;
+        if (p > 0) itemsWithPrice++;
+        if (it.completed) {
+          boughtEuros += p;
+        } else {
+          pendingEuros += p;
+        }
+      });
+
+      const totalEuros = pendingEuros + boughtEuros;
+      const storeMap = getStoreMap();
+
+      // Agrupació per botiga
+      const storeStats = {};
+      stores.forEach(s => {
+        if (s.id === 'all') return;
+        storeStats[s.id] = {
+          name: s.name,
+          color: s.color || 'emerald',
+          badgeBg: s.badgeBg || 'bg-gray-100',
+          badgeText: s.badgeText || 'text-gray-800',
+          totalCount: 0,
+          pendingCount: 0,
+          boughtCount: 0,
+          totalEuros: 0,
+          pendingEuros: 0
+        };
+      });
+
+      items.forEach(it => {
+        const sId = it.store || 'altres';
+        if (!storeStats[sId]) {
+          storeStats[sId] = {
+            name: storeMap[sId]?.name || sId,
+            color: 'gray',
+            badgeBg: 'bg-gray-100',
+            badgeText: 'text-gray-800',
+            totalCount: 0,
+            pendingCount: 0,
+            boughtCount: 0,
+            totalEuros: 0,
+            pendingEuros: 0
+          };
+        }
+        const p = (typeof it.price === 'number' && it.price > 0) ? it.price : 0;
+        storeStats[sId].totalCount++;
+        storeStats[sId].totalEuros += p;
+        if (it.completed) {
+          storeStats[sId].boughtCount++;
+        } else {
+          storeStats[sId].pendingCount++;
+          storeStats[sId].pendingEuros += p;
+        }
+      });
+
+      // Filtrar botigues amb productes
+      const activeStores = Object.values(storeStats).filter(st => st.totalCount > 0);
+      activeStores.sort((a, b) => b.totalCount - a.totalCount);
+
+      // Agrupació per categories
+      const catStats = {};
+      items.forEach(it => {
+        const catKey = it.category || 'Altres';
+        if (!catStats[catKey]) {
+          catStats[catKey] = { count: 0, pending: 0, bought: 0, euros: 0 };
+        }
+        catStats[catKey].count++;
+        const p = (typeof it.price === 'number' && it.price > 0) ? it.price : 0;
+        catStats[catKey].euros += p;
+        if (it.completed) catStats[catKey].bought++;
+        else catStats[catKey].pending++;
+      });
+
+      const activeCats = Object.keys(catStats).map(k => ({ name: k, ...catStats[k] }));
+      activeCats.sort((a, b) => b.count - a.count);
+
+      container.innerHTML = `
+        <!-- Targetes KPIs de Despesa -->
+        <div class="grid grid-cols-3 gap-2">
+          
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-center shadow-xs">
+            <div class="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Pendent</div>
+            <div class="text-base font-black text-emerald-900 mt-0.5">
+              ${pendingEuros.toFixed(2).replace('.', ',')} €
+            </div>
+            <div class="text-[10px] text-emerald-700 font-medium">
+              ${pendingItems.length} producte${pendingItems.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-center shadow-xs">
+            <div class="text-[10px] uppercase font-bold text-gray-600 tracking-wider">Ja comprat</div>
+            <div class="text-base font-black text-gray-800 mt-0.5">
+              ${boughtEuros.toFixed(2).replace('.', ',')} €
+            </div>
+            <div class="text-[10px] text-gray-500 font-medium">
+              ${boughtItems.length} producte${boughtItems.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center shadow-xs">
+            <div class="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Total Estimat</div>
+            <div class="text-base font-black text-blue-900 mt-0.5">
+              ${totalEuros.toFixed(2).replace('.', ',')} €
+            </div>
+            <div class="text-[10px] text-blue-700 font-medium">
+              ${totalItems} total
+            </div>
+          </div>
+
+        </div>
+
+        <div class="text-[11px] text-gray-500 text-center bg-gray-50 py-1.5 px-2 rounded-lg border border-gray-100">
+          <i class="fa-solid fa-info-circle text-gray-400 mr-1"></i>
+          Hi ha ${itemsWithPrice} de ${totalItems} productes amb preu registrat (${Math.round((itemsWithPrice / (totalItems || 1)) * 100)}%).
+        </div>
+
+        <!-- Desglossament per botiga -->
+        <div>
+          <h4 class="font-bold text-gray-800 text-xs mb-2 flex items-center justify-between">
+            <span>Desglossament per botiga:</span>
+            <span class="text-[10px] font-normal text-gray-500">${activeStores.length} botigues actives</span>
+          </h4>
+
+          <div class="space-y-2">
+            ${activeStores.length === 0 ? '<div class="text-center py-4 text-gray-400 text-xs">No hi ha productes a la cistella</div>' : ''}
+            ${activeStores.map(st => {
+              const pct = st.totalCount > 0 ? Math.round((st.boughtCount / st.totalCount) * 100) : 0;
+              return `
+                <div class="bg-white border border-gray-200 rounded-xl p-2.5 shadow-2xs">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${st.badgeBg} ${st.badgeText}">
+                        ${st.name}
+                      </span>
+                      <span class="text-[10px] text-gray-500">
+                        (${st.pendingCount} pendents / ${st.boughtCount} fets)
+                      </span>
+                    </div>
+                    <div class="text-xs font-black text-gray-800">
+                      ${st.totalEuros.toFixed(2).replace('.', ',')} €
+                    </div>
+                  </div>
+                  <!-- Barra de progrés -->
+                  <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                    <div class="bg-emerald-500 h-2 transition-all duration-300" style="width: ${pct}%"></div>
+                  </div>
+                  <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+                    <span>Progrés: ${pct}%</span>
+                    <span>Pendent: ${st.pendingEuros.toFixed(2).replace('.', ',')} €</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Desglossament per categories -->
+        <div class="pt-1">
+          <h4 class="font-bold text-gray-800 text-xs mb-2">Despesa per categoria:</h4>
+          <div class="grid grid-cols-2 gap-1.5">
+            ${activeCats.map(cat => `
+              <div class="bg-gray-50 border border-gray-100 rounded-lg p-2 flex justify-between items-center text-[11px]">
+                <div class="truncate mr-1 font-medium text-gray-700">${cat.name}</div>
+                <div class="text-right flex-shrink-0">
+                  <div class="font-bold text-gray-900">${cat.euros > 0 ? cat.euros.toFixed(2).replace('.', ',') + ' €' : '-'}</div>
+                  <div class="text-[9px] text-gray-400">${cat.count} items</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
     });
   </script>
 </body>
