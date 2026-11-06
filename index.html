@@ -4152,9 +4152,6 @@
       renderStoreTabs();
       initStoreTabsDesktopScroll();
       renderLists();
-      if (typeof initCloudSync === 'function') {
-        initCloudSync();
-      }
 
       if (isRunningStandalone()) {
         const installBtn = document.getElementById('pwa-install-btn');
@@ -4170,9 +4167,24 @@
           : "fa-solid fa-xmark text-gray-300";
       }
 
+      if (typeof initCloudSync === 'function') {
+        initCloudSync();
+      }
+    });
+
     // =========================================================================
     // FASE 4: COMPARTIR LLISTA, SINCRONITZACIÓ EN DIRECTE I ESTADÍSTIQUES
     // =========================================================================
+
+    function getStoreMap() {
+      const map = {};
+      if (Array.isArray(STORES)) {
+        STORES.forEach(s => {
+          if (s && s.id) map[s.id] = s;
+        });
+      }
+      return map;
+    }
 
     // -------------------------------------------------------------------------
     // 4.1 COMPARTIR LLISTA (WHATSAPP, TEXT, NATIVE SHARE)
@@ -4191,7 +4203,7 @@
 
         // Opcions per botiga existent
         const storeMap = getStoreMap();
-        stores.forEach(s => {
+        (STORES || []).forEach(s => {
           if (s.id === 'all') return;
           const count = items.filter(it => !it.completed && it.store === s.id).length;
           const opt = document.createElement('option');
@@ -4597,13 +4609,17 @@
       const channel = getCleanSyncChannel(currentSyncCode);
       if (!channel) return;
 
+      const customStoresOnly = Array.isArray(STORES)
+        ? STORES.filter(s => !DEFAULT_STORES.some(d => d.id === s.id))
+        : [];
+
       const payload = {
         type: type,
         clientId: syncClientId,
         syncCode: currentSyncCode,
         timestamp: Date.now(),
         items: items,
-        customStores: customStores
+        customStores: customStoresOnly
       };
 
       updateSyncBadgeUI('syncing');
@@ -4655,14 +4671,14 @@
           if (Array.isArray(payload.customStores) && payload.customStores.length > 0) {
             let hasNewStores = false;
             payload.customStores.forEach(rs => {
-              if (rs && rs.id && !stores.some(s => s.id === rs.id)) {
-                customStores.push(rs);
+              if (rs && rs.id && !STORES.some(s => s.id === rs.id)) {
+                STORES.push(rs);
                 hasNewStores = true;
               }
             });
             if (hasNewStores) {
-              localStorage.setItem(STORAGE_KEY_CUSTOM_STORES, JSON.stringify(customStores));
-              rebuildStoresList();
+              saveCustomStores();
+              populateSelectOptions();
               renderStoreTabs();
             }
           }
@@ -4883,7 +4899,7 @@
 
       // Agrupació per botiga
       const storeStats = {};
-      stores.forEach(s => {
+      (STORES || []).forEach(s => {
         if (s.id === 'all') return;
         storeStats[s.id] = {
           name: s.name,
@@ -5044,7 +5060,26 @@
       `;
     }
 
-    });
+    // Exportar totes les funcions a window per garantir accés des de l'HTML (onclick)
+    window.openShareModal = openShareModal;
+    window.closeShareModal = closeShareModal;
+    window.updateSharePreview = updateSharePreview;
+    window.executeShareWhatsApp = executeShareWhatsApp;
+    window.executeShareCopy = executeShareCopy;
+    window.executeShareNative = executeShareNative;
+
+    window.openSyncModal = openSyncModal;
+    window.closeSyncModal = closeSyncModal;
+    window.createNewFamilyRoom = createNewFamilyRoom;
+    window.submitCustomSyncCode = submitCustomSyncCode;
+    window.copySyncInviteLink = copySyncInviteLink;
+    window.shareSyncInviteWhatsApp = shareSyncInviteWhatsApp;
+    window.disconnectFamilySync = disconnectFamilySync;
+    window.scheduleCloudSync = scheduleCloudSync;
+
+    window.openStatsModal = openStatsModal;
+    window.closeStatsModal = closeStatsModal;
+
   </script>
 </body>
 
