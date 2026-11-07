@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cistella-cache-v19';
+const CACHE_NAME = 'cistella-cache-v20';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -6,7 +6,8 @@ const ASSETS_TO_CACHE = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
-  './icon-maskable-512.png'
+  './icon-maskable-512.png',
+  'https://cdn.jsdelivr.net/npm/mqtt@5.3.5/dist/mqtt.min.js'
 ];
 
 // Instal·lació del Service Worker i precaching bàsic
@@ -41,8 +42,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // No interceptar ni desar en cau streams SSE ni crides a canals de sincronització o QR externs
-  if (url.hostname.includes('ntfy.sh') || url.hostname.includes('qrserver.com')) {
+  // No interceptar peticions de QR ni serveis externs
+  if (url.hostname.includes('qrserver.com') || url.hostname.includes('hivemq.com')) {
     return;
   }
   const acceptHeader = event.request.headers.get('accept') || '';

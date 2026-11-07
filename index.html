@@ -127,6 +127,8 @@
       scrollbar-color: rgba(52, 211, 153, 0.5) rgba(6, 78, 59, 0.4);
     }
   </style>
+  <!-- MQTT.js per a sincronització fiable i instantània en temps real -->
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.3.5/dist/mqtt.min.js"></script>
 </head>
 
 <body class="bg-gray-100 text-gray-800 flex flex-col h-full overflow-hidden font-sans antialiased">
@@ -4622,25 +4624,26 @@
     }
 
     // -------------------------------------------------------------------------
-    // 4.2 SINCRONITZACIÓ FAMILIAR EN TEMPS REAL (MULTI-USUARI, DISPOSITIUS & NÚVOL)
+    // 4.2 SINCRONITZACIÓ FAMILIAR EN TEMPS REAL (WEBSOCKETS MQTT BIDIRECCIONAL)
     // -------------------------------------------------------------------------
     const STORAGE_KEY_SYNC_CODE = "cistella_sync_code_v1";
     const STORAGE_KEY_DEVICE_ID = "cistella_device_id_v2";
     const STORAGE_KEY_DEVICE_NAME = "cistella_device_name_v2";
 
     let currentSyncCode = null;
-    let syncEventSource = null;
+    let mqttClient = null;
     let syncDebounceTimer = null;
     let syncHeartbeatTimer = null;
     let isProcessingIncomingSync = false;
 
-    // Identificador i nom amigable del dispositiu
+    // Identificador únic del dispositiu
     let syncDeviceId = localStorage.getItem(STORAGE_KEY_DEVICE_ID);
     if (!syncDeviceId) {
       syncDeviceId = "dev_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now().toString(36);
       localStorage.setItem(STORAGE_KEY_DEVICE_ID, syncDeviceId);
     }
 
+    // Detecció intel·ligent del model de dispositiu
     function detectDeviceModelName() {
       const ua = navigator.userAgent || "";
       if (/SM-X200|SM-X205|Galaxy Tab A8/i.test(ua)) return "Samsung Galaxy Tab A8";
@@ -4660,12 +4663,8 @@
       localStorage.setItem(STORAGE_KEY_DEVICE_NAME, syncDeviceName);
     }
 
-    // Mapa de dispositius enllaçats a la cistella
-    // Format: { [deviceId]: { id, name, lastSeen, isCurrent } }
+    // Mapa de dispositius enllaçats { [id]: { id, name, lastSeen, online, isCurrent } }
     let connectedDevicesMap = {};
-
-    // Emmagatzematge temporal de chunks de snapshot
-    let incomingChunksMap = {};
 
     function getDeviceIconClass(name) {
       const n = (name || "").toLowerCase();
@@ -4680,25 +4679,23 @@
       if (newName && newName.trim() && newName.trim() !== current) {
         syncDeviceName = newName.trim();
         localStorage.setItem(STORAGE_KEY_DEVICE_NAME, syncDeviceName);
-        sendDevicePing();
+        publishDevicePresence(true);
         renderSyncModalUI();
         showToast(`Nom del dispositiu actualitzat: ${syncDeviceName}`);
       }
     }
 
     function initCloudSync() {
-      // Registrar aquest dispositiu al mapa
       connectedDevicesMap[syncDeviceId] = {
         id: syncDeviceId,
         name: syncDeviceName,
         lastSeen: Date.now(),
+        online: true,
         isCurrent: true
       };
 
-      // 1. Comprovar si rebem un codi per paràmetre de la URL (?sync=CIST-XXXX)
       const urlParams = new URLSearchParams(window.location.search);
       const urlSync = urlParams.get('sync');
-      
       const savedSync = localStorage.getItem(STORAGE_KEY_SYNC_CODE);
       const codeToUse = (urlSync && urlSync.trim()) ? urlSync.trim().toUpperCase() : (savedSync || null);
 
@@ -4712,23 +4709,29 @@
         updateSyncBadgeUI('local');
       }
 
-      // Escoltar reactivació de pantalla a tablets i mòbils (vital per a Galaxy Tab A8)
+      // Reconnexió instantània al despertar pantalla (mòbil o tablet)
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && currentSyncCode) {
-          checkAndReconnectSync();
+          if (!mqttClient || !mqttClient.connected) {
+            joinFamilySync(currentSyncCode);
+          } else {
+            publishDevicePresence(true);
+          }
         }
       });
       window.addEventListener('focus', () => {
         if (currentSyncCode) {
-          checkAndReconnectSync();
+          if (!mqttClient || !mqttClient.connected) {
+            joinFamilySync(currentSyncCode);
+          } else {
+            publishDevicePresence(true);
+          }
         }
       });
 
       window.addEventListener('online', () => {
         if (currentSyncCode) {
-          console.log('Connexió a internet restablerta. Reconnectant sala...');
-          joinFamilySync(currentSyncCode, false);
-          scheduleCloudSync();
+          joinFamilySync(currentSyncCode);
         }
       });
       window.addEventListener('offline', () => {
@@ -4736,17 +4739,6 @@
           updateSyncBadgeUI('offline');
         }
       });
-    }
-
-    function checkAndReconnectSync() {
-      if (!currentSyncCode) return;
-      if (!syncEventSource || syncEventSource.readyState === EventSource.CLOSED) {
-        console.log('Pestanya activa. Reconnectant EventSource de sincronització...');
-        joinFamilySync(currentSyncCode, false);
-      } else {
-        sendDevicePing();
-        requestSnapshotFromPeers();
-      }
     }
 
     function updateSyncBadgeUI(status, label) {
@@ -4767,7 +4759,7 @@
           menuBadge.className = "text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.5 rounded-full font-bold";
         }
       } else if (status === 'syncing') {
-        dot.classList.add('bg-amber-400');
+        dot.classList.add('bg-amber-400', 'animate-pulse');
         textLabel.textContent = 'Sync...';
         textLabel.className = "hidden sm:inline text-[10px] font-mono font-bold text-amber-200";
       } else if (status === 'offline') {
@@ -4779,7 +4771,6 @@
           menuBadge.className = "text-[10px] bg-red-100 text-red-700 font-mono px-1.5 py-0.5 rounded-full";
         }
       } else {
-        // Local
         dot.classList.add('bg-gray-400');
         textLabel.textContent = 'Local';
         textLabel.className = "hidden sm:inline text-[10px] font-mono text-emerald-200";
@@ -4790,19 +4781,29 @@
       }
     }
 
-    function getCleanSyncChannel(code) {
-      if (!code) return '';
-      const sanitized = code.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return `cistella_v4_${sanitized}`;
+    function getMqttTopics(code) {
+      const clean = code.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return {
+        items: `cistella/v1/${clean}/items`,
+        presenceAll: `cistella/v1/${clean}/devices/+`,
+        myPresence: `cistella/v1/${clean}/devices/${syncDeviceId}`,
+        commands: `cistella/v1/${clean}/cmd`
+      };
     }
 
     function joinFamilySync(rawCode, isNewFromUrl = false) {
       if (!rawCode || !rawCode.trim()) return;
       const code = rawCode.trim().toUpperCase();
 
-      if (syncEventSource) {
-        try { syncEventSource.close(); } catch(e){}
-        syncEventSource = null;
+      if (typeof mqtt === 'undefined') {
+        console.warn('MQTT.js no està carregat encara. Reintentant en 500ms...');
+        setTimeout(() => joinFamilySync(code, isNewFromUrl), 500);
+        return;
+      }
+
+      if (mqttClient) {
+        try { mqttClient.end(true); } catch(e){}
+        mqttClient = null;
       }
       if (syncHeartbeatTimer) {
         clearInterval(syncHeartbeatTimer);
@@ -4813,87 +4814,140 @@
       localStorage.setItem(STORAGE_KEY_SYNC_CODE, code);
       updateSyncBadgeUI('syncing');
 
-      // Actualitzar el nostre dispositiu
       connectedDevicesMap[syncDeviceId] = {
         id: syncDeviceId,
         name: syncDeviceName,
         lastSeen: Date.now(),
+        online: true,
         isCurrent: true
       };
 
-      const channel = getCleanSyncChannel(code);
-      console.log('Connectant a sala familiar:', code, 'Canal:', channel);
+      const topics = getMqttTopics(code);
+      console.log('Connectant a broker MQTT HiveMQ per a sala:', code);
 
       try {
-        const streamUrl = `https://ntfy.sh/${channel}/sse`;
-        syncEventSource = new EventSource(streamUrl);
+        mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
+          clientId: 'cist_' + syncDeviceId + '_' + Math.random().toString(36).substring(2, 6),
+          clean: true,
+          connectTimeout: 8000,
+          reconnectPeriod: 2500,
+          will: {
+            topic: topics.myPresence,
+            payload: JSON.stringify({
+              id: syncDeviceId,
+              name: syncDeviceName,
+              online: false,
+              lastSeen: Date.now()
+            }),
+            qos: 1,
+            retain: true
+          }
+        });
 
-        syncEventSource.onopen = () => {
-          console.log('Sincronització en directe establerta amb el canal:', channel);
+        mqttClient.on('connect', () => {
+          console.log('Connectat amb èxit a HiveMQ!');
           updateSyncBadgeUI('online', code);
           if (isNewFromUrl) {
             showToast(`🔗 Connectat a la sala familiar ${code}`);
           }
-          // Enviar presència i demanar snapshot
-          sendDevicePing();
-          requestSnapshotFromPeers();
-        };
 
-        syncEventSource.onmessage = (event) => {
+          // Subscripció als canals de la sala
+          mqttClient.subscribe([topics.items, topics.presenceAll, topics.commands], { qos: 1 });
+
+          // Publicar presència retinuda
+          publishDevicePresence(true);
+
+          // Si tenim productes locals, publicar-los
+          if (items.length > 0) {
+            scheduleCloudSync(true);
+          }
+        });
+
+        mqttClient.on('message', (topic, message) => {
           try {
-            const rawData = JSON.parse(event.data);
-            if (!rawData || !rawData.message) return;
-            const payload = JSON.parse(rawData.message);
-            handleIncomingSync(payload);
-          } catch (e) {
-            // Ignorar missatges no JSON o keepalives de ntfy
-          }
-        };
+            const rawText = message.toString();
+            if (!rawText) return;
+            const payload = JSON.parse(rawText);
 
-        syncEventSource.onerror = (err) => {
-          console.warn('Alerta connexió sync SSE:', err);
-          if (!navigator.onLine) {
-            updateSyncBadgeUI('offline');
+            if (topic.includes('/devices/')) {
+              // Notificació de presència d'un dispositiu
+              if (payload.id && payload.id !== syncDeviceId) {
+                connectedDevicesMap[payload.id] = {
+                  id: payload.id,
+                  name: payload.name || 'Dispositiu',
+                  lastSeen: payload.lastSeen || Date.now(),
+                  online: payload.online !== false,
+                  isCurrent: false
+                };
+                renderDevicesListUI();
+              }
+              return;
+            }
+
+            if (topic.endsWith('/cmd')) {
+              if (payload.type === 'REFRESH_REQUEST') {
+                if (items.length > 0) scheduleCloudSync(true);
+              } else if (payload.type === 'DISCONNECT_DEVICE' && payload.targetDeviceId === syncDeviceId) {
+                alert('Aquest dispositiu ha estat desvinculat de la sala familiar.');
+                disconnectFamilySync();
+              }
+              return;
+            }
+
+            if (topic.endsWith('/items')) {
+              handleIncomingSync(payload);
+            }
+          } catch(e) {
+            console.warn('Error processant missatge MQTT:', e);
           }
-        };
-      } catch (err) {
-        console.error('Error iniciant EventSource:', err);
+        });
+
+        mqttClient.on('error', (err) => {
+          console.warn('Alerta connexió MQTT:', err);
+          updateSyncBadgeUI('offline');
+        });
+
+        mqttClient.on('offline', () => {
+          updateSyncBadgeUI('offline');
+        });
+
+        mqttClient.on('reconnect', () => {
+          updateSyncBadgeUI('syncing');
+        });
+
+      } catch(e) {
+        console.error('Error inicialitzant connexió MQTT:', e);
         updateSyncBadgeUI('offline');
       }
 
-      // Heartbeat periòdic cada 25 segons per mantenir el canal obert i actualitzar la llista de dispositius
+      // Heartbeat de presència cada 20 segons
       syncHeartbeatTimer = setInterval(() => {
-        if (currentSyncCode && navigator.onLine) {
-          sendDevicePing();
+        if (currentSyncCode && mqttClient && mqttClient.connected) {
+          publishDevicePresence(true);
         }
-      }, 25000);
-
-      // Polling ràpid de missatges recents retinguts
-      fetch(`https://ntfy.sh/${channel}/json?poll=1`)
-        .then(res => res.text())
-        .then(text => {
-          const lines = text.trim().split('\n');
-          lines.forEach(line => {
-            if (!line.trim()) return;
-            try {
-              const msgObj = JSON.parse(line);
-              if (msgObj && msgObj.message) {
-                const payload = JSON.parse(msgObj.message);
-                handleIncomingSync(payload);
-              }
-            } catch(e){}
-          });
-        })
-        .catch(e => console.log('Poll inicial finalitzat'));
+      }, 20000);
 
       renderSyncModalUI();
     }
 
+    function publishDevicePresence(onlineStatus = true) {
+      if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
+      const topics = getMqttTopics(currentSyncCode);
+      const payload = {
+        id: syncDeviceId,
+        name: syncDeviceName,
+        online: onlineStatus,
+        lastSeen: Date.now()
+      };
+      mqttClient.publish(topics.myPresence, JSON.stringify(payload), { qos: 1, retain: true });
+    }
+
     function disconnectFamilySync() {
       if (confirm('Vols desconnectar d\'aquesta cistella familiar i tornar al mode local? Les teves dades locals es conservaran.')) {
-        if (syncEventSource) {
-          try { syncEventSource.close(); } catch(e){}
-          syncEventSource = null;
+        if (mqttClient) {
+          publishDevicePresence(false);
+          try { mqttClient.end(true); } catch(e){}
+          mqttClient = null;
         }
         if (syncHeartbeatTimer) {
           clearInterval(syncHeartbeatTimer);
@@ -4926,55 +4980,19 @@
       showToast(`Connectant a ${input.value.trim().toUpperCase()}...`);
     }
 
-    function sendDevicePing() {
-      if (!currentSyncCode) return;
-      connectedDevicesMap[syncDeviceId] = {
-        id: syncDeviceId,
-        name: syncDeviceName,
-        lastSeen: Date.now(),
-        isCurrent: true
-      };
-
-      sendRawSyncPayload({
-        type: 'DEVICE_PING',
-        deviceId: syncDeviceId,
-        deviceName: syncDeviceName,
-        timestamp: Date.now()
-      });
-    }
-
     function requestSnapshotFromPeers() {
-      if (!currentSyncCode) return;
-      sendRawSyncPayload({
-        type: 'REQUEST_SNAPSHOT',
+      if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
+      const topics = getMqttTopics(currentSyncCode);
+      mqttClient.publish(topics.commands, JSON.stringify({
+        type: 'REFRESH_REQUEST',
         requesterId: syncDeviceId,
-        requesterName: syncDeviceName,
         timestamp: Date.now()
-      });
-    }
-
-    function sendRawSyncPayload(payload) {
-      if (!currentSyncCode) return;
-      const channel = getCleanSyncChannel(currentSyncCode);
-      if (!channel) return;
-
-      payload.syncCode = currentSyncCode;
-      payload.senderDeviceId = syncDeviceId;
-
-      fetch(`https://ntfy.sh/${channel}`, {
-        method: 'POST',
-        headers: {
-          'Title': 'Cistella Sync',
-          'Priority': '1'
-        },
-        body: JSON.stringify(payload)
-      }).catch(err => {
-        console.warn('Alerta enviant paquet sync:', err);
-      });
+      }), { qos: 1 });
+      publishDevicePresence(true);
     }
 
     function scheduleCloudSync(immediate = false) {
-      if (!currentSyncCode) return;
+      if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
       if (isProcessingIncomingSync) return;
 
       if (syncDebounceTimer) {
@@ -4983,19 +5001,18 @@
       }
 
       if (immediate) {
-        broadcastFullSyncSnapshot();
+        broadcastCartState();
       } else {
         syncDebounceTimer = setTimeout(() => {
-          broadcastFullSyncSnapshot();
-        }, 500);
+          broadcastCartState();
+        }, 400);
       }
     }
 
-    // Enviament segur en trossos (Chunks) per evitar el límit de 4KB de ntfy.sh (solució clau per a Galaxy Tab A8)
-    function broadcastFullSyncSnapshot() {
-      if (!currentSyncCode) return;
+    function broadcastCartState() {
+      if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
 
-      // Netegem el camp foto dels items de sincronització per estalviar el 95% del pes
+      // Netegem el camp foto per eficiència de xarxa (les fotos es mantenen a local)
       const lightItems = items.map(it => {
         const copy = { ...it };
         if (copy.photo) copy.photo = "";
@@ -5006,130 +5023,43 @@
         ? STORES.filter(s => !DEFAULT_STORES.some(d => d.id === s.id))
         : [];
 
+      const topics = getMqttTopics(currentSyncCode);
+      const payload = {
+        senderDeviceId: syncDeviceId,
+        senderDeviceName: syncDeviceName,
+        timestamp: Date.now(),
+        items: lightItems,
+        customStores: customStoresOnly
+      };
+
       updateSyncBadgeUI('syncing');
 
-      // Si la llista té menys de 20 items, s'envia en un sol missatge
-      if (lightItems.length <= 20) {
-        sendRawSyncPayload({
-          type: 'UPDATE',
-          deviceId: syncDeviceId,
-          deviceName: syncDeviceName,
-          timestamp: Date.now(),
-          items: lightItems,
-          customStores: customStoresOnly
-        });
-        setTimeout(() => updateSyncBadgeUI('online', currentSyncCode), 300);
-        return;
-      }
-
-      // Si té més de 20 items, enviem en trossos de 15 items per no passar mai de 1.5KB
-      const CHUNK_SIZE = 15;
-      const totalChunks = Math.ceil(lightItems.length / CHUNK_SIZE);
-      const snapshotId = "snap_" + Date.now();
-
-      for (let i = 0; i < totalChunks; i++) {
-        const chunkItems = lightItems.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-        sendRawSyncPayload({
-          type: 'SNAPSHOT_CHUNK',
-          snapshotId: snapshotId,
-          chunkIndex: i,
-          totalChunks: totalChunks,
-          items: chunkItems,
-          customStores: i === 0 ? customStoresOnly : [],
-          timestamp: Date.now(),
-          deviceId: syncDeviceId,
-          deviceName: syncDeviceName
-        });
-      }
-
-      setTimeout(() => updateSyncBadgeUI('online', currentSyncCode), 500);
+      // Publicar amb retain: true perquè qualsevol dispositiu rebi l'estat immediatament en connectar-se
+      mqttClient.publish(topics.items, JSON.stringify(payload), { qos: 1, retain: true }, (err) => {
+        if (!err) {
+          updateSyncBadgeUI('online', currentSyncCode);
+        } else {
+          console.warn('Error publicant cistella MQTT:', err);
+        }
+      });
     }
 
     function handleIncomingSync(payload) {
       if (!payload || typeof payload !== 'object') return;
-      if (payload.senderDeviceId === syncDeviceId) return; // Ignorar el nostre propi missatge
-      if (payload.syncCode && currentSyncCode && payload.syncCode !== currentSyncCode) return;
+      if (payload.senderDeviceId === syncDeviceId) return; // Ignorar els nostres propis missatges
+      if (!Array.isArray(payload.items)) return;
 
-      // Actualitzar presència de dispositiu que ha enviat el missatge
-      if (payload.deviceId && payload.deviceName) {
-        connectedDevicesMap[payload.deviceId] = {
-          id: payload.deviceId,
-          name: payload.deviceName,
-          lastSeen: Date.now(),
-          isCurrent: false
-        };
-        // Si el modal de sync és obert, refrescar la llista de dispositius
-        const devList = document.getElementById('sync-devices-list');
-        if (devList) renderDevicesListUI();
-      }
-
-      if (payload.type === 'DEVICE_PING') {
-        // Només actualitza la presència
-        return;
-      }
-
-      if (payload.type === 'REQUEST_SNAPSHOT') {
-        // Un altre dispositiu (com la Galaxy Tab A8) demana les dades. Si tenim items, li responem immediatament
-        if (items.length > 0) {
-          console.log('Enviant snapshot complet a petició de:', payload.requesterName);
-          broadcastFullSyncSnapshot();
-        }
-        return;
-      }
-
-      if (payload.type === 'DISCONNECT_DEVICE') {
-        if (payload.targetDeviceId === syncDeviceId) {
-          alert('Aquest dispositiu ha estat desvinculat de la sala familiar.');
-          disconnectFamilySync();
-        }
-        return;
-      }
-
-      if (payload.type === 'SNAPSHOT_CHUNK' && Array.isArray(payload.items)) {
-        const snapId = payload.snapshotId || 'default';
-        if (!incomingChunksMap[snapId]) {
-          incomingChunksMap[snapId] = {
-            total: payload.totalChunks,
-            chunks: {},
-            customStores: []
-          };
-        }
-        incomingChunksMap[snapId].chunks[payload.chunkIndex] = payload.items;
-        if (payload.customStores && payload.customStores.length > 0) {
-          incomingChunksMap[snapId].customStores.push(...payload.customStores);
-        }
-
-        const receivedCount = Object.keys(incomingChunksMap[snapId].chunks).length;
-        if (receivedCount >= payload.totalChunks) {
-          // Tots els trossos rebuts: recompondre
-          let fullRemoteItems = [];
-          for (let i = 0; i < payload.totalChunks; i++) {
-            if (incomingChunksMap[snapId].chunks[i]) {
-              fullRemoteItems.push(...incomingChunksMap[snapId].chunks[i]);
-            }
-          }
-          applyMergedSyncData(fullRemoteItems, incomingChunksMap[snapId].customStores);
-          delete incomingChunksMap[snapId];
-        }
-        return;
-      }
-
-      if (payload.type === 'UPDATE' && Array.isArray(payload.items)) {
-        applyMergedSyncData(payload.items, payload.customStores || []);
-      }
-    }
-
-    function applyMergedSyncData(remoteItems, remoteStores) {
       isProcessingIncomingSync = true;
       try {
-        console.log('Processant fusió de dades remotes (', remoteItems.length, 'articles)');
-        const merged = mergeSyncItems(items, remoteItems);
+        console.log('Rebuts canvis remots de:', payload.senderDeviceName || payload.senderDeviceId);
+
+        const merged = mergeSyncItems(items, payload.items);
         items = merged;
         localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(items));
 
-        if (Array.isArray(remoteStores) && remoteStores.length > 0) {
+        if (Array.isArray(payload.customStores) && payload.customStores.length > 0) {
           let hasNewStores = false;
-          remoteStores.forEach(rs => {
+          payload.customStores.forEach(rs => {
             if (rs && rs.id && !STORES.some(s => s.id === rs.id)) {
               STORES.push(rs);
               hasNewStores = true;
@@ -5144,7 +5074,7 @@
 
         renderLists();
         updateSyncBadgeUI('online', currentSyncCode);
-        showToast('🔄 Llista sincronitzada en directe!');
+        showToast('🔄 Llista actualitzada en directe!');
       } finally {
         setTimeout(() => { isProcessingIncomingSync = false; }, 300);
       }
@@ -5165,7 +5095,6 @@
           const lTime = lItem.updatedAt || 0;
           const rTime = rItem.updatedAt || 0;
           if (rTime >= lTime) {
-            // Respectem la foto local si la teníem
             const photoBackup = lItem.photo || "";
             map.set(rItem.id, { ...lItem, ...rItem, photo: rItem.photo || photoBackup });
           }
@@ -5178,10 +5107,13 @@
     function removeRemoteDevice(targetDevId, targetName) {
       if (confirm(`Vols desvincular el dispositiu "${targetName}" d'aquesta cistella familiar?`)) {
         delete connectedDevicesMap[targetDevId];
-        sendRawSyncPayload({
-          type: 'DISCONNECT_DEVICE',
-          targetDeviceId: targetDevId
-        });
+        if (mqttClient && mqttClient.connected) {
+          const topics = getMqttTopics(currentSyncCode);
+          mqttClient.publish(topics.commands, JSON.stringify({
+            type: 'DISCONNECT_DEVICE',
+            targetDeviceId: targetDevId
+          }), { qos: 1 });
+        }
         renderDevicesListUI();
         showToast(`Dispositiu desvinculat: ${targetName}`);
       }
@@ -5195,7 +5127,6 @@
       const deviceList = Object.values(connectedDevicesMap);
       if (countEl) countEl.textContent = deviceList.length;
 
-      // Ordenem: primer el dispositiu actual, després per última activitat
       deviceList.sort((a, b) => {
         if (a.isCurrent) return -1;
         if (b.isCurrent) return 1;
@@ -5203,7 +5134,7 @@
       });
 
       container.innerHTML = deviceList.map(dev => {
-        const isOnline = dev.isCurrent || (Date.now() - (dev.lastSeen || 0) < 50000);
+        const isOnline = dev.isCurrent || (dev.online && Date.now() - (dev.lastSeen || 0) < 60000);
         const iconClass = getDeviceIconClass(dev.name);
 
         return `
@@ -5227,10 +5158,10 @@
             <div class="flex items-center gap-1">
               ${dev.isCurrent
                 ? `<button onclick="renameCurrentDevice()" title="Canviar nom d'aquest dispositiu"
-                     class="px-2 py-1 text-gray-600 hover:text-emerald-700 bg-white border border-gray-200 rounded-lg text-[10px] font-semibold transition flex items-center gap-1">
+                     class="px-2 py-1 text-gray-600 hover:text-emerald-700 bg-white border border-gray-200 rounded-lg text-[10px] font-semibold transition flex items-center gap-1 shadow-2xs">
                      <i class="fa-solid fa-pencil text-[9px]"></i> Renombrar
                    </button>`
-                : `<button onclick="requestSnapshotFromPeers(); showToast('Demanant dades...');" title="Forçar sincronització amb aquest dispositiu"
+                : `<button onclick="requestSnapshotFromPeers(); showToast('Sincronitzant...');" title="Demanar dades d'aquest dispositiu"
                      class="p-1.5 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs transition">
                      <i class="fa-solid fa-rotate"></i>
                    </button>
@@ -5246,7 +5177,7 @@
     }
 
     function openSyncModal() {
-      sendDevicePing();
+      publishDevicePresence(true);
       renderSyncModalUI();
       const modal = document.getElementById('sync-modal');
       if (modal) modal.classList.remove('hidden');
@@ -5262,7 +5193,6 @@
       if (!container) return;
 
       if (currentSyncCode) {
-        // ESTAT ACTIU: CONNECTAT A UNA SALA FAMILIAR
         const inviteUrl = `${window.location.origin}${window.location.pathname}?sync=${encodeURIComponent(currentSyncCode)}`;
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(inviteUrl)}`;
 
@@ -5337,11 +5267,9 @@
           </div>
         `;
 
-        // Renderitzar els dispositius
         renderDevicesListUI();
 
       } else {
-        // ESTAT LOCAL: NO CONNECTAT
         container.innerHTML = `
           <div class="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-4 text-center">
             <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-2 text-lg">
