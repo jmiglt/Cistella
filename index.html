@@ -312,6 +312,14 @@
             </span>
             <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
           </button>
+          <button onclick="openManageCategoriesModal(); toggleOptionsMenu();"
+            class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-tags text-slate-500 w-4 text-center text-xs"></i>
+              <span>Gestionar categories</span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
+          </button>
           <button onclick="promptCreateNewStore(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
@@ -678,6 +686,56 @@
         </button>
       </div>
     </form>
+  </div>
+
+  <!-- MODAL DE GESTIÓ DE CATEGORIES -->
+  <div id="manage-categories-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col">
+      <!-- CAPÇALERA -->
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-tags"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900">Gestionar categories</h3>
+            <p id="manage-categories-count-text" class="text-[11px] text-gray-500">Categories ordenades i preparades</p>
+          </div>
+        </div>
+        <button onclick="closeManageCategoriesModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- CERCA RÀPIDA DE CATEGORIES -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+        <input type="search" id="manage-categories-search" oninput="renderManageCategoriesList()"
+          placeholder="Filtrar categoria..."
+          class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+      </div>
+
+      <!-- LLISTA DE CATEGORIES ORDENADES -->
+      <div id="manage-categories-list" class="flex-1 overflow-y-auto space-y-1 pr-1 divide-y divide-gray-100 max-h-[50vh]">
+        <!-- Renderització dinàmica per renderManageCategoriesList() -->
+      </div>
+
+      <!-- PEU / BOTONS D'ACCIÓ -->
+      <div class="pt-2 border-t flex flex-wrap gap-2">
+        <button onclick="promptCreateNewCategory()"
+          class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+          <i class="fa-solid fa-plus"></i> Nova categoria
+        </button>
+        <button onclick="resetCategoriesToDefault()" title="Restaura la col·lecció estàndard de supermercat"
+          class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1">
+          <i class="fa-solid fa-rotate-left text-[11px]"></i> Estàndards
+        </button>
+        <button onclick="closeManageCategoriesModal()"
+          class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold transition">
+          Tancar
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL DE GESTIÓ DE LLISTES / BOTIGUES -->
@@ -1368,36 +1426,76 @@
 
     let STORES = [...DEFAULT_STORES];
 
-    // 2. CATEGORIES I ICONES
-    const CATEGORY_ICONS = {
-      "Llar": "fa-house",
-      "Perfumeria": "fa-pump-soap",
-      "Neteja": "fa-spray-can-sparkles",
-      "Begudes": "fa-bottle-water",
-      "Peixateria": "fa-fish",
-      "Fruita i Verdura": "fa-apple-whole",
-      "Cuina": "fa-kitchen-set",
-      "Congelats": "fa-snowflake",
-      "Fruits Secs": "fa-seedling",
+    // 2. COL·LECCIÓ ESTÀNDARD DE CATEGORIES I ICONES
+    const DEFAULT_CATEGORY_ICONS = {
       "Aperitius": "fa-cookie",
+      "Bebè": "fa-baby",
+      "Begudes": "fa-bottle-water",
+      "Cafè i Infusions": "fa-mug-saucer",
       "Carnisseria": "fa-drumstick-bite",
-      "Espècies": "fa-mortar-pestle",
+      "Congelats": "fa-snowflake",
+      "Cuina": "fa-kitchen-set",
+      "Electricitat": "fa-bolt",
       "Embotits": "fa-bacon",
-      "Salses": "fa-jar",
+      "Esmorzar": "fa-mug-hot",
+      "Espècies": "fa-mortar-pestle",
+      "Farines i Reposteria": "fa-wheat-awn",
+      "Farmaciola i Salut": "fa-pills",
+      "Formatges": "fa-cheese",
+      "Forn": "fa-bread-slice",
+      "Fruita i Verdura": "fa-apple-whole",
+      "Fruits Secs": "fa-seedling",
+      "Lactis": "fa-cow",
+      "Llar": "fa-house",
+      "Mascotes": "fa-paw",
+      "Medicaments": "fa-pills",
+      "Neteja": "fa-spray-can-sparkles",
       "Oli i Vinagre": "fa-bottle-droplet",
       "Pasta i Llegums": "fa-bowl-rice",
-      "Farines i Reposteria": "fa-wheat-awn",
-      "Lactis": "fa-cow",
-      "Formatges": "fa-cheese",
-      "Esmorzar": "fa-mug-hot",
-      "Forn": "fa-bread-slice",
-      "Electricitat": "fa-bolt",
-      "Medicaments": "fa-pills",
+      "Peixateria": "fa-fish",
+      "Perfumeria": "fa-pump-soap",
+      "Salses": "fa-jar",
       "Suplements": "fa-dumbbell",
       "General": "fa-basket-shopping"
     };
 
-    const CATEGORIES = Object.keys(CATEGORY_ICONS);
+    const STORAGE_KEY_CATEGORIES = "cistella_custom_categories_v1";
+
+    let CATEGORY_ICONS = { ...DEFAULT_CATEGORY_ICONS };
+
+    function getSortedCategoriesList() {
+      const all = Object.keys(CATEGORY_ICONS);
+      return all.sort((a, b) => {
+        if (a === "General") return 1;
+        if (b === "General") return -1;
+        return a.localeCompare(b, 'ca');
+      });
+    }
+
+    let CATEGORIES = getSortedCategoriesList();
+
+    function saveCategoriesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(CATEGORY_ICONS));
+      } catch (e) {
+        console.error("Error guardant categories:", e);
+      }
+    }
+
+    function loadCategoriesFromStorage() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === 'object') {
+            CATEGORY_ICONS = { ...DEFAULT_CATEGORY_ICONS, ...parsed };
+          }
+        }
+      } catch (e) {
+        console.error("Error carregant categories:", e);
+      }
+      CATEGORIES = getSortedCategoriesList();
+    }
 
     // DADES INICIALS D'EXEMPLE
     const DEFAULT_SEED_ITEMS = [
@@ -2493,7 +2591,11 @@
           groups[cat].push(item);
         });
 
-        const sortedCategories = Object.keys(groups).sort();
+        const sortedCategories = Object.keys(groups).sort((a, b) => {
+          if (a === "General") return 1;
+          if (b === "General") return -1;
+          return a.localeCompare(b, 'ca');
+        });
         let html = "";
         sortedCategories.forEach(cat => {
           const icon = CATEGORY_ICONS[cat] || "fa-basket-shopping";
@@ -4066,10 +4168,13 @@
           `<option value="${s.id}">${s.name}</option>`
         ).join("");
 
+        CATEGORIES = getSortedCategoriesList();
         const catSelect = document.getElementById("edit-category");
-        catSelect.innerHTML = CATEGORIES.map(c =>
-          `<option value="${c}">${c}</option>`
-        ).join("");
+        if (catSelect) {
+          catSelect.innerHTML = CATEGORIES.map(c =>
+            `<option value="${c}">${c}</option>`
+          ).join("");
+        }
       }
 
     // ==========================================
@@ -4093,6 +4198,7 @@
       function loadFromLocalStorage() {
         try {
           if (typeof loadDeletedIds === 'function') loadDeletedIds();
+          if (typeof loadCategoriesFromStorage === 'function') loadCategoriesFromStorage();
           // Suport per a recuperació d'emergència via URL (p. ex: index.html?reset=1)
           if (typeof window !== "undefined" && window.location && window.location.search) {
             const urlParams = new URLSearchParams(window.location.search);
