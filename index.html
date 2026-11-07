@@ -2532,21 +2532,26 @@
                  ? 'bg-gray-100/70 border-gray-200/80 opacity-60'
                  : 'bg-white border-gray-200/90 shadow-2xs hover:border-emerald-300'
              }">
-          <!-- ESQUERRA: FOTO (Clic obre en gran) O ICONA (Clic ratlla/desratlla) -->
+          <!-- ESQUERRA: FOTO O ICONA (Clic sempre ratlla/desratlla l'article) -->
           <div class="flex items-center flex-1 min-w-0 mr-1.5">
             ${item.photo
-              ? `<div onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(item.photo)}', '${encodeURIComponent(item.name || '')}')"
-                      class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-zoom-in relative group" 
-                      title="Toca per veure la foto en gran">
+              ? `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
+                      class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-pointer relative group" 
+                      title="Fes clic per ratllar o desratllar">
                    <img src="${item.photo}" class="w-full h-full object-cover">
-                   <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] transition">
-                     <i class="fa-solid fa-magnifying-glass-plus"></i>
+                   <div class="absolute inset-0 bg-emerald-600/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition">
+                     <i class="fa-solid fa-check"></i>
                    </div>
+                   <button onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(item.photo)}', '${encodeURIComponent(item.name || '')}')"
+                           title="Veure foto en gran"
+                           class="absolute bottom-0 right-0 p-0.5 bg-black/60 hover:bg-black text-white text-[8px] rounded-tl opacity-0 group-hover:opacity-100 transition">
+                     <i class="fa-solid fa-magnifying-glass-plus"></i>
+                   </button>
                  </div>`
               : `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
                       class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
-                   isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60'
-                 } flex items-center justify-center text-xs cursor-pointer" title="Toca per ratllar">
+                   isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60 hover:bg-emerald-100'
+                 } flex items-center justify-center text-xs cursor-pointer transition" title="Fes clic per ratllar o desratllar">
                    <i class="fa-solid ${catIcon}"></i>
                  </div>`
             }
@@ -2747,7 +2752,7 @@
 
 
     // ==========================================
-    // INTERACCIÓ TÀCTIL SWIPE A LES TARGETES
+    // INTERACCIÓ SWIPE A LES TARGETES (TÀCTIL I RATOLÍ A PC)
     // ==========================================
     function initSwipeOnCards() {
       const cards = document.querySelectorAll(".item-card[data-item-id]");
@@ -2761,6 +2766,7 @@
         let deltaX = 0;
         let isSwiping = false;
 
+        // 1. Suport tàctil (mòbil i tauleta)
         card.addEventListener("touchstart", (e) => {
           if (e.touches.length !== 1) return;
           startX = e.touches[0].clientX;
@@ -2784,7 +2790,6 @@
           if (Math.abs(dx) > 12) {
             isSwiping = true;
             deltaX = dx;
-            // Limitem el desplaçament a màxim 100px
             const clamped = Math.max(-100, Math.min(100, dx));
             card.style.transform = `translateX(${clamped}px)`;
             if (clamped > 30) {
@@ -2808,6 +2813,68 @@
             card.style.transition = '';
           }, 220);
         });
+
+        // 2. Suport ratolí a PC Chrome (arrossegar lateralment amb el ratolí)
+        let isMouseDown = false;
+        let mouseStartX = 0;
+        let mouseStartY = 0;
+        let mouseDeltaX = 0;
+        let isMouseSwiping = false;
+
+        card.addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return; // Només botó esquerre
+          if (e.target.closest('button') || e.target.closest('input')) return;
+          isMouseDown = true;
+          isMouseSwiping = false;
+          mouseStartX = e.clientX;
+          mouseStartY = e.clientY;
+          mouseDeltaX = 0;
+        });
+
+        card.addEventListener("mousemove", (e) => {
+          if (!isMouseDown) return;
+          const dx = e.clientX - mouseStartX;
+          const dy = e.clientY - mouseStartY;
+
+          if (!isMouseSwiping && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
+            isMouseDown = false;
+            return;
+          }
+
+          if (Math.abs(dx) > 10) {
+            isMouseSwiping = true;
+            mouseDeltaX = dx;
+            const clamped = Math.max(-100, Math.min(100, dx));
+            card.style.transform = `translateX(${clamped}px)`;
+            if (clamped > 30) {
+              card.style.backgroundColor = '#ecfdf5';
+            } else if (clamped < -30) {
+              card.style.backgroundColor = '#fef2f2';
+            }
+          }
+        });
+
+        const finishMouseSwipe = () => {
+          if (!isMouseDown) return;
+          isMouseDown = false;
+          card.style.transition = 'transform 0.2s ease, background-color 0.2s ease';
+          card.style.transform = '';
+          card.style.backgroundColor = '';
+
+          if (isMouseSwiping && Math.abs(mouseDeltaX) > 40) {
+            card._justSwiped = true;
+            toggleItemCheck(itemId);
+            setTimeout(() => { card._justSwiped = false; }, 300);
+          }
+
+          setTimeout(() => {
+            card.style.transition = '';
+            isMouseSwiping = false;
+          }, 220);
+        };
+
+        card.addEventListener("mouseup", finishMouseSwipe);
+        card.addEventListener("mouseleave", finishMouseSwipe);
       });
     }
 
@@ -3097,6 +3164,9 @@
       // FULL INFERIOR (BOTTOM SHEET) D'EDICIÓ
       // ==========================================
       function openEditModal(id) {
+        const card = document.querySelector(`.item-card[data-item-id="${id}"]`);
+        if (card && card._justSwiped) return;
+
         const it = items.find(x => x.id === id);
         if (!it) return;
 
