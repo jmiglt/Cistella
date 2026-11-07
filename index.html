@@ -248,7 +248,7 @@
         </div>
       </div>
       <span class="text-[10px] font-mono font-bold bg-white/20 text-white px-2 py-0.5 rounded-full border border-white/25 shadow-xs">
-        v4.2.1
+        v4.2.2
       </span>
     </div>
 
@@ -1770,9 +1770,24 @@
         const canonKey = getCanonicalProductKey(it.name);
         if (!canonKey) return;
 
-        const existing = map.get(canonKey);
+        // DEDUPLICACIÓ PER BOTIGA: Cada botiga (Mercadona, Spar, etc.) manté els seus articles
+        const storeKey = (it.store && it.store !== 'all') ? it.store : 'any';
+        const dedupKey = `${storeKey}::${canonKey}`;
+
+        let existing = map.get(dedupKey);
+
+        // Si és un article 'any' (sense botiga) i ja en tenim un amb botiga concreta, fusionar-lo
+        if (!existing && storeKey === 'any') {
+          for (const [k, v] of map.entries()) {
+            if (k.endsWith(`::${canonKey}`)) {
+              existing = v;
+              break;
+            }
+          }
+        }
+
         if (!existing) {
-          map.set(canonKey, { ...it });
+          map.set(dedupKey, { ...it });
         } else {
           mergedCount++;
           // L'estat crossed_off (pendent vs comprat) es determina per la darrera acció
@@ -5364,6 +5379,8 @@
                   name: payload.name || 'Dispositiu',
                   lastSeen: payload.lastSeen || Date.now(),
                   online: payload.online !== false,
+                  itemsCount: typeof payload.itemsCount === 'number' ? payload.itemsCount : null,
+                  pendingCount: typeof payload.pendingCount === 'number' ? payload.pendingCount : null,
                   isCurrent: false
                 };
                 renderDevicesListUI();
@@ -5373,11 +5390,23 @@
 
             if (topic.endsWith('/cmd')) {
               if (payload.type === 'PING_AND_REFRESH' || payload.type === 'REFRESH_REQUEST') {
-                // Respondre amb la nostra presència perquè l'altre dispositiu ens vegi online a l'instant
                 publishDevicePresence(true);
                 if (items.length > 0) {
                   scheduleCloudSync(true);
                 }
+              } else if (payload.type === 'FORCE_SNAPSHOT' && payload.requesterId !== syncDeviceId && Array.isArray(payload.items)) {
+                console.log('Rebut snapshot forçat unificador de:', payload.requesterName);
+                if (payload.deletedIds && typeof payload.deletedIds === 'object') {
+                  loadDeletedIds();
+                  deletedItemIdsMap = { ...deletedItemIdsMap, ...payload.deletedIds };
+                  try { localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(deletedItemIdsMap)); } catch(e){}
+                }
+                items = payload.items;
+                saveToLocalStorage();
+                renderLists();
+                renderStoreTabs();
+                publishDevicePresence(true);
+                showToast(`🔄 Llista unificada amb ${payload.requesterName} (${items.length} articles)!`, 'fa-circle-check');
               } else if (payload.type === 'DISCONNECT_DEVICE' && payload.targetDeviceId === syncDeviceId) {
                 alert('Aquest dispositiu ha estat desvinculat de la sala familiar.');
                 disconnectFamilySync();
@@ -5428,7 +5457,9 @@
         id: syncDeviceId,
         name: syncDeviceName,
         online: onlineStatus,
-        lastSeen: Date.now()
+        lastSeen: Date.now(),
+        itemsCount: Array.isArray(items) ? items.length : 0,
+        pendingCount: Array.isArray(items) ? items.filter(x => !x.crossed_off).length : 0
       };
       mqttClient.publish(topics.myPresence, JSON.stringify(payload), { qos: 1, retain: true });
     }
@@ -5474,7 +5505,6 @@
     function requestSnapshotFromPeers() {
       if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
       const topics = getMqttTopics(currentSyncCode);
-      // Demanar a tots els dispositius que confirmin si estan online i demanar refresc
       mqttClient.publish(topics.commands, JSON.stringify({
         type: 'PING_AND_REFRESH',
         requesterId: syncDeviceId,
@@ -5482,6 +5512,42 @@
         timestamp: Date.now()
       }), { qos: 1 });
       publishDevicePresence(true);
+      if (items.length > 0) scheduleCloudSync(true);
+    }
+
+    function forceSyncThisDeviceToPeers() {
+      if (!currentSyncCode || !mqttClient || !mqttClient.connected) {
+        showToast('No estàs connectat a cap cistella familiar', 'fa-triangle-exclamation');
+        return;
+      }
+      if (!confirm(`Vols enviar aquesta llista (${items.length} articles) per forçar que TOTS els altres dispositius tinguin exactament el mateix número d'articles?`)) {
+        return;
+      }
+      loadDeletedIds();
+      const topics = getMqttTopics(currentSyncCode);
+      const lightItems = items.map(it => {
+        const copy = { ...it };
+        if (copy.photo) copy.photo = "";
+        return copy;
+      });
+      const customStoresOnly = Array.isArray(STORES)
+        ? STORES.filter(s => !DEFAULT_STORES.some(d => d.id === s.id))
+        : [];
+
+      const payload = {
+        type: 'FORCE_SNAPSHOT',
+        requesterId: syncDeviceId,
+        requesterName: syncDeviceName,
+        timestamp: Date.now(),
+        items: lightItems,
+        deletedIds: deletedItemIdsMap || {},
+        customStores: customStoresOnly
+      };
+
+      mqttClient.publish(topics.commands, JSON.stringify(payload), { qos: 1 });
+      broadcastCartState();
+      publishDevicePresence(true);
+      showToast(`✅ Llista enviada a tots els dispositius!`, 'fa-circle-check');
     }
 
     function scheduleCloudSync(immediate = false) {
@@ -5583,6 +5649,8 @@
         }
 
         renderLists();
+        renderStoreTabs();
+        publishDevicePresence(true);
         updateSyncBadgeUI('online', currentSyncCode);
         showToast('🔄 Llista actualitzada en directe!');
       } finally {
@@ -5669,6 +5737,7 @@
                 <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
                   <span class="w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}"></span>
                   <span>${isOnline ? 'En directe ara' : 'Darrera connexió recent'}</span>
+                  ${dev.itemsCount !== null && typeof dev.itemsCount === 'number' ? `<span class="font-bold text-slate-700 bg-slate-200/60 px-1 rounded ml-1">${dev.itemsCount} arts</span>` : ''}
                 </div>
               </div>
             </div>
@@ -5735,10 +5804,17 @@
               <span class="font-bold text-gray-800 text-xs flex items-center gap-1.5">
                 <i class="fa-solid fa-tablet-screen-button text-emerald-600"></i> Dispositius enllaçats (<span id="sync-devices-count">1</span>)
               </span>
-              <button onclick="requestSnapshotFromPeers(); showToast('Forçant sincronització...');"
-                class="text-[10px] text-emerald-700 font-bold hover:underline flex items-center gap-1">
-                <i class="fa-solid fa-rotate"></i> Sincronitzar tot
-              </button>
+              <div class="flex items-center gap-2">
+                <button onclick="requestSnapshotFromPeers(); showToast('Comprovant canvis...');"
+                  class="text-[10px] text-slate-600 font-bold hover:text-emerald-700 transition flex items-center gap-1">
+                  <i class="fa-solid fa-rotate"></i> Comprovar
+                </button>
+                <button onclick="forceSyncThisDeviceToPeers()"
+                  title="Envia aquesta llista a tots els dispositius perquè tinguin exactament el mateix número d'articles"
+                  class="text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2 py-0.5 rounded-lg shadow-2xs transition flex items-center gap-1">
+                  <i class="fa-solid fa-cloud-arrow-up text-[9px]"></i> Igualar equips
+                </button>
+              </div>
             </div>
             <div id="sync-devices-list" class="space-y-1.5 pt-1">
               <!-- Omplert per renderDevicesListUI() -->
@@ -6091,6 +6167,7 @@
 
     window.renameCurrentDevice = renameCurrentDevice;
     window.requestSnapshotFromPeers = requestSnapshotFromPeers;
+    window.forceSyncThisDeviceToPeers = forceSyncThisDeviceToPeers;
     window.removeRemoteDevice = removeRemoteDevice;
     window.closeVoiceClarifyModal = closeVoiceClarifyModal;
     window.handleSelectClarifiedOption = handleSelectClarifiedOption;
