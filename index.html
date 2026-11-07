@@ -200,8 +200,8 @@
           <i class="fa-solid fa-chart-pie text-[11px]"></i>
         </button>
 
-        <!-- SELECTOR IDIOMA DE VEU -->
-        <button onclick="cycleVoiceLanguage()" id="header-lang-btn" title="Canviar idioma de reconeixement de veu"
+        <!-- SELECTOR IDIOMA DE L'APP I VEU -->
+        <button onclick="cycleAppLanguage()" id="header-lang-btn" title="Canviar idioma de l'app i de la veu (Català / Castellà)" data-i18n-title="btnVoiceTitle"
           class="bg-emerald-800 hover:bg-emerald-600 text-emerald-200 px-2 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1">
           <i class="fa-solid fa-language text-[10px]"></i> <span id="header-lang-label">CA</span>
         </button>
@@ -216,7 +216,7 @@
 
     <!-- PESTANYES DE BOTIGUES AMB DESPLAÇAMENT HORITZONTAL I CONTROLS PER A ESCRIPTORI -->
     <div class="relative flex items-center px-2 pb-2">
-      <button onclick="scrollStoreTabs(-240)" id="store-tabs-prev-btn" title="Desplaçar pestanyes a l'esquerra"
+      <button onclick="scrollStoreTabs(-240)" id="store-tabs-prev-btn" title="Desplaçar pestanyes a l'esquerra" data-i18n-title="scrollLeft"
         class="hidden sm:flex z-10 w-6 h-6 bg-emerald-900/90 hover:bg-emerald-700 text-emerald-200 rounded-full items-center justify-center flex-shrink-0 mr-1 shadow transition">
         <i class="fa-solid fa-chevron-left text-[10px]"></i>
       </button>
@@ -225,7 +225,7 @@
         <!-- Injecció dinàmica de botigues -->
       </div>
 
-      <button onclick="scrollStoreTabs(240)" id="store-tabs-next-btn" title="Desplaçar pestanyes a la dreta"
+      <button onclick="scrollStoreTabs(240)" id="store-tabs-next-btn" title="Desplaçar pestanyes a la dreta" data-i18n-title="scrollRight"
         class="hidden sm:flex z-10 w-6 h-6 bg-emerald-900/90 hover:bg-emerald-700 text-emerald-200 rounded-full items-center justify-center flex-shrink-0 ml-1 shadow transition">
         <i class="fa-solid fa-chevron-right text-[10px]"></i>
       </button>
@@ -244,7 +244,7 @@
         </div>
         <div>
           <div class="font-bold text-xs tracking-tight leading-tight">Cistella</div>
-          <div class="text-[9.5px] text-emerald-200/90 leading-none">Menú d'opcions</div>
+          <div class="text-[9.5px] text-emerald-200/90 leading-none" data-i18n="menuSubtitle">Menú d'opcions</div>
         </div>
       </div>
       <span class="text-[10px] font-mono font-bold bg-white/20 text-white px-2 py-0.5 rounded-full border border-white/25 shadow-xs">
@@ -259,14 +259,14 @@
       <div>
         <div class="px-3.5 py-1.5 bg-slate-100/90 text-slate-600 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200/70">
           <i class="fa-solid fa-cloud text-[10px] text-slate-500"></i>
-          <span>Compartir i Sincronització</span>
+          <span data-i18n="menuSecSync">Compartir i Sincronització</span>
         </div>
         <div class="py-1">
           <button onclick="openShareModal(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-brands fa-whatsapp text-emerald-600 w-4 text-center text-sm"></i>
-              <span>Compartir per WhatsApp</span>
+              <span data-i18n="menuWhatsApp">Compartir per WhatsApp</span>
             </span>
             <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
           </button>
@@ -274,7 +274,7 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-cloud-arrow-up text-slate-500 w-4 text-center text-xs"></i>
-              <span>Sincronització familiar al núvol</span>
+              <span data-i18n="menuSync">Sincronització familiar al núvol</span>
             </span>
             <span id="menu-sync-badge" class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-mono font-medium border border-slate-200">Local</span>
           </button>
@@ -282,7 +282,7 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-chart-pie text-slate-500 w-4 text-center text-xs"></i>
-              <span>Estadístiques i despesa</span>
+              <span data-i18n="menuStats">Estadístiques i despesa</span>
             </span>
             <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
           </button>
@@ -293,14 +293,14 @@
       <div>
         <div class="px-3.5 py-1.5 bg-slate-100/90 text-slate-600 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 border-y border-slate-200/70">
           <i class="fa-solid fa-sliders text-[10px] text-slate-500"></i>
-          <span>Gestió i Vista de Llista</span>
+          <span data-i18n="menuSecList">Gestió i Vista de Llista</span>
         </div>
         <div class="py-1">
           <button onclick="openCatalogModal(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-boxes-stacked text-emerald-600 w-4 text-center text-xs"></i>
-              <span>Catàleg complet d'articles</span>
+              <span data-i18n="menuCatalog">Catàleg complet d'articles</span>
             </span>
             <span class="text-[9.5px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200">BD</span>
           </button>
@@ -308,7 +308,7 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-store text-slate-500 w-4 text-center text-xs"></i>
-              <span>Gestionar llistes / botigues</span>
+              <span data-i18n="menuManageStores">Gestionar llistes / botigues</span>
             </span>
             <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
           </button>
@@ -316,7 +316,7 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-tags text-slate-500 w-4 text-center text-xs"></i>
-              <span>Gestionar categories</span>
+              <span data-i18n="menuManageCategories">Gestionar categories</span>
             </span>
             <i class="fa-solid fa-chevron-right text-slate-300 text-[10px]"></i>
           </button>
@@ -324,7 +324,7 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-folder-plus text-slate-500 w-4 text-center text-xs"></i>
-              <span>+ Nova llista / botiga</span>
+              <span data-i18n="menuNewStore">+ Nova llista / botiga</span>
             </span>
           </button>
           <button onclick="cycleStoreSortMode(); toggleOptionsMenu();"
@@ -345,7 +345,7 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-layer-group text-slate-500 w-4 text-center text-xs"></i>
-              <span>Agrupar per categoria</span>
+              <span data-i18n="menuGroupCat">Agrupar per categoria</span>
             </span>
             <i id="menu-group-check" class="fa-solid fa-check text-emerald-600 text-xs"></i>
           </button>
@@ -353,7 +353,7 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-arrow-rotate-left text-slate-500 w-4 text-center text-xs"></i>
-              <span>Desratllar tots</span>
+              <span data-i18n="menuUncheckAll">Desratllar tots</span>
             </span>
           </button>
         </div>
@@ -363,21 +363,21 @@
       <div>
         <div class="px-3.5 py-1.5 bg-slate-100/90 text-slate-600 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 border-y border-slate-200/70">
           <i class="fa-solid fa-toolbox text-[10px] text-slate-500"></i>
-          <span>Eines i Dades</span>
+          <span data-i18n="menuSecTools">Eines i Dades</span>
         </div>
         <div class="py-1">
           <button onclick="triggerPwaInstall(); toggleOptionsMenu();" id="menu-install-btn"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-download text-slate-500 w-4 text-center text-xs"></i>
-              <span>Instal·lar com a App</span>
+              <span data-i18n="menuInstallApp">Instal·lar com a App</span>
             </span>
           </button>
           <button onclick="openReceiptScannerModal(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-receipt text-slate-500 w-4 text-center text-xs"></i>
-              <span>Llegir tiquet (extreure preus)</span>
+              <span data-i18n="menuOcr">Llegir tiquet (extreure preus)</span>
             </span>
             <span class="text-[9.5px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200">OCR</span>
           </button>
@@ -385,35 +385,35 @@
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-file-import text-slate-500 w-4 text-center text-xs"></i>
-              <span>Importar OurGroceries (.json/.zip)</span>
+              <span data-i18n="menuImportOG">Importar OurGroceries (.json/.zip)</span>
             </span>
           </button>
           <button onclick="cleanTestListDuplicates(); toggleOptionsMenu();" id="menu-clean-test-btn"
             class="w-full text-left px-3.5 py-2 hover:bg-amber-50/60 active:bg-amber-100/60 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-broom text-amber-500 w-4 text-center text-xs"></i>
-              <span>Netejar duplicats / proves</span>
+              <span data-i18n="menuCleanDupes">Netejar duplicats / proves</span>
             </span>
           </button>
           <button onclick="exportDataJSON(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-file-export text-slate-500 w-4 text-center text-xs"></i>
-              <span>Exportar còpia de seguretat</span>
+              <span data-i18n="menuExportBackup">Exportar còpia de seguretat</span>
             </span>
           </button>
           <button onclick="document.getElementById('import-backup-input').click(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-file-arrow-up text-slate-500 w-4 text-center text-xs"></i>
-              <span>Importar còpia de seguretat</span>
+              <span data-i18n="menuImportBackup">Importar còpia de seguretat</span>
             </span>
           </button>
           <button onclick="resetToDefaults(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-500 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-rotate text-slate-400 w-4 text-center text-xs"></i>
-              <span>Restablir exemples de prova</span>
+              <span data-i18n="menuResetSeed">Restablir exemples de prova</span>
             </span>
           </button>
         </div>
@@ -423,21 +423,21 @@
       <div>
         <div class="px-3.5 py-1.5 bg-rose-50/90 text-rose-800 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 border-y border-rose-200/70">
           <i class="fa-solid fa-triangle-exclamation text-[10px] text-rose-500"></i>
-          <span>Accions Crítiques</span>
+          <span data-i18n="menuSecDanger">Accions Crítiques</span>
         </div>
         <div class="py-1">
           <button onclick="clearCompleted(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-rose-50/60 active:bg-rose-100/60 text-rose-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-trash text-rose-400 w-4 text-center text-xs"></i>
-              <span>Esborrar comprats</span>
+              <span data-i18n="menuClearCompleted">Esborrar comprats</span>
             </span>
           </button>
           <button onclick="clearAllData(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-rose-50/60 active:bg-rose-100/60 text-rose-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
               <i class="fa-solid fa-trash-can text-rose-500 w-4 text-center text-xs"></i>
-              <span>Buidar tota la llista</span>
+              <span data-i18n="menuClearAll">Buidar tota la llista</span>
             </span>
           </button>
         </div>
@@ -456,11 +456,11 @@
       <div class="relative flex items-center">
         <i class="fa-solid fa-magnifying-glass absolute left-3 text-gray-400 text-xs pointer-events-none"></i>
         <input type="search" id="list-search-input" oninput="handleSearchFilter(this.value)" onkeydown="handleSearchKeydown(event)"
-          placeholder="Cercar article a la llista (prem Enter per anar-hi)..."
+          placeholder="Cercar article a la llista (prem Enter per anar-hi)..." data-i18n-placeholder="searchPlaceholder"
           class="w-full bg-white border border-gray-200 rounded-xl pl-8 pr-20 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 shadow-2xs">
         <button onclick="openCatalogModal()" title="Veure la base de dades completa de productes"
           class="absolute right-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-lg text-[10px] font-bold flex items-center gap-1 transition">
-          <i class="fa-solid fa-boxes-stacked text-[10px] text-emerald-600"></i> Catàleg
+          <i class="fa-solid fa-boxes-stacked text-[10px] text-emerald-600"></i> <span id="list-catalog-btn-span" data-i18n="catalogBtn">Catàleg</span>
         </button>
         <button id="search-clear-btn" onclick="clearSearchFilter()" class="hidden absolute right-2.5 text-gray-400 hover:text-gray-600 p-0.5" title="Netejar cerca">
           <i class="fa-solid fa-xmark text-xs"></i>
@@ -494,10 +494,10 @@
           <span id="completed-cost-counter" class="text-gray-400 font-normal normal-case ml-1"></span>
         </button>
         <div class="flex items-center space-x-2 lowercase text-xs">
-          <button onclick="uncheckStoreCompleted()" class="text-emerald-700 hover:text-emerald-900 font-bold"
+          <button onclick="uncheckStoreCompleted()" id="btn-uncheck-store" data-i18n="uncheckBtn" class="text-emerald-700 hover:text-emerald-900 font-bold"
             title="Tornar a pendents tots els ratllats de la botiga">desratllar</button>
           <span class="text-gray-300">•</span>
-          <button onclick="clearCompleted()" class="text-rose-500 hover:text-rose-700 font-bold"
+          <button onclick="clearCompleted()" id="btn-clean-store" data-i18n="cleanBtn" class="text-rose-500 hover:text-rose-700 font-bold"
             title="Esborrar definitivament els ratllats de la botiga">netejar</button>
         </div>
       </div>
@@ -516,8 +516,8 @@
     class="hidden fixed bottom-14 left-3 right-3 z-30 bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 p-2 max-h-48 overflow-y-auto space-y-1 text-xs">
     <div
       class="text-[10px] uppercase font-bold text-gray-400 px-2 pb-1 flex justify-between items-center border-b border-gray-100">
-      <span>Reutilitzar de l'històric / ratllats</span>
-      <span class="text-[9px] text-emerald-600 font-normal">Toca per afegir</span>
+      <span data-i18n="reuseHistory">Reutilitzar de l'històric / ratllats</span>
+      <span data-i18n="tapToAdd" class="text-[9px] text-emerald-600 font-normal">Toca per afegir</span>
     </div>
     <div id="autocomplete-items" class="space-y-0.5 pt-1">
       <!-- Items injectats dinàmicament -->
@@ -525,7 +525,7 @@
   </div>
 
   <!-- BOTÓ FLOTANT DE VEU (FAB) DESTACAT -->
-  <button id="floating-voice-btn" onclick="toggleVoiceRecognition()" title="Prem per parlar"
+  <button id="floating-voice-btn" onclick="toggleVoiceRecognition()" title="Prem per parlar" data-i18n-title="floatingVoiceTitle"
     class="fixed right-4 bottom-20 z-30 w-14 h-14 bg-emerald-600 active:scale-95 text-white rounded-full shadow-2xl flex items-center justify-center transition-all duration-200 focus:outline-none hover:bg-emerald-700">
     <i id="floating-voice-icon" class="fa-solid fa-microphone text-2xl"></i>
   </button>
@@ -534,11 +534,11 @@
   <footer
     class="bg-white border-t border-gray-200 px-3 py-2 fixed bottom-0 left-0 right-0 z-20 flex items-center gap-2 shadow-lg safe-bottom">
     <div class="relative flex-1">
-      <input type="text" id="quick-input" placeholder="Afegir producte... (ex: 2l de llet)" autocomplete="off"
+      <input type="text" id="quick-input" placeholder="Afegir producte... (ex: 2l de llet)" data-i18n-placeholder="quickInputPlaceholder" autocomplete="off"
         autocorrect="off"
         class="w-full pl-3 pr-9 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
         oninput="handleQuickInputSearch(this.value)" onkeydown="if(event.key === 'Enter') handleQuickAdd()">
-      <button onclick="handleQuickAdd()" title="Afegir"
+      <button id="quick-add-btn" onclick="handleQuickAdd()" title="Afegir a la llista" data-i18n-title="quickAddTitle"
         class="absolute right-2 top-2 text-gray-400 hover:text-emerald-600 p-0.5">
         <i class="fa-solid fa-plus text-base"></i>
       </button>
@@ -555,7 +555,7 @@
       onclick="closeEditModal()"></div>
 
     <div class="px-4 py-2 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
-      <h3 class="text-base font-bold text-gray-800">Fitxa del Producte</h3>
+      <h3 class="text-base font-bold text-gray-800" data-i18n="editTitle">Fitxa del Producte</h3>
       <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-full">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
@@ -578,17 +578,17 @@
           </div>
         </div>
         <div class="flex-1 space-y-1">
-          <label class="block font-semibold text-gray-600 text-[11px]">Foto del producte</label>
+          <label class="block font-semibold text-gray-600 text-[11px]" data-i18n="lblPhoto">Foto del producte</label>
           <div class="flex gap-1.5 flex-wrap">
             <!-- Botó de càmera directa per a mòbils -->
             <button type="button" onclick="document.getElementById('camera-file-input').click()"
               class="bg-white border border-gray-300 text-gray-700 px-2.5 py-1 rounded hover:bg-gray-100 flex items-center gap-1 font-medium">
-              <i class="fa-solid fa-camera text-emerald-600"></i> Càmera
+              <i class="fa-solid fa-camera text-emerald-600"></i> <span data-i18n="btnCamera">Càmera</span>
             </button>
             <!-- Botó per cerca simulada Unsplash -->
             <button type="button" onclick="setPhotoViaWebSearch()"
               class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-1 rounded hover:bg-emerald-100 flex items-center gap-1 font-medium">
-              <i class="fa-solid fa-magnifying-glass"></i> Cerca web
+              <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="btnWebSearch">Cerca web</span>
             </button>
             <button type="button" onclick="removePhoto()"
               class="text-rose-600 border border-rose-200 bg-white px-2 py-1 rounded hover:bg-rose-50"
@@ -598,14 +598,14 @@
           </div>
           <input type="file" id="camera-file-input" accept="image/*" capture="environment" class="hidden"
             onchange="handleCameraCapture(event)">
-          <input type="text" id="edit-photo-url" placeholder="O enllaç directe d'imatge..."
+          <input type="text" id="edit-photo-url" placeholder="O enllaç directe d'imatge..." data-i18n-placeholder="lblPhotoPlaceholder"
             class="w-full text-[11px] border border-gray-200 rounded px-2 py-1 mt-1 bg-white">
         </div>
       </div>
 
       <!-- NOM -->
       <div>
-        <label class="block font-semibold text-gray-600 mb-1">Nom de l'article</label>
+        <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblProductName">Nom de l'article</label>
         <input type="text" id="edit-name" required
           class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
       </div>
@@ -613,7 +613,7 @@
       <!-- QUANTITAT I PREU -->
       <div class="grid grid-cols-2 gap-2.5">
         <div>
-          <label class="block font-semibold text-gray-600 mb-1">Quantitat / Unitat</label>
+          <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblQtyUnit">Quantitat / Unitat</label>
           <div class="flex items-center">
             <button type="button" onclick="adjustQty(-1)"
               class="w-7 h-8 bg-gray-100 border border-gray-300 rounded-l-lg font-bold text-gray-600 hover:bg-gray-200">-</button>
@@ -627,7 +627,7 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-gray-600 mb-1">Preu estimat (€)</label>
+          <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblPrice">Preu estimat (€)</label>
           <div class="relative">
             <input type="number" step="0.01" min="0" id="edit-price" placeholder="0.00"
               class="w-full h-8 text-xs border border-gray-300 rounded-lg pl-2.5 pr-6 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
@@ -639,13 +639,13 @@
       <!-- BOTIGA I CATEGORIA -->
       <div class="grid grid-cols-2 gap-2.5">
         <div>
-          <label class="block font-semibold text-gray-600 mb-1">Botiga assignada</label>
+          <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblStore">Botiga assignada</label>
           <select id="edit-store"
             class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2 bg-white focus:outline-none"></select>
         </div>
 
         <div>
-          <label class="block font-semibold text-gray-600 mb-1">Categoria</label>
+          <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblCategory">Categoria</label>
           <select id="edit-category"
             class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2 bg-white focus:outline-none"></select>
         </div>
@@ -654,10 +654,10 @@
       <!-- NOTES -->
       <div>
         <div class="flex items-center justify-between mb-1">
-          <label class="block font-semibold text-gray-600">Notes i detalls</label>
-          <span class="text-[10px] text-gray-400">Pots escriure en diverses línies i estirar per ampliar</span>
+          <label class="block font-semibold text-gray-600" data-i18n="lblNotes">Notes i detalls</label>
+          <span class="text-[10px] text-gray-400" data-i18n="lblNotesHint">Pots escriure en diverses línies i estirar per ampliar</span>
         </div>
-        <textarea id="edit-note" rows="4" placeholder="Ex: ampolla de vidre, notes de tast, marca, detalls..."
+        <textarea id="edit-note" rows="4" placeholder="Ex: ampolla de vidre, notes de tast, marca, detalls..." data-i18n-placeholder="notesPlaceholder"
           class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none resize-y min-h-[90px] max-h-[300px] leading-relaxed"></textarea>
       </div>
 
@@ -665,9 +665,9 @@
       <div class="bg-gray-50 rounded-xl p-2.5 border border-gray-200/80">
         <div class="flex items-center justify-between mb-1.5">
           <label class="font-semibold text-gray-700 text-[11px] flex items-center gap-1">
-            <i class="fa-solid fa-chart-line text-emerald-600"></i> Històric de preus
+            <i class="fa-solid fa-chart-line text-emerald-600"></i> <span data-i18n="lblPriceHistory">Històric de preus</span>
           </label>
-          <span class="text-[10px] text-gray-400">Últims 6-7 registres</span>
+          <span class="text-[10px] text-gray-400" data-i18n="lblPriceHistoryCount">Últims 6-7 registres</span>
         </div>
         <div id="edit-price-history-container" class="space-y-1">
           <!-- Injecció dinàmica de l'històric -->
@@ -678,11 +678,11 @@
       <div class="pt-2 flex gap-2">
         <button type="button" onclick="deleteCurrentProduct()"
           class="flex-1 py-2.5 border border-rose-300 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50 flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-trash"></i> Eliminar
+          <i class="fa-solid fa-trash"></i> <span data-i18n="btnDelete">Eliminar</span>
         </button>
         <button type="submit"
           class="flex-[2] py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow flex items-center justify-center gap-1.5 active:scale-98 transition">
-          <i class="fa-solid fa-check"></i> Desar canvis
+          <i class="fa-solid fa-check"></i> <span data-i18n="btnSave">Desar canvis</span>
         </button>
       </div>
     </form>
@@ -698,7 +698,7 @@
             <i class="fa-solid fa-tags"></i>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-gray-900">Gestionar categories</h3>
+            <h3 class="text-sm font-bold text-gray-900" data-i18n="manageCatTitle">Gestionar categories</h3>
             <p id="manage-categories-count-text" class="text-[11px] text-gray-500">Categories ordenades i preparades</p>
           </div>
         </div>
@@ -711,7 +711,7 @@
       <div class="relative">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
         <input type="search" id="manage-categories-search" oninput="renderManageCategoriesList()"
-          placeholder="Filtrar categoria..."
+          placeholder="Filtrar categoria..." data-i18n-placeholder="manageCatSearch"
           class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600">
       </div>
 
@@ -724,15 +724,15 @@
       <div class="pt-2 border-t flex flex-wrap gap-2">
         <button onclick="promptCreateNewCategory()"
           class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
-          <i class="fa-solid fa-plus"></i> Nova categoria
+          <i class="fa-solid fa-plus"></i> <span data-i18n="btnNewCat">Nova categoria</span>
         </button>
         <button onclick="resetCategoriesToDefault()" title="Restaura la col·lecció estàndard de supermercat"
           class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1">
-          <i class="fa-solid fa-rotate-left text-[11px]"></i> Estàndards
+          <i class="fa-solid fa-rotate-left text-[11px]"></i> <span data-i18n="manageCatReset">Estàndards</span>
         </button>
         <button onclick="closeManageCategoriesModal()"
           class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold transition">
-          Tancar
+          <span data-i18n="btnClose">Tancar</span>
         </button>
       </div>
     </div>
@@ -746,8 +746,8 @@
         <div class="flex items-center space-x-2">
           <i class="fa-solid fa-store text-emerald-600 text-lg"></i>
           <div>
-            <h3 class="text-sm font-bold text-gray-900">Gestionar llistes i botigues</h3>
-            <p class="text-[11px] text-gray-500">Edita noms, elimina o reordena llistes</p>
+            <h3 class="text-sm font-bold text-gray-900" data-i18n="manageStoresTitle">Gestionar llistes i botigues</h3>
+            <p class="text-[11px] text-gray-500" data-i18n="manageStoresSub">Edita noms, elimina o reordena llistes</p>
           </div>
         </div>
         <button onclick="closeManageStoresModal()" class="text-gray-400 hover:text-gray-600 p-1">
@@ -758,15 +758,15 @@
       <!-- CRITERI D'ORDRE -->
       <div class="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 space-y-1.5">
         <div class="flex items-center justify-between gap-2">
-          <span class="text-xs font-semibold text-emerald-900">Ordre de les pestanyes:</span>
+          <span class="text-xs font-semibold text-emerald-900" data-i18n="tabSortLabel">Ordre de les pestanyes:</span>
           <select id="store-sort-mode-select" onchange="setStoreSortMode(this.value)"
             class="text-xs bg-white border border-emerald-300 rounded-lg px-2 py-1 font-medium text-emerald-800 focus:outline-none">
-            <option value="active_first">Amb articles primer</option>
-            <option value="alphabetical">Alfabètic (A-Z)</option>
-            <option value="default">Ordre manual / per defecte</option>
+            <option value="active_first" data-i18n="optActiveFirst">Amb articles primer</option>
+            <option value="alphabetical" data-i18n="optAlphabetical">Alfabètic (A-Z)</option>
+            <option value="default" data-i18n="optDefault">Ordre manual / per defecte</option>
           </select>
         </div>
-        <p id="store-drag-hint" class="text-[10px] text-emerald-700 italic hidden">
+        <p id="store-drag-hint" class="text-[10px] text-emerald-700 italic hidden" data-i18n="dragHint">
           💡 En mode manual, pots arrossegar o utilitzar les fletxes (▲/▼) per canviar l'ordre.
         </p>
       </div>
@@ -780,11 +780,11 @@
       <div class="pt-2 border-t flex gap-2">
         <button onclick="promptCreateNewStore()"
           class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow">
-          <i class="fa-solid fa-plus"></i> Nova llista
+          <i class="fa-solid fa-plus"></i> <span data-i18n="btnNewStore">Nova llista</span>
         </button>
         <button onclick="closeManageStoresModal()"
           class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold transition">
-          Tancar
+          <span data-i18n="btnClose">Tancar</span>
         </button>
       </div>
     </div>
@@ -1126,14 +1126,14 @@
             <i class="fa-solid fa-boxes-stacked text-sm"></i>
           </div>
           <div>
-            <h3 class="font-bold text-sm leading-tight">Catàleg complet d'articles</h3>
+            <h3 class="font-bold text-sm leading-tight" data-i18n="catalogTitle">Catàleg complet d'articles</h3>
             <p id="catalog-subtitle-count" class="text-[10px] text-emerald-300">Carregant articles de la base de dades...</p>
           </div>
         </div>
         <div class="flex items-center gap-1.5">
           <button onclick="cleanTestListDuplicates()" title="Fusionar i netejar duplicats automàticament"
             class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 text-emerald-100 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition shadow-2xs">
-            <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> <span>Netejar duplicats</span>
+            <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> <span data-i18n="cleanDupesBtn">Netejar duplicats</span>
           </button>
           <button onclick="closeCatalogModal()" class="text-emerald-300 hover:text-white p-1 rounded-lg transition">
             <i class="fa-solid fa-xmark text-lg"></i>
@@ -1146,21 +1146,21 @@
         <div class="relative">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
           <input type="search" id="catalog-search-input" oninput="filterCatalogList()"
-            placeholder="Cercar al catàleg complet de productes..."
+            placeholder="Cercar al catàleg complet de productes..." data-i18n-placeholder="catalogSearchPlaceholder"
             class="w-full bg-white border border-gray-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600">
         </div>
 
         <div class="grid grid-cols-2 gap-2 text-xs">
           <select id="catalog-store-filter" onchange="filterCatalogList()"
             class="bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-gray-700 focus:outline-none">
-            <option value="all">Totes les botigues</option>
+            <option value="all" data-i18n="filterAllStores">Totes les botigues</option>
           </select>
           <select id="catalog-status-filter" onchange="filterCatalogList()"
             class="bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-gray-700 focus:outline-none">
-            <option value="all">Tots els articles</option>
-            <option value="pending">Només pendents (a comprar 🛒)</option>
-            <option value="completed">Només a l'històric (comprats ✅)</option>
-            <option value="with_price">Només amb preu registrat 💶</option>
+            <option value="all" data-i18n="statusFilterAll">Tots els articles</option>
+            <option value="pending" data-i18n="statusFilterPending">Només pendents (a comprar 🛒)</option>
+            <option value="completed" data-i18n="statusFilterCompleted">Només a l'històric (comprats ✅)</option>
+            <option value="with_price" data-i18n="statusFilterWithPrice">Només amb preu registrat 💶</option>
           </select>
         </div>
       </div>
@@ -1174,7 +1174,7 @@
       <div class="p-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
         <span id="catalog-status-summary" class="font-medium text-gray-600">0 productes</span>
         <button onclick="closeCatalogModal()" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold text-xs transition">
-          Tancar
+          <span data-i18n="btnClose">Tancar</span>
         </button>
       </div>
 
@@ -1391,6 +1391,7 @@
     // ==========================================
     const STORAGE_KEY_ITEMS = "cistella_items_v1";
     const STORAGE_KEY_STORE = "cistella_store_filter";
+    const STORAGE_KEY_APP_LANG = "cistella_app_lang_v1";
     const STORAGE_KEY_VOICE_LANG = "cistella_voice_lang";
     const STORAGE_KEY_GROUP_MODE = "cistella_group_mode";
     const STORAGE_KEY_COLLAPSED = "cistella_completed_collapsed";
@@ -1426,7 +1427,28 @@
 
     let STORES = [...DEFAULT_STORES];
 
-    // 2. COL·LECCIÓ ESTÀNDARD DE CATEGORIES I ICONES
+    const STORE_TRANSLATIONS = {
+      all: { ca: "Totes", es: "Todas" },
+      farmacia: { ca: "Farmàcia", es: "Farmacia" },
+      ferreteria: { ca: "Ferreteria", es: "Ferretería" },
+      bazar: { ca: "Bazar Xinès", es: "Bazar Chino" },
+      pescaderia: { ca: "Peixateria", es: "Pescadería" },
+      forn: { ca: "Forn", es: "Panadería" }
+    };
+
+    function getStoreDisplayName(storeOrId, lang = currentLang) {
+      const id = typeof storeOrId === 'string' ? storeOrId : (storeOrId?.id || "");
+      if (STORE_TRANSLATIONS[id] && STORE_TRANSLATIONS[id][lang]) {
+        return STORE_TRANSLATIONS[id][lang];
+      }
+      if (typeof storeOrId === 'object' && storeOrId?.name) {
+        return storeOrId.name;
+      }
+      const found = STORES.find(s => s.id === id);
+      return found ? found.name : (id || "");
+    }
+
+    // 2. COL·LECCIÓ ESTÀNDARD DE CATEGORIES, TRADUCCIONS I ICONES
     const DEFAULT_CATEGORY_ICONS = {
       "Aperitius": "fa-cookie",
       "Bebè": "fa-baby",
@@ -1459,6 +1481,354 @@
       "General": "fa-basket-shopping"
     };
 
+    const CATEGORY_TRANSLATIONS = {
+      "Aperitius": { ca: "Aperitius", es: "Aperitivos" },
+      "Bebè": { ca: "Bebè", es: "Bebé" },
+      "Begudes": { ca: "Begudes", es: "Bebidas" },
+      "Cafè i Infusions": { ca: "Cafè i Infusions", es: "Café e Infusiones" },
+      "Carnisseria": { ca: "Carnisseria", es: "Carnicería" },
+      "Congelats": { ca: "Congelats", es: "Congelados" },
+      "Cuina": { ca: "Cuina", es: "Cocina" },
+      "Electricitat": { ca: "Electricitat", es: "Electricidad" },
+      "Embotits": { ca: "Embotits", es: "Embutidos" },
+      "Esmorzar": { ca: "Esmorzar", es: "Desayuno" },
+      "Espècies": { ca: "Espècies", es: "Especias" },
+      "Farines i Reposteria": { ca: "Farines i Reposteria", es: "Harinas y Repostería" },
+      "Farmaciola i Salut": { ca: "Farmaciola i Salut", es: "Botiquín y Salud" },
+      "Formatges": { ca: "Formatges", es: "Quesos" },
+      "Forn": { ca: "Forn", es: "Panadería" },
+      "Fruita i Verdura": { ca: "Fruita i Verdura", es: "Fruta y Verdura" },
+      "Fruits Secs": { ca: "Fruits Secs", es: "Frutos Secos" },
+      "Lactis": { ca: "Lactis", es: "Lácteos" },
+      "Llar": { ca: "Llar", es: "Hogar" },
+      "Mascotes": { ca: "Mascotes", es: "Mascotas" },
+      "Medicaments": { ca: "Medicaments", es: "Medicamentos" },
+      "Neteja": { ca: "Neteja", es: "Limpieza" },
+      "Oli i Vinagre": { ca: "Oli i Vinagre", es: "Aceite y Vinagre" },
+      "Pasta i Llegums": { ca: "Pasta i Llegums", es: "Pasta y Legumbres" },
+      "Peixateria": { ca: "Peixateria", es: "Pescadería" },
+      "Perfumeria": { ca: "Perfumeria", es: "Perfumería" },
+      "Salses": { ca: "Salses", es: "Salsas" },
+      "Suplements": { ca: "Suplements", es: "Suplementos" },
+      "General": { ca: "General", es: "General" },
+      "Altres": { ca: "Altres", es: "Otros" }
+    };
+
+    function getCategoryCanonicalKey(rawCat) {
+      if (!rawCat) return "General";
+      const trimmed = String(rawCat).trim();
+      if (CATEGORY_TRANSLATIONS[trimmed]) return trimmed;
+
+      const lower = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      for (const [key, trans] of Object.entries(CATEGORY_TRANSLATIONS)) {
+        const caNorm = trans.ca.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const esNorm = trans.es.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const keyNorm = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (lower === caNorm || lower === esNorm || lower === keyNorm) {
+          return key;
+        }
+      }
+      if (lower === "otros" || lower === "general") return "General";
+      if (lower === "lacteos") return "Lactis";
+      if (lower === "limpieza") return "Neteja";
+      if (lower === "fruteria" || lower === "verduras") return "Fruita i Verdura";
+      if (lower === "pescaderia") return "Peixateria";
+      if (lower === "panaderia") return "Forn";
+      return trimmed;
+    }
+
+    function getCategoryDisplayName(rawCat, lang = currentLang) {
+      if (!rawCat) return lang === "es" ? "General" : "General";
+      const canonical = getCategoryCanonicalKey(rawCat);
+      if (CATEGORY_TRANSLATIONS[canonical] && CATEGORY_TRANSLATIONS[canonical][lang]) {
+        return CATEGORY_TRANSLATIONS[canonical][lang];
+      }
+      return rawCat;
+    }
+
+    function getCategoryIcon(rawCat) {
+      const canonical = getCategoryCanonicalKey(rawCat);
+      return CATEGORY_ICONS[canonical] || CATEGORY_ICONS[rawCat] || DEFAULT_CATEGORY_ICONS[canonical] || "fa-basket-shopping";
+    }
+
+    // 3. INTERNACIONALITZACIÓ (i18n): CATALÀ / CASTELLÀ
+    const I18N = {
+      ca: {
+        appTitle: "Cistella",
+        appSubtitle: "Llista de la compra",
+        menuSubtitle: "Menú d'opcions",
+        btnVoiceTitle: "Canviar idioma de l'app i de la veu (Català / Castellà)",
+        voiceActiveCA: "Veu i app en Català (ca-ES)",
+        voiceActiveES: "Voz y app en Castellano (es-ES)",
+        langChanged: "Idioma canviat a Català",
+
+        allStores: "Totes",
+        scrollLeft: "Desplaçar pestanyes a l'esquerra",
+        scrollRight: "Desplaçar pestanyes a la dreta",
+        shareWhatsAppTitle: "Compartir llista per WhatsApp o text",
+        syncTitle: "Sincronització familiar en temps real",
+        statsTitle: "Estadístiques i despesa total",
+        optionsTitle: "Menú d'opcions",
+
+        menuSecSync: "Compartir i Sincronització",
+        menuWhatsApp: "Compartir per WhatsApp",
+        menuSync: "Sincronització familiar al núvol",
+        menuStats: "Estadístiques i despesa",
+        menuSecList: "Gestió i Vista de Llista",
+        menuCatalog: "Catàleg complet d'articles",
+        menuManageStores: "Gestionar llistes / botigues",
+        menuManageCategories: "Gestionar categories",
+        menuNewStore: "+ Nova llista / botiga",
+        menuSortPendingFirst: "Ordre: Pendents 1r",
+        menuSortAlpha: "Ordre: Alfabètic (A-Z)",
+        menuSortDefault: "Ordre: Per defecte",
+        menuCheckSwipe: "Mode ratllar: Swipe",
+        menuCheckClick: "Mode ratllar: Clic",
+        menuGroupCat: "Agrupar per categoria",
+        menuUncheckAll: "Desratllar tots",
+        menuSecTools: "Eines i Dades",
+        menuInstallApp: "Instal·lar com a App",
+        menuOcr: "Llegir tiquet (extreure preus)",
+        menuImportOG: "Importar OurGroceries (.json/.zip)",
+        menuCleanDupes: "Netejar duplicats / proves",
+        menuExportBackup: "Exportar còpia de seguretat",
+        menuImportBackup: "Importar còpia de seguretat",
+        menuResetSeed: "Restablir exemples de prova",
+        menuSecDanger: "Accions Crítiques",
+        menuClearCompleted: "Esborrar comprats",
+        menuClearAll: "Buidar tota la llista",
+
+        searchPlaceholder: "Cercar article a la llista (prem Enter per anar-hi)...",
+        catalogBtn: "Catàleg",
+        quickInputPlaceholder: "Afegir producte... (ex: 2l de llet)",
+        floatingVoiceTitle: "Prem per parlar",
+        quickAddTitle: "Afegir a la llista",
+        reuseHistory: "Reutilitzar de l'històric / ratllats",
+        tapToAdd: "Toca per afegir",
+
+        voiceListening: "Escoltant... Parla ara (ex: \"2 kg de pomes a Bonpreu\")",
+        stopVoice: "Aturar",
+
+        pendingSection: "Pendents",
+        completedSection: "Comprats",
+        emptyPendingTitle: "Tot comprat o llista buida!",
+        emptyPendingSub: "Prem el micròfon o comença a escriure a sota.",
+        emptyCompleted: "Cap article ratllat en aquesta botiga.",
+        listCollapsed: (n) => `Llista plegada (${n} articles). Toca per desplegar.`,
+        loadMorePending: (rendered, total) => `Mostrar 50 pendents més (${rendered} de ${total})`,
+        loadMoreCompleted: (rendered, total) => `Mostrar 50 més (${rendered} de ${total})`,
+        uncheckBtn: "desratllar",
+        cleanBtn: "netejar",
+
+        editTitle: "Fitxa del Producte",
+        lblPhoto: "Foto del producte",
+        btnCamera: "Càmera",
+        btnWebSearch: "Cerca web",
+        lblPhotoPlaceholder: "O enllaç directe d'imatge...",
+        lblProductName: "Nom de l'article",
+        lblQtyUnit: "Quantitat / Unitat",
+        lblPrice: "Preu estimat (€)",
+        lblStore: "Botiga assignada",
+        lblCategory: "Categoria",
+        lblNotes: "Notes i detalls",
+        lblNotesHint: "Pots escriure en diverses línies i estirar per ampliar",
+        notesPlaceholder: "Ex: ampolla de vidre, notes de tast, marca, detalls...",
+        lblPriceHistory: "Històric de preus",
+        lblPriceHistoryCount: "Últims 6-7 registres",
+        btnDelete: "Eliminar",
+        btnSave: "Desar canvis",
+
+        manageCatTitle: "Gestionar categories",
+        manageCatSub: "Categories ordenades i preparades",
+        manageCatSearch: "Filtrar categoria...",
+        btnNewCat: "Nova categoria",
+        manageCatReset: "Estàndards",
+        btnClose: "Tancar",
+        catStandardBadge: "Estàndard",
+        catCustomBadge: "Personalitzada",
+        deleteCatTitle: "Eliminar categoria",
+
+        manageStoresTitle: "Gestionar llistes i botigues",
+        manageStoresSub: "Edita noms, elimina o reordena llistes",
+        tabSortLabel: "Ordre de les pestanyes:",
+        optActiveFirst: "Amb articles primer",
+        optAlphabetical: "Alfabètic (A-Z)",
+        optDefault: "Ordre manual / per defecte",
+        dragHint: "💡 En mode manual, pots arrossegar o utilitzar les fletxes (▲/▼) per canviar l'ordre.",
+        btnNewStore: "Nova llista",
+
+        catalogTitle: "Catàleg complet d'articles",
+        catalogSubLoading: "Carregant articles de la base de dades...",
+        cleanDupesBtn: "Netejar duplicats",
+        catalogSearchPlaceholder: "Cercar al catàleg complet de productes...",
+        filterAllStores: "Totes les botigues",
+        statusFilterAll: "Tots els articles",
+        statusFilterPending: "Només pendents (a comprar 🛒)",
+        statusFilterCompleted: "Només a l'històric (comprats ✅)",
+        statusFilterWithPrice: "Només amb preu registrat 💶",
+        catalogNoMatch: "Cap article coincideix amb els filtres",
+        catalogNoMatchSub: "Pots escriure un altre text o restablir els desplegables.",
+        statusPending: "Pendent",
+        statusAdd: "Afegir",
+
+        statsModalTitle: "Estadístiques i Despesa",
+        statsModalSubtitle: "Resum econòmic i distribució de compres",
+        statsPendingBadge: "Pendent",
+        statsBoughtBadge: "Comprat",
+        statsTotalBadge: "Total est.",
+        statsStoreBreakdown: "Desglossament per Botigues",
+        statsCatBreakdown: "Desglossament per Categories",
+
+        recoveredToast: (name) => `Recuperat: ${name}`,
+        addedToast: (name) => `Afegit: ${name}`,
+        deletedToast: "Producte eliminat",
+        allUncheckedToast: "Tots els articles tornats a pendents",
+        confirmDeleteAll: "Segur que vols buidar TOTES les dades de la llista?",
+        confirmDeleteCompleted: "Segur que vols esborrar definitivament tots els articles comprats d'aquesta botiga?"
+      },
+      es: {
+        appTitle: "Cistella",
+        appSubtitle: "Lista de la compra",
+        menuSubtitle: "Menú de opciones",
+        btnVoiceTitle: "Cambiar idioma de la app y de la voz (Catalán / Castellano)",
+        voiceActiveCA: "Veu i app en Català (ca-ES)",
+        voiceActiveES: "Voz y app en Castellano (es-ES)",
+        langChanged: "Idioma cambiado a Castellano",
+
+        allStores: "Todas",
+        scrollLeft: "Desplazar pestañas a la izquierda",
+        scrollRight: "Desplazar pestañas a la derecha",
+        shareWhatsAppTitle: "Compartir lista por WhatsApp o texto",
+        syncTitle: "Sincronización familiar en tiempo real",
+        statsTitle: "Estadísticas y gasto total",
+        optionsTitle: "Menú de opciones",
+
+        menuSecSync: "Compartir y Sincronización",
+        menuWhatsApp: "Compartir por WhatsApp",
+        menuSync: "Sincronización familiar en la nube",
+        menuStats: "Estadísticas y gasto",
+        menuSecList: "Gestión y Vista de Lista",
+        menuCatalog: "Catálogo completo de artículos",
+        menuManageStores: "Gestionar listas / tiendas",
+        menuManageCategories: "Gestionar categorías",
+        menuNewStore: "+ Nueva lista / tienda",
+        menuSortPendingFirst: "Orden: Pendientes 1º",
+        menuSortAlpha: "Orden: Alfabético (A-Z)",
+        menuSortDefault: "Orden: Por defecto",
+        menuCheckSwipe: "Modo tachar: Swipe",
+        menuCheckClick: "Modo tachar: Clic",
+        menuGroupCat: "Agrupar por categoría",
+        menuUncheckAll: "Destachar todos",
+        menuSecTools: "Herramientas y Datos",
+        menuInstallApp: "Instalar como App",
+        menuOcr: "Leer ticket (extraer precios)",
+        menuImportOG: "Importar OurGroceries (.json/.zip)",
+        menuCleanDupes: "Limpiar duplicados / pruebas",
+        menuExportBackup: "Exportar copia de seguridad",
+        menuImportBackup: "Importar copia de seguridad",
+        menuResetSeed: "Restablecer ejemplos de prueba",
+        menuSecDanger: "Acciones Críticas",
+        menuClearCompleted: "Borrar comprados",
+        menuClearAll: "Vaciar toda la lista",
+
+        searchPlaceholder: "Buscar artículo en la lista (pulsa Enter para ir)...",
+        catalogBtn: "Catálogo",
+        quickInputPlaceholder: "Añadir producto... (ej: 2l de leche)",
+        floatingVoiceTitle: "Pulsa para hablar",
+        quickAddTitle: "Añadir a la lista",
+        reuseHistory: "Reutilizar del historial / tachados",
+        tapToAdd: "Toca para añadir",
+
+        voiceListening: "Escuchando... Habla ahora (ej: \"2 kg de manzanas en Mercadona\")",
+        stopVoice: "Detener",
+
+        pendingSection: "Pendientes",
+        completedSection: "Comprados",
+        emptyPendingTitle: "¡Todo comprado o lista vacía!",
+        emptyPendingSub: "Pulsa el micrófono o empieza a escribir abajo.",
+        emptyCompleted: "Ningún artículo tachado en esta tienda.",
+        listCollapsed: (n) => `Lista plegada (${n} artículos). Toca para desplegar.`,
+        loadMorePending: (rendered, total) => `Mostrar 50 pendientes más (${rendered} de ${total})`,
+        loadMoreCompleted: (rendered, total) => `Mostrar 50 más (${rendered} de ${total})`,
+        uncheckBtn: "destachar",
+        cleanBtn: "limpiar",
+
+        editTitle: "Ficha del Producto",
+        lblPhoto: "Foto del producto",
+        btnCamera: "Cámara",
+        btnWebSearch: "Búsqueda web",
+        lblPhotoPlaceholder: "O enlace directo de imagen...",
+        lblProductName: "Nombre del artículo",
+        lblQtyUnit: "Cantidad / Unidad",
+        lblPrice: "Precio estimado (€)",
+        lblStore: "Tienda asignada",
+        lblCategory: "Categoría",
+        lblNotes: "Notas y detalles",
+        lblNotesHint: "Puedes escribir en varias líneas y estirar para ampliar",
+        notesPlaceholder: "Ej: botella de vidrio, notas de cata, marca, detalles...",
+        lblPriceHistory: "Historial de precios",
+        lblPriceHistoryCount: "Últimos 6-7 registros",
+        btnDelete: "Eliminar",
+        btnSave: "Guardar cambios",
+
+        manageCatTitle: "Gestionar categorías",
+        manageCatSub: "Categorías ordenadas y preparadas",
+        manageCatSearch: "Filtrar categoría...",
+        btnNewCat: "Nueva categoría",
+        manageCatReset: "Estándares",
+        btnClose: "Cerrar",
+        catStandardBadge: "Estándar",
+        catCustomBadge: "Personalizada",
+        deleteCatTitle: "Eliminar categoría",
+
+        manageStoresTitle: "Gestionar listas y tiendas",
+        manageStoresSub: "Edita nombres, elimina o reordena listas",
+        tabSortLabel: "Orden de las pestañas:",
+        optActiveFirst: "Con artículos primero",
+        optAlphabetical: "Alfabético (A-Z)",
+        optDefault: "Orden manual / por defecto",
+        dragHint: "💡 En modo manual, puedes arrastrar o usar las flechas (▲/▼) para cambiar el orden.",
+        btnNewStore: "Nueva lista",
+
+        catalogTitle: "Catálogo completo de artículos",
+        catalogSubLoading: "Cargando artículos de la base de datos...",
+        cleanDupesBtn: "Limpiar duplicados",
+        catalogSearchPlaceholder: "Buscar en el catálogo completo de productos...",
+        filterAllStores: "Todas las tiendas",
+        statusFilterAll: "Todos los artículos",
+        statusFilterPending: "Solo pendientes (a comprar 🛒)",
+        statusFilterCompleted: "Solo en el historial (comprados ✅)",
+        statusFilterWithPrice: "Solo con precio registrado 💶",
+        catalogNoMatch: "Ningún artículo coincide con los filtros",
+        catalogNoMatchSub: "Puedes escribir otro texto o restablecer los desplegables.",
+        statusPending: "Pendiente",
+        statusAdd: "Añadir",
+
+        statsModalTitle: "Estadísticas y Gasto",
+        statsModalSubtitle: "Resumen económico y distribución de compras",
+        statsPendingBadge: "Pendiente",
+        statsBoughtBadge: "Comprado",
+        statsTotalBadge: "Total est.",
+        statsStoreBreakdown: "Desglose por Tiendas",
+        statsCatBreakdown: "Desglose por Categorías",
+
+        recoveredToast: (name) => `Recuperado: ${name}`,
+        addedToast: (name) => `Añadido: ${name}`,
+        deletedToast: "Producto eliminado",
+        allUncheckedToast: "Todos los artículos devueltos a pendientes",
+        confirmDeleteAll: "¿Seguro que quieres vaciar TODOS los datos de la lista?",
+        confirmDeleteCompleted: "¿Seguro que quieres borrar definitivamente todos los artículos comprados de esta tienda?"
+      }
+    };
+
+    function t(key, ...args) {
+      const dict = (typeof I18N !== 'undefined' && I18N[currentLang]) ? I18N[currentLang] : (I18N?.ca || {});
+      const item = dict[key];
+      if (typeof item === 'function') return item(...args);
+      if (item !== undefined) return item;
+      return key;
+    }
+
     const STORAGE_KEY_CATEGORIES = "cistella_custom_categories_v1";
 
     let CATEGORY_ICONS = { ...DEFAULT_CATEGORY_ICONS };
@@ -1466,9 +1836,11 @@
     function getSortedCategoriesList() {
       const all = Object.keys(CATEGORY_ICONS);
       return all.sort((a, b) => {
-        if (a === "General") return 1;
-        if (b === "General") return -1;
-        return a.localeCompare(b, 'ca');
+        const nameA = getCategoryDisplayName(a, currentLang);
+        const nameB = getCategoryDisplayName(b, currentLang);
+        if (a === "General" || nameA === "General") return 1;
+        if (b === "General" || nameB === "General") return -1;
+        return nameA.localeCompare(nameB, currentLang);
       });
     }
 
@@ -1496,6 +1868,9 @@
       }
       CATEGORIES = getSortedCategoriesList();
     }
+
+    let currentLang = localStorage.getItem(STORAGE_KEY_APP_LANG) || ((localStorage.getItem(STORAGE_KEY_VOICE_LANG) || "").startsWith("es") ? "es" : "ca");
+    let voiceLanguage = localStorage.getItem(STORAGE_KEY_VOICE_LANG) || (currentLang === "es" ? "es-ES" : "ca-ES");
 
     // DADES INICIALS D'EXEMPLE
     const DEFAULT_SEED_ITEMS = [
@@ -1547,7 +1922,6 @@
     let isCompletedCollapsed = true; // Plegat per defecte per evitar congelació en llistes grans
     let pendingVisibleLimit = 50; // Renderització progressiva dels pendents per màxim rendiment
     let completedVisibleLimit = 40; // Renderització progressiva dels ratllats (Lazy render)
-    let voiceLanguage = "ca-ES"; // "ca-ES" o "es-ES"
     let isVoiceActive = false;
     let voiceRecognitionInstance = null;
     let deferredPrompt = null;
@@ -1654,15 +2028,21 @@
       }
     }
 
-    function cycleVoiceLanguage() {
-      voiceLanguage = voiceLanguage === "ca-ES" ? "es-ES" : "ca-ES";
+    function cycleAppLanguage() {
+      currentLang = currentLang === "ca" ? "es" : "ca";
+      voiceLanguage = currentLang === "ca" ? "ca-ES" : "es-ES";
+      localStorage.setItem(STORAGE_KEY_APP_LANG, currentLang);
       localStorage.setItem(STORAGE_KEY_VOICE_LANG, voiceLanguage);
-      updateLangLabels();
-      showToast(voiceLanguage === "ca-ES" ? "Veu en Català (ca-ES)" : "Voz en Castellano (es-ES)", "fa-language");
+      applyLanguageUI();
+      showToast(currentLang === "es" ? "Idioma: Castellano (es-ES)" : "Idioma: Català (ca-ES)", "fa-language");
+    }
+
+    function cycleVoiceLanguage() {
+      cycleAppLanguage();
     }
 
     function toggleVoiceLanguage() {
-      cycleVoiceLanguage();
+      cycleAppLanguage();
       if (isVoiceActive) {
         stopVoiceRecognition();
         setTimeout(startVoiceRecognition, 300);
@@ -1670,9 +2050,66 @@
     }
 
     function updateLangLabels() {
-      const lbl = voiceLanguage === "ca-ES" ? "CA" : "ES";
-      document.getElementById("header-lang-label").innerText = lbl;
-      document.getElementById("voice-lang-pill").innerText = lbl;
+      const lbl = currentLang.toUpperCase();
+      const hEl = document.getElementById("header-lang-label");
+      if (hEl) hEl.innerText = lbl;
+      const vEl = document.getElementById("voice-lang-pill");
+      if (vEl) vEl.innerText = lbl;
+    }
+
+    function applyLanguageUI() {
+      document.documentElement.lang = currentLang;
+
+      updateLangLabels();
+
+      // Actualitzar elements amb data-i18n (text)
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        const val = t(key);
+        if (val) el.textContent = val;
+      });
+
+      // Actualitzar placeholders
+      document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        const val = t(key);
+        if (val) el.placeholder = val;
+      });
+
+      // Actualitzar atributs title
+      document.querySelectorAll("[data-i18n-title]").forEach(el => {
+        const key = el.getAttribute("data-i18n-title");
+        const val = t(key);
+        if (val) el.title = val;
+      });
+
+      // Actualitzar etiquetes del menú (ordre, mode ratllar)
+      if (typeof updateMenuLabels === 'function') updateMenuLabels();
+
+      // Refrescar desplegables de categories i botigues
+      if (typeof populateSelectOptions === 'function') populateSelectOptions();
+
+      // Refrescar pestanyes i llistes
+      if (typeof renderStoreTabs === 'function') renderStoreTabs();
+      if (typeof renderLists === 'function') renderLists();
+
+      // Refrescar modals oberts si n'hi ha algun
+      const catModal = document.getElementById("manage-categories-modal");
+      if (catModal && !catModal.classList.contains("hidden") && typeof renderManageCategoriesList === 'function') {
+        renderManageCategoriesList();
+      }
+      const storeModal = document.getElementById("manage-stores-modal");
+      if (storeModal && !storeModal.classList.contains("hidden") && typeof renderManageStoresList === 'function') {
+        renderManageStoresList();
+      }
+      const dbModal = document.getElementById("catalog-modal");
+      if (dbModal && !dbModal.classList.contains("hidden") && typeof filterCatalogList === 'function') {
+        filterCatalogList();
+      }
+      const statsModal = document.getElementById("stats-modal");
+      if (statsModal && !statsModal.classList.contains("hidden") && typeof renderStatsContent === 'function') {
+        renderStatsContent();
+      }
     }
 
     // ==========================================
@@ -2280,6 +2717,7 @@
     // ==========================================
     function renderStoreTabs() {
       const container = document.getElementById("store-tabs");
+      if (!container) return;
 
       // Ordenació dinàmica de botigues: "all" sempre primera
       const allStore = STORES.find(s => s.id === "all") || { id: "all", name: "Totes", color: "gray" };
@@ -2292,10 +2730,10 @@
           if (countA > 0 && countB === 0) return -1;
           if (countB > 0 && countA === 0) return 1;
           if (countA !== countB) return countB - countA; // més pendents primer
-          return a.name.localeCompare(b.name, 'ca');
+          return getStoreDisplayName(a, currentLang).localeCompare(getStoreDisplayName(b, currentLang), currentLang);
         });
       } else if (storeSortMode === "alphabetical") {
-        otherStores.sort((a, b) => a.name.localeCompare(b.name, 'ca'));
+        otherStores.sort((a, b) => getStoreDisplayName(a, currentLang).localeCompare(getStoreDisplayName(b, currentLang), currentLang));
       }
       // "default" manté l'ordre definit a STORES
 
@@ -2304,6 +2742,7 @@
       let html = storesToRender.map(store => {
         const isActive = store.id === currentStoreFilter;
         const pendingCount = items.filter(it => !it.crossed_off && (store.id === "all" || it.store === store.id)).length;
+        const displayName = getStoreDisplayName(store, currentLang);
 
         return `
           <button data-store-id="${store.id}" 
@@ -2312,7 +2751,7 @@
             ? 'bg-white text-emerald-800 shadow-sm font-bold'
             : 'bg-emerald-800/80 text-emerald-100 hover:bg-emerald-600'
           }">
-            <span>${store.name}</span>
+            <span>${displayName}</span>
             ${pendingCount > 0
             ? `<span class="px-1.5 py-0.2 text-[10px] rounded-full ${isActive ? 'bg-emerald-700 text-white' : 'bg-emerald-900 text-emerald-200'}">${pendingCount}</span>`
             : ''}
@@ -2323,10 +2762,10 @@
       // Botó de gestionar llistes i afegir llista
       html += `
         <button onclick="openManageStoresModal()" 
-                title="Gestionar llistes i ordre"
+                title="${currentLang === 'es' ? 'Gestionar listas y orden' : 'Gestionar llistes i ordre'}"
                 class="px-2.5 py-1 rounded-full font-medium transition flex items-center gap-1 flex-shrink-0 bg-emerald-900/60 hover:bg-emerald-700 text-emerald-200 hover:text-white border border-emerald-700/50">
           <i class="fa-solid fa-gear text-[10px]"></i>
-          <span>Llistes</span>
+          <span>${currentLang === 'es' ? 'Listas' : 'Llistes'}</span>
         </button>
       `;
 
@@ -2552,9 +2991,10 @@
           const n = (it.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           const note = (it.note || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           const cat = (it.category || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const catDisp = getCategoryDisplayName(it.category, currentLang).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           const sObj = STORES.find(s => s.id === it.store);
-          const storeName = sObj ? sObj.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-          return n.includes(q) || note.includes(q) || cat.includes(q) || storeName.includes(q);
+          const storeName = sObj ? getStoreDisplayName(sObj, currentLang).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+          return n.includes(q) || note.includes(q) || cat.includes(q) || catDisp.includes(q) || storeName.includes(q);
         });
       }
 
@@ -2566,56 +3006,59 @@
       const completedCost = completed.reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
       const totalCost = filtered.reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
 
-      document.getElementById("pending-counter").innerText = `Pendents (${pending.length})`;
+      document.getElementById("pending-counter").innerText = `${t('pendingSection')} (${pending.length})`;
       document.getElementById("pending-cost-counter").innerText = pendingCost > 0 ? `${pendingCost.toFixed(2)} €` : "";
-      document.getElementById("completed-counter").innerText = `Comprats (${completed.length})`;
+      document.getElementById("completed-counter").innerText = `${t('completedSection')} (${completed.length})`;
       document.getElementById("completed-cost-counter").innerText = completedCost > 0 ? `• ${completedCost.toFixed(2)} €` : "";
-      document.getElementById("total-summary-text").innerText = `${pending.length} pendents (${completed.length} fets) • Total: ${totalCost.toFixed(2)} €`;
+      document.getElementById("total-summary-text").innerText = `${pending.length} ${currentLang === 'es' ? 'pendientes' : 'pendents'} (${completed.length} ${currentLang === 'es' ? 'comprados' : 'fets'}) • Total: ${totalCost.toFixed(2)} €`;
 
       // Render Pendents (amb límit progressiu per protegir el rendiment del navegador)
       if (pending.length === 0) {
         pendingContainer.innerHTML = `
           <div class="p-6 text-center text-gray-400 space-y-1 w-full bg-white rounded-2xl border border-gray-200 shadow-2xs">
             <i class="fa-solid fa-clipboard-check text-2xl text-emerald-500/50"></i>
-            <p class="text-sm font-bold text-gray-600">Tot comprat o llista buida!</p>
-            <p class="text-xs text-gray-400">Prem el micròfon o comença a escriure a sota.</p>
+            <p class="text-sm font-bold text-gray-600">${t('emptyPendingTitle')}</p>
+            <p class="text-xs text-gray-400">${t('emptyPendingSub')}</p>
           </div>
         `;
       } else if (groupByCategories) {
         // Agrupació per categories
         const groups = {};
         pending.forEach(item => {
-          const cat = item.category || "General";
-          if (!groups[cat]) groups[cat] = [];
-          groups[cat].push(item);
+          const canonical = getCategoryCanonicalKey(item.category || "General");
+          if (!groups[canonical]) groups[canonical] = [];
+          groups[canonical].push(item);
         });
 
-        // Ordenar categories alfabèticament (General al final)
+        // Ordenar categories alfabèticament segons l'idioma actiu (General al final)
         const sortedCategories = Object.keys(groups).sort((a, b) => {
           if (a === "General") return 1;
           if (b === "General") return -1;
-          return a.localeCompare(b, 'ca');
+          const nameA = getCategoryDisplayName(a, currentLang);
+          const nameB = getCategoryDisplayName(b, currentLang);
+          return nameA.localeCompare(nameB, currentLang);
         });
 
         // Ordenar els productes alfabèticament dins de cada categoria
-        sortedCategories.forEach(cat => {
-          groups[cat].sort((a, b) => (a.name || "").localeCompare(b.name || "", 'ca'));
+        sortedCategories.forEach(canonical => {
+          groups[canonical].sort((a, b) => (a.name || "").localeCompare(b.name || "", currentLang));
         });
 
         let renderedCount = 0;
         let html = "";
-        sortedCategories.forEach(cat => {
-          const itemsInCat = groups[cat];
+        sortedCategories.forEach(canonical => {
+          const itemsInCat = groups[canonical];
           const remainingLimit = pendingVisibleLimit - renderedCount;
           if (remainingLimit <= 0) return;
 
           const toRender = itemsInCat.slice(0, remainingLimit);
           renderedCount += toRender.length;
 
-          const icon = CATEGORY_ICONS[cat] || "fa-basket-shopping";
+          const icon = getCategoryIcon(canonical);
+          const displayName = getCategoryDisplayName(canonical, currentLang);
           html += `
             <div class="px-2 pt-2 pb-1 text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between w-full">
-              <span class="flex items-center gap-1.5"><i class="fa-solid ${icon} text-emerald-700 text-xs"></i> ${cat}</span>
+              <span class="flex items-center gap-1.5"><i class="fa-solid ${icon} text-emerald-700 text-xs"></i> ${displayName}</span>
               <span class="text-gray-400 font-normal text-[11px]">(${itemsInCat.length})</span>
             </div>
           `;
@@ -2625,7 +3068,7 @@
         if (pending.length > renderedCount) {
           html += `
             <div class="p-2.5 text-center bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-emerald-100 select-none" onclick="loadMorePending()">
-              <i class="fa-solid fa-chevron-down mr-1"></i> Mostrar 50 pendents més (${renderedCount} de ${pending.length})
+              <i class="fa-solid fa-chevron-down mr-1"></i> ${t('loadMorePending', renderedCount, pending.length)}
             </div>
           `;
         }
@@ -2636,7 +3079,7 @@
         if (pending.length > visiblePending.length) {
           pendingHTML += `
             <div class="p-2.5 text-center bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-emerald-100 select-none" onclick="loadMorePending()">
-              <i class="fa-solid fa-chevron-down mr-1"></i> Mostrar 50 pendents més (${visiblePending.length} de ${pending.length})
+              <i class="fa-solid fa-chevron-down mr-1"></i> ${t('loadMorePending', visiblePending.length, pending.length)}
             </div>
           `;
         }
@@ -2645,9 +3088,9 @@
 
       // Render Comprats (Fase 3: Optimitzat contra congelació amb càrrega sota demanda)
       if (completed.length === 0) {
-        completedContainer.innerHTML = `<div class="p-3 text-center text-xs text-gray-400 w-full bg-white/60 rounded-xl border border-gray-200/50">Cap article ratllat en aquesta botiga.</div>`;
+        completedContainer.innerHTML = `<div class="p-3 text-center text-xs text-gray-400 w-full bg-white/60 rounded-xl border border-gray-200/50">${t('emptyCompleted')}</div>`;
       } else if (isCompletedCollapsed) {
-        completedContainer.innerHTML = `<div class="p-2.5 text-center text-xs text-gray-500 w-full italic cursor-pointer hover:bg-gray-100 bg-white/70 rounded-xl border border-gray-200" onclick="toggleCompletedCollapse()">Llista plegada (${completed.length} articles). Toca per desplegar.</div>`;
+        completedContainer.innerHTML = `<div class="p-2.5 text-center text-xs text-gray-500 w-full italic cursor-pointer hover:bg-gray-100 bg-white/70 rounded-xl border border-gray-200" onclick="toggleCompletedCollapse()">${t('listCollapsed', completed.length)}</div>`;
       } else {
         // Els comprats es mostren en ordre cronològic invers: el darrer ratllat a dalt de tot
         const sortedCompleted = [...completed].sort((a, b) => {
@@ -2660,7 +3103,7 @@
         if (completed.length > visibleCompleted.length) {
           completedHTML += `
             <div class="p-2.5 text-center bg-gray-100 hover:bg-gray-200 cursor-pointer text-xs font-bold text-emerald-800 transition rounded-xl border border-gray-200 select-none" onclick="loadMoreCompleted()">
-              <i class="fa-solid fa-chevron-down mr-1"></i> Mostrar 50 més (${visibleCompleted.length} de ${completed.length})
+              <i class="fa-solid fa-chevron-down mr-1"></i> ${t('loadMoreCompleted', visibleCompleted.length, completed.length)}
             </div>
           `;
         }
@@ -2674,7 +3117,9 @@
     function createItemRowHTML(item, isCrossed, isCategorized = false) {
       const isSpecificStore = currentStoreFilter !== "all";
       const storeObj = STORES.find(s => s.id === item.store) || { name: item.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
-      const catIcon = CATEGORY_ICONS[item.category] || "fa-basket-shopping";
+      const storeDisplayName = getStoreDisplayName(storeObj, currentLang);
+      const catIcon = getCategoryIcon(item.category);
+      const categoryDisplayName = getCategoryDisplayName(item.category, currentLang);
       const totalItemPrice = (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 1);
       const isStale = isPriceStale(item);
 
@@ -2703,13 +3148,13 @@
             ${item.photo
               ? `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
                       class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-pointer relative group" 
-                      title="Fes clic per ratllar o desratllar">
+                      title="${isCrossed ? (currentLang === 'es' ? 'Recuperar a pendientes' : 'Tornar a pendents') : (currentLang === 'es' ? 'Tachar / Comprado' : 'Ratllar / Comprat')}">
                    <img src="${item.photo}" class="w-full h-full object-cover">
                    <div class="absolute inset-0 bg-emerald-600/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition">
                      <i class="fa-solid fa-check"></i>
                    </div>
                    <button onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(item.photo)}', '${encodeURIComponent(item.name || '')}')"
-                           title="Veure foto en gran"
+                           title="${currentLang === 'es' ? 'Ver foto ampliada' : 'Veure foto en gran'}"
                            class="absolute bottom-0 right-0 p-0.5 bg-black/60 hover:bg-black text-white text-[8px] rounded-tl opacity-0 group-hover:opacity-100 transition">
                      <i class="fa-solid fa-magnifying-glass-plus"></i>
                    </button>
@@ -2717,7 +3162,7 @@
               : `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
                       class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
                    isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60 hover:bg-emerald-100'
-                 } flex items-center justify-center text-xs cursor-pointer transition" title="Fes clic per ratllar o desratllar">
+                 } flex items-center justify-center text-xs cursor-pointer transition" title="${isCrossed ? (currentLang === 'es' ? 'Recuperar a pendientes' : 'Tornar a pendents') : (currentLang === 'es' ? 'Tachar / Comprado' : 'Ratllar / Comprat')}">
                    <i class="fa-solid ${catIcon}"></i>
                  </div>`
             }
@@ -2742,9 +3187,9 @@
 
               ${hasSubtitle ? `
                 <div class="flex items-center space-x-1.5 text-[10px] sm:text-[10.5px] text-gray-400 truncate mt-0.5 font-medium leading-none">
-                  ${showStore ? `<span class="${storeObj.badgeText || 'text-gray-600'} font-semibold">${storeObj.name}</span>` : ''}
+                  ${showStore ? `<span class="${storeObj.badgeText || 'text-gray-600'} font-semibold">${storeDisplayName}</span>` : ''}
                   ${showStore && showCategory ? `<span>•</span>` : ''}
-                  ${showCategory ? `<span class="truncate">${item.category}</span>` : ''}
+                  ${showCategory ? `<span class="truncate">${categoryDisplayName}</span>` : ''}
                   ${hasNote ? `<span>• <i class="fa-regular fa-note-sticky text-amber-500 text-[10px]"></i> <span class="italic text-gray-500 truncate max-w-[140px] inline-block align-bottom">${item.note}</span></span>` : ''}
                 </div>
               ` : ''}
@@ -3120,6 +3565,144 @@
       if (modal) modal.classList.add("hidden");
     }
 
+    // ==========================================
+    // CONTROLADOR DE GESTIÓ DE CATEGORIES
+    // ==========================================
+    function openManageCategoriesModal() {
+      const modal = document.getElementById("manage-categories-modal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+      const searchInput = document.getElementById("manage-categories-search");
+      if (searchInput) searchInput.value = "";
+      renderManageCategoriesList();
+    }
+
+    function closeManageCategoriesModal() {
+      const modal = document.getElementById("manage-categories-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function renderManageCategoriesList() {
+      const listEl = document.getElementById("manage-categories-list");
+      const countEl = document.getElementById("manage-categories-count-text");
+      if (!listEl) return;
+
+      const searchInput = document.getElementById("manage-categories-search");
+      const query = (searchInput?.value || "").toLowerCase().trim();
+
+      const all = getSortedCategoriesList();
+      const filtered = all.filter(c => {
+        if (!query) return true;
+        const disp = getCategoryDisplayName(c, currentLang).toLowerCase();
+        const raw = c.toLowerCase();
+        return disp.includes(query) || raw.includes(query);
+      });
+
+      if (countEl) {
+        countEl.textContent = currentLang === "es"
+          ? `${all.length} categorías preparadas`
+          : `${all.length} categories preparades`;
+      }
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-8 text-center text-gray-400 space-y-1">
+            <i class="fa-solid fa-tags text-2xl text-gray-300"></i>
+            <p class="text-xs font-semibold">${currentLang === "es" ? "No se ha encontrado ninguna categoría" : "No s'ha trobat cap categoria"}</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(catKey => {
+        const icon = getCategoryIcon(catKey);
+        const displayName = getCategoryDisplayName(catKey, currentLang);
+        const canonical = getCategoryCanonicalKey(catKey);
+        const isStandard = Boolean(DEFAULT_CATEGORY_ICONS[canonical] || DEFAULT_CATEGORY_ICONS[catKey]);
+        const countInCart = items.filter(it => !it.crossed_off && getCategoryCanonicalKey(it.category) === canonical).length;
+
+        return `
+          <div class="py-2 px-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg transition">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs flex-shrink-0">
+                <i class="fa-solid ${icon}"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-gray-800 truncate">${displayName}</div>
+                <div class="text-[10px] text-gray-400 flex items-center gap-1.5">
+                  ${currentLang === "es" && displayName !== catKey ? `<span class="italic text-gray-400">(${catKey})</span>` : ''}
+                  ${countInCart > 0 ? `<span class="text-emerald-700 font-semibold">• ${countInCart} ${currentLang === 'es' ? 'pendientes' : 'pendents'}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded ${isStandard ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700 border border-amber-200'}">
+                ${isStandard ? (currentLang === 'es' ? 'Estándar' : 'Estàndard') : (currentLang === 'es' ? 'Personalizada' : 'Personalitzada')}
+              </span>
+              ${!isStandard ? `
+                <button onclick="deleteCustomCategory('${catKey}')" title="${currentLang === 'es' ? 'Eliminar categoría' : 'Eliminar categoria'}"
+                  class="p-1 text-gray-400 hover:text-rose-600 transition">
+                  <i class="fa-solid fa-trash text-xs"></i>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function promptCreateNewCategory() {
+      const promptMsg = currentLang === "es"
+        ? "Introduce el nombre de la nueva categoría:"
+        : "Introdueix el nom de la nova categoria:";
+      const name = prompt(promptMsg);
+      if (!name || !name.trim()) return;
+
+      const trimmed = name.trim();
+      const canonical = getCategoryCanonicalKey(trimmed);
+      if (CATEGORY_ICONS[canonical] || CATEGORY_ICONS[trimmed]) {
+        alert(currentLang === "es" ? "Esta categoría ya existe." : "Aquesta categoria ja existeix.");
+        return;
+      }
+
+      CATEGORY_ICONS[trimmed] = "fa-tag";
+      saveCategoriesToStorage();
+      CATEGORIES = getSortedCategoriesList();
+      populateSelectOptions();
+      renderManageCategoriesList();
+      showToast(currentLang === "es" ? `Categoría creada: ${trimmed}` : `Categoria creada: ${trimmed}`, "fa-tag");
+    }
+
+    function deleteCustomCategory(catKey) {
+      const confirmMsg = currentLang === "es"
+        ? `¿Seguro que quieres eliminar la categoría "${catKey}"?`
+        : `Segur que vols eliminar la categoria "${catKey}"?`;
+      if (!confirm(confirmMsg)) return;
+
+      delete CATEGORY_ICONS[catKey];
+      saveCategoriesToStorage();
+      CATEGORIES = getSortedCategoriesList();
+      populateSelectOptions();
+      renderManageCategoriesList();
+      renderLists();
+      showToast(currentLang === "es" ? "Categoría eliminada" : "Categoria eliminada", "fa-trash");
+    }
+
+    function resetCategoriesToDefault() {
+      const confirmMsg = currentLang === "es"
+        ? "¿Restablecer la lista de categorías a la colección estándar de supermercado?"
+        : "Restablir la llista de categories a la col·lecció estàndard de supermercat?";
+      if (!confirm(confirmMsg)) return;
+
+      CATEGORY_ICONS = { ...DEFAULT_CATEGORY_ICONS };
+      saveCategoriesToStorage();
+      CATEGORIES = getSortedCategoriesList();
+      populateSelectOptions();
+      renderManageCategoriesList();
+      renderLists();
+      showToast(currentLang === "es" ? "Categorías estándar restablecidas" : "Categories estàndard restablertes", "fa-rotate-left");
+    }
+
     function renderManageStoresList() {
       const container = document.getElementById("manage-stores-list");
       if (!container) return;
@@ -3325,20 +3908,32 @@
       localStorage.setItem(STORAGE_KEY_CHECK_MODE, checkMode);
       updateMenuLabels();
       renderLists();
-      showToast(`Mode de ratllar: ${checkMode === 'swipe' ? 'Lliscament (Swipe)' : 'Clic directe'}`, "fa-hand-pointer");
+      showToast(currentLang === "es"
+        ? `Modo tachar: ${checkMode === 'swipe' ? 'Deslizar (Swipe)' : 'Clic directo'}`
+        : `Mode de ratllar: ${checkMode === 'swipe' ? 'Lliscament (Swipe)' : 'Clic directe'}`, "fa-hand-pointer");
     }
 
     function updateMenuLabels() {
       const sortLabel = document.getElementById("menu-store-sort-label");
       if (sortLabel) {
-        if (storeSortMode === "active_first") sortLabel.innerText = "Ordre: Pendents 1r";
-        else if (storeSortMode === "alphabetical") sortLabel.innerText = "Ordre: Alfabètic (A-Z)";
-        else sortLabel.innerText = "Ordre: Per defecte";
+        if (currentLang === "es") {
+          if (storeSortMode === "active_first") sortLabel.innerText = "Orden: Pendientes 1º";
+          else if (storeSortMode === "alphabetical") sortLabel.innerText = "Orden: Alfabético (A-Z)";
+          else sortLabel.innerText = "Orden: Por defecto";
+        } else {
+          if (storeSortMode === "active_first") sortLabel.innerText = "Ordre: Pendents 1r";
+          else if (storeSortMode === "alphabetical") sortLabel.innerText = "Ordre: Alfabètic (A-Z)";
+          else sortLabel.innerText = "Ordre: Per defecte";
+        }
       }
 
       const checkLabel = document.getElementById("menu-check-mode-label");
       if (checkLabel) {
-        checkLabel.innerText = checkMode === "swipe" ? "Mode ratllar: Swipe" : "Mode ratllar: Clic";
+        if (currentLang === "es") {
+          checkLabel.innerText = checkMode === "swipe" ? "Modo tachar: Swipe" : "Modo tachar: Clic";
+        } else {
+          checkLabel.innerText = checkMode === "swipe" ? "Mode ratllar: Swipe" : "Mode ratllar: Clic";
+        }
       }
     }
 
@@ -3358,7 +3953,12 @@
         document.getElementById("edit-unit").value = it.unit || "ud";
         document.getElementById("edit-price").value = it.price ? it.price : "";
         document.getElementById("edit-store").value = it.store;
-        document.getElementById("edit-category").value = it.category;
+        const catSelect = document.getElementById("edit-category");
+        if (catSelect) {
+          const canonicalCat = getCategoryCanonicalKey(it.category);
+          catSelect.value = canonicalCat || it.category;
+          if (!catSelect.value && it.category) catSelect.value = it.category;
+        }
         document.getElementById("edit-note").value = it.note || "";
         document.getElementById("edit-photo-url").value = it.photo || "";
 
@@ -4186,19 +4786,21 @@
     }
 
     function populateSelectOptions() {
-        const storeSelect = document.getElementById("edit-store");
+      const storeSelect = document.getElementById("edit-store");
+      if (storeSelect) {
         storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s =>
-          `<option value="${s.id}">${s.name}</option>`
+          `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`
         ).join("");
-
-        CATEGORIES = getSortedCategoriesList();
-        const catSelect = document.getElementById("edit-category");
-        if (catSelect) {
-          catSelect.innerHTML = CATEGORIES.map(c =>
-            `<option value="${c}">${c}</option>`
-          ).join("");
-        }
       }
+
+      CATEGORIES = getSortedCategoriesList();
+      const catSelect = document.getElementById("edit-category");
+      if (catSelect) {
+        catSelect.innerHTML = CATEGORIES.map(c =>
+          `<option value="${c}">${getCategoryDisplayName(c, currentLang)}</option>`
+        ).join("");
+      }
+    }
 
     // ==========================================
     // MENÚ D'OPCIONS I PERSISTÈNCIA
@@ -4319,9 +4921,16 @@
             currentStoreFilter = storedStore;
           }
 
+          const storedAppLang = localStorage.getItem(STORAGE_KEY_APP_LANG);
+          if (storedAppLang === "ca" || storedAppLang === "es") {
+            currentLang = storedAppLang;
+          }
+
           const storedLang = localStorage.getItem(STORAGE_KEY_VOICE_LANG);
           if (storedLang) {
             voiceLanguage = storedLang;
+          } else {
+            voiceLanguage = currentLang === "es" ? "es-ES" : "ca-ES";
           }
 
           const storedSort = localStorage.getItem(STORAGE_KEY_STORE_SORT);
@@ -4997,7 +5606,7 @@
     // INICIALITZACIÓ GLOBAL
     window.addEventListener("DOMContentLoaded", () => {
       loadFromLocalStorage();
-      updateLangLabels();
+      applyLanguageUI();
       populateSelectOptions();
       renderStoreTabs();
       initStoreTabsDesktopScroll();
@@ -6093,9 +6702,10 @@
       const container = document.getElementById('stats-modal-body');
       if (!container) return;
 
+      const isEs = currentLang === 'es';
       const totalItems = items.length;
-      const pendingItems = items.filter(it => !it.completed);
-      const boughtItems = items.filter(it => it.completed);
+      const pendingItems = items.filter(it => !(it.crossed_off || it.completed));
+      const boughtItems = items.filter(it => Boolean(it.crossed_off || it.completed));
 
       let pendingEuros = 0;
       let boughtEuros = 0;
@@ -6104,7 +6714,7 @@
       items.forEach(it => {
         const p = (typeof it.price === 'number' && it.price > 0) ? it.price : 0;
         if (p > 0) itemsWithPrice++;
-        if (it.completed) {
+        if (it.crossed_off || it.completed) {
           boughtEuros += p;
         } else {
           pendingEuros += p;
@@ -6119,7 +6729,7 @@
       (STORES || []).forEach(s => {
         if (s.id === 'all') return;
         storeStats[s.id] = {
-          name: s.name,
+          name: getStoreDisplayName(s, currentLang),
           color: s.color || 'emerald',
           badgeBg: s.badgeBg || 'bg-gray-100',
           badgeText: s.badgeText || 'text-gray-800',
@@ -6134,8 +6744,9 @@
       items.forEach(it => {
         const sId = it.store || 'altres';
         if (!storeStats[sId]) {
+          const rawStore = storeMap[sId] || { name: sId };
           storeStats[sId] = {
-            name: storeMap[sId]?.name || sId,
+            name: getStoreDisplayName(rawStore, currentLang),
             color: 'gray',
             badgeBg: 'bg-gray-100',
             badgeText: 'text-gray-800',
@@ -6149,7 +6760,7 @@
         const p = (typeof it.price === 'number' && it.price > 0) ? it.price : 0;
         storeStats[sId].totalCount++;
         storeStats[sId].totalEuros += p;
-        if (it.completed) {
+        if (it.crossed_off || it.completed) {
           storeStats[sId].boughtCount++;
         } else {
           storeStats[sId].pendingCount++;
@@ -6161,21 +6772,28 @@
       const activeStores = Object.values(storeStats).filter(st => st.totalCount > 0);
       activeStores.sort((a, b) => b.totalCount - a.totalCount);
 
-      // Agrupació per categories
+      // Agrupació per categories canòniques
       const catStats = {};
       items.forEach(it => {
-        const catKey = it.category || 'Altres';
-        if (!catStats[catKey]) {
-          catStats[catKey] = { count: 0, pending: 0, bought: 0, euros: 0 };
+        const canonicalKey = getCategoryCanonicalKey(it.category || 'Altres') || 'Altres';
+        if (!catStats[canonicalKey]) {
+          catStats[canonicalKey] = {
+            name: getCategoryDisplayName(canonicalKey, currentLang),
+            icon: getCategoryIcon(canonicalKey),
+            count: 0,
+            pending: 0,
+            bought: 0,
+            euros: 0
+          };
         }
-        catStats[catKey].count++;
+        catStats[canonicalKey].count++;
         const p = (typeof it.price === 'number' && it.price > 0) ? it.price : 0;
-        catStats[catKey].euros += p;
-        if (it.completed) catStats[catKey].bought++;
-        else catStats[catKey].pending++;
+        catStats[canonicalKey].euros += p;
+        if (it.crossed_off || it.completed) catStats[canonicalKey].bought++;
+        else catStats[canonicalKey].pending++;
       });
 
-      const activeCats = Object.keys(catStats).map(k => ({ name: k, ...catStats[k] }));
+      const activeCats = Object.values(catStats);
       activeCats.sort((a, b) => b.count - a.count);
 
       container.innerHTML = `
@@ -6183,27 +6801,27 @@
         <div class="grid grid-cols-3 gap-2">
           
           <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-center shadow-xs">
-            <div class="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Pendent</div>
+            <div class="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">${isEs ? 'Pendiente' : 'Pendent'}</div>
             <div class="text-base font-black text-emerald-900 mt-0.5">
               ${pendingEuros.toFixed(2).replace('.', ',')} €
             </div>
             <div class="text-[10px] text-emerald-700 font-medium">
-              ${pendingItems.length} producte${pendingItems.length !== 1 ? 's' : ''}
+              ${pendingItems.length} ${isEs ? 'producto' + (pendingItems.length !== 1 ? 's' : '') : 'producte' + (pendingItems.length !== 1 ? 's' : '')}
             </div>
           </div>
 
           <div class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-center shadow-xs">
-            <div class="text-[10px] uppercase font-bold text-gray-600 tracking-wider">Ja comprat</div>
+            <div class="text-[10px] uppercase font-bold text-gray-600 tracking-wider">${isEs ? 'Ya comprado' : 'Ja comprat'}</div>
             <div class="text-base font-black text-gray-800 mt-0.5">
               ${boughtEuros.toFixed(2).replace('.', ',')} €
             </div>
             <div class="text-[10px] text-gray-500 font-medium">
-              ${boughtItems.length} producte${boughtItems.length !== 1 ? 's' : ''}
+              ${boughtItems.length} ${isEs ? 'producto' + (boughtItems.length !== 1 ? 's' : '') : 'producte' + (boughtItems.length !== 1 ? 's' : '')}
             </div>
           </div>
 
           <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center shadow-xs">
-            <div class="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Total Estimat</div>
+            <div class="text-[10px] uppercase font-bold text-blue-800 tracking-wider">${isEs ? 'Total Estimado' : 'Total Estimat'}</div>
             <div class="text-base font-black text-blue-900 mt-0.5">
               ${totalEuros.toFixed(2).replace('.', ',')} €
             </div>
@@ -6216,18 +6834,20 @@
 
         <div class="text-[11px] text-gray-500 text-center bg-gray-50 py-1.5 px-2 rounded-lg border border-gray-100">
           <i class="fa-solid fa-info-circle text-gray-400 mr-1"></i>
-          Hi ha ${itemsWithPrice} de ${totalItems} productes amb preu registrat (${Math.round((itemsWithPrice / (totalItems || 1)) * 100)}%).
+          ${isEs
+            ? `Hay ${itemsWithPrice} de ${totalItems} productos con precio registrado (${Math.round((itemsWithPrice / (totalItems || 1)) * 100)}%).`
+            : `Hi ha ${itemsWithPrice} de ${totalItems} productes amb preu registrat (${Math.round((itemsWithPrice / (totalItems || 1)) * 100)}%).`}
         </div>
 
         <!-- Desglossament per botiga -->
         <div>
           <h4 class="font-bold text-gray-800 text-xs mb-2 flex items-center justify-between">
-            <span>Desglossament per botiga:</span>
-            <span class="text-[10px] font-normal text-gray-500">${activeStores.length} botigues actives</span>
+            <span>${isEs ? 'Desglose por tienda:' : 'Desglossament per botiga:'}</span>
+            <span class="text-[10px] font-normal text-gray-500">${activeStores.length} ${isEs ? 'tiendas activas' : 'botigues actives'}</span>
           </h4>
 
           <div class="space-y-2">
-            ${activeStores.length === 0 ? '<div class="text-center py-4 text-gray-400 text-xs">No hi ha productes a la cistella</div>' : ''}
+            ${activeStores.length === 0 ? `<div class="text-center py-4 text-gray-400 text-xs">${isEs ? 'No hay productos en la cesta' : 'No hi ha productes a la cistella'}</div>` : ''}
             ${activeStores.map(st => {
               const pct = st.totalCount > 0 ? Math.round((st.boughtCount / st.totalCount) * 100) : 0;
               return `
@@ -6238,7 +6858,7 @@
                         ${st.name}
                       </span>
                       <span class="text-[10px] text-gray-500">
-                        (${st.pendingCount} pendents / ${st.boughtCount} fets)
+                        (${st.pendingCount} ${isEs ? 'pendientes' : 'pendents'} / ${st.boughtCount} ${isEs ? 'hechos' : 'fets'})
                       </span>
                     </div>
                     <div class="text-xs font-black text-gray-800">
@@ -6250,8 +6870,8 @@
                     <div class="bg-emerald-500 h-2 transition-all duration-300" style="width: ${pct}%"></div>
                   </div>
                   <div class="flex justify-between text-[10px] text-gray-400 mt-1">
-                    <span>Progrés: ${pct}%</span>
-                    <span>Pendent: ${st.pendingEuros.toFixed(2).replace('.', ',')} €</span>
+                    <span>${isEs ? 'Progreso' : 'Progrés'}: ${pct}%</span>
+                    <span>${isEs ? 'Pendiente' : 'Pendent'}: ${st.pendingEuros.toFixed(2).replace('.', ',')} €</span>
                   </div>
                 </div>
               `;
@@ -6261,14 +6881,17 @@
 
         <!-- Desglossament per categories -->
         <div class="pt-1">
-          <h4 class="font-bold text-gray-800 text-xs mb-2">Despesa per categoria:</h4>
+          <h4 class="font-bold text-gray-800 text-xs mb-2">${isEs ? 'Gasto por categoría:' : 'Despesa per categoria:'}</h4>
           <div class="grid grid-cols-2 gap-1.5">
             ${activeCats.map(cat => `
               <div class="bg-gray-50 border border-gray-100 rounded-lg p-2 flex justify-between items-center text-[11px]">
-                <div class="truncate mr-1 font-medium text-gray-700">${cat.name}</div>
+                <div class="truncate mr-1 font-medium text-gray-700 flex items-center gap-1.5">
+                  <i class="fa-solid ${cat.icon || 'fa-tag'} text-[10px] text-emerald-600"></i>
+                  <span class="truncate">${cat.name}</span>
+                </div>
                 <div class="text-right flex-shrink-0">
                   <div class="font-bold text-gray-900">${cat.euros > 0 ? cat.euros.toFixed(2).replace('.', ',') + ' €' : '-'}</div>
-                  <div class="text-[9px] text-gray-400">${cat.count} items</div>
+                  <div class="text-[9px] text-gray-400">${cat.count} ${isEs ? 'ítems' : 'items'}</div>
                 </div>
               </div>
             `).join('')}
@@ -6311,8 +6934,8 @@
       // Omplir el selector de botigues del catàleg
       const storeSelect = document.getElementById("catalog-store-filter");
       if (storeSelect) {
-        storeSelect.innerHTML = '<option value="all">Totes les botigues</option>' +
-          STORES.filter(s => s.id !== "all").map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+        storeSelect.innerHTML = `<option value="all">${currentLang === 'es' ? 'Todas las tiendas' : 'Totes les botigues'}</option>` +
+          STORES.filter(s => s.id !== "all").map(s => `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`).join("");
       }
 
       filterCatalogList();
@@ -6334,7 +6957,11 @@
       const menuBadge = document.getElementById("menu-catalog-badge");
 
       if (menuBadge) menuBadge.textContent = items.length;
-      if (subtitleCount) subtitleCount.textContent = `${items.length} articles totals a la base de dades`;
+      if (subtitleCount) {
+        subtitleCount.textContent = currentLang === 'es'
+          ? `${items.length} artículos totales en la base de datos`
+          : `${items.length} articles totals a la base de dades`;
+      }
 
       if (!container) return;
 
@@ -6362,19 +6989,21 @@
         if (a.crossed_off !== b.crossed_off) {
           return a.crossed_off ? 1 : -1;
         }
-        return (a.name || "").localeCompare(b.name || "");
+        return (a.name || "").localeCompare(b.name || "", currentLang);
       });
 
       if (statusSummary) {
-        statusSummary.textContent = `Mostrant ${filtered.length} de ${items.length} articles`;
+        statusSummary.textContent = currentLang === 'es'
+          ? `Mostrando ${filtered.length} de ${items.length} artículos`
+          : `Mostrant ${filtered.length} de ${items.length} articles`;
       }
 
       if (filtered.length === 0) {
         container.innerHTML = `
           <div class="py-10 text-center text-gray-400 space-y-2">
             <i class="fa-solid fa-boxes-stacked text-3xl text-gray-300"></i>
-            <p class="text-xs font-semibold text-gray-600">Cap article coincideix amb els filtres</p>
-            <p class="text-[11px] text-gray-400">Pots escriure un altre text o restablir els desplegables.</p>
+            <p class="text-xs font-semibold text-gray-600">${currentLang === 'es' ? 'Ningún artículo coincide con los filtros' : 'Cap article coincideix amb els filtres'}</p>
+            <p class="text-[11px] text-gray-400">${currentLang === 'es' ? 'Puedes escribir otro texto o restablecer los desplegables.' : 'Pots escriure un altre text o restablir els desplegables.'}</p>
           </div>
         `;
         return;
@@ -6382,19 +7011,21 @@
 
       container.innerHTML = filtered.map(it => {
         const storeObj = STORES.find(s => s.id === it.store) || { name: it.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
-        const priceStr = it.price && it.price > 0 ? `${Number(it.price).toFixed(2).replace('.', ',')} €` : "Sense preu";
+        const priceStr = it.price && it.price > 0 ? `${Number(it.price).toFixed(2).replace('.', ',')} €` : (currentLang === 'es' ? 'Sin precio' : 'Sense preu');
         const isPending = !it.crossed_off;
+        const localizedStore = getStoreDisplayName(storeObj, currentLang);
+        const localizedCategory = it.category ? getCategoryDisplayName(it.category, currentLang) : '';
 
         return `
           <div class="py-2 px-2.5 hover:bg-gray-50 rounded-xl transition flex items-center justify-between gap-2.5">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="font-bold text-xs text-gray-900 truncate ${!isPending ? 'text-gray-500' : ''}">${it.name}</span>
-                <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded ${storeObj.badgeBg} ${storeObj.badgeText}">${storeObj.name}</span>
-                ${it.category ? `<span class="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.2 rounded">${it.category}</span>` : ''}
+                <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded ${storeObj.badgeBg || 'bg-gray-100'} ${storeObj.badgeText || 'text-gray-700'}">${localizedStore}</span>
+                ${localizedCategory ? `<span class="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.2 rounded">${localizedCategory}</span>` : ''}
               </div>
               <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
-                <span>Preu: <strong class="${it.price > 0 ? 'text-emerald-700 font-bold' : 'text-gray-400 font-normal'}">${priceStr}</strong></span>
+                <span>${currentLang === 'es' ? 'Precio' : 'Preu'}: <strong class="${it.price > 0 ? 'text-emerald-700 font-bold' : 'text-gray-400 font-normal'}">${priceStr}</strong></span>
                 ${it.note ? `<span class="italic truncate text-gray-400">• ${it.note}</span>` : ''}
               </div>
             </div>
@@ -6406,12 +7037,12 @@
                   isPending 
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
                     : 'bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 border border-gray-200'
-                }" title="${isPending ? 'Pendent a la compra (toca per desmarcar)' : 'Toca per afegir a la cistella pendent'}">
+                }" title="${isPending ? (currentLang === 'es' ? 'Pendiente (toca para tachar)' : 'Pendent a la compra (toca per desmarcar)') : (currentLang === 'es' ? 'Toca para añadir a la cesta' : 'Toca per afegir a la cistella pendent')}">
                 <i class="fa-solid ${isPending ? 'fa-cart-shopping' : 'fa-plus'}"></i>
-                <span class="text-[10px]">${isPending ? 'Pendent' : 'Afegir'}</span>
+                <span class="text-[10px]">${isPending ? (currentLang === 'es' ? 'Pendiente' : 'Pendent') : (currentLang === 'es' ? 'Añadir' : 'Afegir')}</span>
               </button>
 
-              <button onclick="closeCatalogModal(); openEditModal('${it.id}');" title="Editar article"
+              <button onclick="closeCatalogModal(); openEditModal('${it.id}');" title="${currentLang === 'es' ? 'Editar artículo' : 'Editar article'}"
                 class="p-1.5 text-gray-400 hover:text-emerald-700 rounded-lg text-xs transition">
                 <i class="fa-solid fa-pencil"></i>
               </button>
@@ -6427,6 +7058,19 @@
 
     window.openStatsModal = openStatsModal;
     window.closeStatsModal = closeStatsModal;
+
+    window.cycleAppLanguage = cycleAppLanguage;
+    window.cycleVoiceLanguage = cycleVoiceLanguage;
+    window.toggleVoiceLanguage = toggleVoiceLanguage;
+    window.openManageCategoriesModal = openManageCategoriesModal;
+    window.closeManageCategoriesModal = closeManageCategoriesModal;
+    window.renderManageCategoriesList = renderManageCategoriesList;
+    window.promptCreateNewCategory = promptCreateNewCategory;
+    window.deleteCustomCategory = deleteCustomCategory;
+    window.resetCategoriesToDefault = resetCategoriesToDefault;
+    window.getCategoryDisplayName = getCategoryDisplayName;
+    window.getCategoryCanonicalKey = getCategoryCanonicalKey;
+    window.getStoreDisplayName = getStoreDisplayName;
 
   </script>
 </body>
