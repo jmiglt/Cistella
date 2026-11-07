@@ -867,6 +867,14 @@
 
       <!-- PAS 1: SELECCIONAR FITXER -->
       <div id="import-step-select" class="space-y-3">
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] p-2.5 rounded-xl font-medium flex items-start gap-2 shadow-2xs">
+          <i class="fa-solid fa-shield-halved text-emerald-600 mt-0.5 flex-shrink-0 text-sm"></i>
+          <div>
+            <strong class="font-bold block text-emerald-900">Nova Sincronització Intel·ligent:</strong>
+            <span>Els preus, fotos, notes i historial que tinguis a Cistella es conservaran al 100%. Només se sincronitzarà quins productes estan seleccionats/pendents.</span>
+          </div>
+        </div>
+
         <p class="text-xs text-gray-600 leading-relaxed">
           Puja el fitxer exportat des de la teva aplicació OurGroceries (<strong>Lists.zip</strong> o <strong>Lists.json</strong>):
         </p>
@@ -4384,15 +4392,30 @@
     }
 
     if ('serviceWorker' in navigator) {
+      // Recarregar automàticament de forma transparent quan un nou Service Worker pren el control
+      let isRefreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          window.location.reload();
+        }
+      });
+
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js', { scope: './' })
           .then(reg => {
             console.log('Service Worker registrat amb èxit:', reg.scope);
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
             reg.onupdatefound = () => {
               const installingWorker = reg.installing;
               installingWorker.onstatechange = () => {
                 if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  showToast("Nova versió disponible! Actualitzant...", "fa-rotate");
+                  showToast("Nova versió detectada! Actualitzant automàticament...", "fa-rotate");
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 800);
                 }
               };
             };
@@ -4746,9 +4769,28 @@
       if (newName && newName.trim() && newName.trim() !== current) {
         syncDeviceName = newName.trim();
         localStorage.setItem(STORAGE_KEY_DEVICE_NAME, syncDeviceName);
+
+        // Actualitzar immediatament el mapa en memòria d'aquest dispositiu
+        if (connectedDevicesMap[syncDeviceId]) {
+          connectedDevicesMap[syncDeviceId].name = syncDeviceName;
+          connectedDevicesMap[syncDeviceId].lastSeen = Date.now();
+        } else {
+          connectedDevicesMap[syncDeviceId] = {
+            id: syncDeviceId,
+            name: syncDeviceName,
+            lastSeen: Date.now(),
+            online: true,
+            isCurrent: true
+          };
+        }
+
+        // Publicar immediatament el nou nom al canal MQTT perquè els altres dispositius el vegin al moment
         publishDevicePresence(true);
+
+        // Actualitzar directament la interfície sense necessitat de recarregar la pàgina
+        renderDevicesListUI();
         renderSyncModalUI();
-        showToast(`Nom del dispositiu actualitzat: ${syncDeviceName}`);
+        showToast(`Nom del dispositiu actualitzat: ${syncDeviceName}`, "fa-pencil");
       }
     }
 
@@ -4952,8 +4994,12 @@
             }
 
             if (topic.endsWith('/cmd')) {
-              if (payload.type === 'REFRESH_REQUEST') {
-                if (items.length > 0) scheduleCloudSync(true);
+              if (payload.type === 'PING_AND_REFRESH' || payload.type === 'REFRESH_REQUEST') {
+                // Respondre amb la nostra presència perquè l'altre dispositiu ens vegi online a l'instant
+                publishDevicePresence(true);
+                if (items.length > 0) {
+                  scheduleCloudSync(true);
+                }
               } else if (payload.type === 'DISCONNECT_DEVICE' && payload.targetDeviceId === syncDeviceId) {
                 alert('Aquest dispositiu ha estat desvinculat de la sala familiar.');
                 disconnectFamilySync();
@@ -5050,9 +5096,11 @@
     function requestSnapshotFromPeers() {
       if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
       const topics = getMqttTopics(currentSyncCode);
+      // Demanar a tots els dispositius que confirmin si estan online i demanar refresc
       mqttClient.publish(topics.commands, JSON.stringify({
-        type: 'REFRESH_REQUEST',
+        type: 'PING_AND_REFRESH',
         requesterId: syncDeviceId,
+        requesterName: syncDeviceName,
         timestamp: Date.now()
       }), { qos: 1 });
       publishDevicePresence(true);
