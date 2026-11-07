@@ -1657,25 +1657,19 @@
       const b = cleanName(nameB).toLowerCase().trim();
       if (a === b) return true;
 
-      // Treure accents i normalitzar
-      const normA = a.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const normB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      if (normA === normB) return true;
-
-      // Comparar conjunts de paraules ordenats (ex: "vino cocina blanco" vs "vino blanco cocina")
-      const wordsA = normA.split(/\s+/).filter(w => w.length > 1).sort().join(" ");
-      const wordsB = normB.split(/\s+/).filter(w => w.length > 1).sort().join(" ");
-      if (wordsA === wordsB) return true;
-
-      // Coincidència de subcadena de paraules significatives (per exemple "vino cocina" dins "vino cocina blanco")
-      const setA = new Set(normA.split(/\s+/).filter(w => w.length > 2));
-      const setB = new Set(normB.split(/\s+/).filter(w => w.length > 2));
-      const intersection = [...setA].filter(x => setB.has(x));
-      if (intersection.length >= 2 && (intersection.length === setA.size || intersection.length === setB.size)) {
-        return true;
+      if (typeof getCanonicalProductKey === 'function') {
+        const keyA = getCanonicalProductKey(nameA);
+        const keyB = getCanonicalProductKey(nameB);
+        if (keyA && keyB && keyA === keyB) return true;
       }
 
-      return false;
+      if (typeof stringSimilarity === 'function') {
+        return stringSimilarity(nameA, nameB) >= 0.84;
+      }
+
+      const normA = a.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const normB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return normA === normB;
     }
 
     function detectSemanticCategory(name) {
@@ -1718,6 +1712,70 @@
       s = s.normalize("NFD").replace(/[̀-ͯ]/g, "");
       s = s.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
       return s;
+    }
+
+    function getCanonicalProductKey(name) {
+      const norm = normalizeProductName(name);
+      if (!norm) return "";
+      const words = norm.split(/\s+/).filter(w => w.length > 0);
+      const stems = words.map(w => {
+        // Plural català en -es -> singular femení en -a (pomes -> poma, patates -> patata)
+        if (w.endsWith("es") && w.length >= 4) return w.slice(0, -2) + "a";
+        // Plurals en -os (peixos -> peix, braços -> braç)
+        if (w.endsWith("os") && w.length >= 4) return w.slice(0, -2);
+        // Plural estàndard en -s (plàtans -> platan, iogurts -> iogurt, chiles -> chile)
+        if (w.endsWith("s") && !w.endsWith("ss") && w.length >= 3) return w.slice(0, -1);
+        return w;
+      });
+      return stems.sort().join(" ");
+    }
+
+    function consolidateAllItems(rawList) {
+      if (!Array.isArray(rawList)) return { list: [], mergedCount: 0 };
+      const map = new Map();
+      let mergedCount = 0;
+
+      rawList.forEach(it => {
+        if (!it || !it.name) return;
+        it.name = cleanName(it.name || "");
+        if (!it.name) return;
+
+        const canonKey = getCanonicalProductKey(it.name);
+        if (!canonKey) return;
+
+        const existing = map.get(canonKey);
+        if (!existing) {
+          map.set(canonKey, { ...it });
+        } else {
+          mergedCount++;
+          // Si qualsevol dels dos estava pendent (a comprar), el resultat queda PENDENT
+          if (it.crossed_off === false || existing.crossed_off === false) {
+            existing.crossed_off = false;
+          }
+          // Conservar el preu si un en té i l'altre no
+          if ((!existing.price || existing.price === 0) && it.price && it.price > 0) {
+            existing.price = it.price;
+            existing.price_date = it.price_date;
+            existing.price_history = it.price_history;
+          }
+          // Prioritzar botiga més concreta que 'all'
+          if ((existing.store === 'all' || !existing.store) && it.store && it.store !== 'all') {
+            existing.store = it.store;
+          }
+          if (it.qty && it.qty !== "1" && (!existing.qty || existing.qty === "1")) {
+            existing.qty = it.qty;
+            existing.unit = it.unit;
+          }
+          if (!existing.note && it.note) existing.note = it.note;
+          if (!existing.photo && it.photo) existing.photo = it.photo;
+          existing.updatedAt = Math.max(existing.updatedAt || 0, it.updatedAt || 0, Date.now());
+        }
+      });
+
+      return {
+        list: Array.from(map.values()),
+        mergedCount
+      };
     }
 
     function getWordStems(text) {
@@ -1972,15 +2030,12 @@
       const parsed = parseProductInput(val);
       const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
 
-      // Comprovar si ja existeix aquest producte o un de similar
-      let existingIndex = items.findIndex(it => 
-        (it.store === targetStore || targetStore === "all" || it.store === "all") &&
-        areProductNamesSimilar(it.name, parsed.name)
-      );
-
-      if (existingIndex === -1 && parsed.store) {
-        existingIndex = items.findIndex(it => areProductNamesSimilar(it.name, parsed.name));
-      }
+      // Comprovar si ja existeix aquest producte (canònic, plural o similar)
+      const inputCanonKey = getCanonicalProductKey(parsed.name);
+      let existingIndex = items.findIndex(it => {
+        if (!it || !it.name) return false;
+        return getCanonicalProductKey(it.name) === inputCanonKey || areProductNamesSimilar(it.name, parsed.name);
+      });
 
       if (existingIndex !== -1) {
         const existingItem = items[existingIndex];
@@ -3935,6 +3990,16 @@
           if (storedItems) {
             items = JSON.parse(storedItems);
 
+            // AUTO-DEDUPLICACIÓ I CONSOLIDACIÓ EN INICIAR
+            if (Array.isArray(items) && items.length > 0 && typeof consolidateAllItems === 'function') {
+              const cons = consolidateAllItems(items);
+              if (cons.mergedCount > 0) {
+                items = cons.list;
+                saveToLocalStorage();
+                console.log(`Auto-consolidats ${cons.mergedCount} elements duplicats en iniciar.`);
+              }
+            }
+
             // AUTO-RECUPERACIÓ CONTRA CONGELACIÓ:
             // Si anteriorment s'havia importat la llista de proves "1 Pruebas" (> 150 pendents a Mercadona),
             // convertim els excedents a l'històric ratllat perquè l'app no es congeli mai.
@@ -4329,7 +4394,8 @@
           const note = (it.note || "").trim();
           const photo = (it.photo_url || "").trim();
 
-          const dedupKey = `${itemStore}::${finalName.toLowerCase()}`;
+          const canonProductKey = getCanonicalProductKey(finalName);
+          const dedupKey = canonProductKey;
 
           if (!seenMap.has(dedupKey)) {
             seenMap.set(dedupKey, {
@@ -4460,9 +4526,19 @@
       pendingVisibleLimit = 50;
       completedVisibleLimit = 40;
 
+      // Assegurar consolidació profunda de duplicats
+      if (typeof consolidateAllItems === 'function') {
+        const cons = consolidateAllItems(items);
+        items = cons.list;
+      }
+
       saveToLocalStorage();
       renderLists();
       renderStoreTabs();
+
+      if (typeof scheduleCloudSync === 'function') {
+        scheduleCloudSync(true);
+      }
 
       if (isReplace) {
         showToast(`Llista reemplaçada amb ${items.length} articles`, "fa-rotate");
@@ -4479,17 +4555,14 @@
 
     function cleanTestListDuplicates() {
       const initialCount = items.length;
-      const cleaned = [];
 
+      // Neteja de categories i botigues conegudes
       items.forEach(it => {
         it.name = cleanName(it.name || "");
-        if (!it.name) return;
-
         if (it.note && it.note.startsWith("Afegit per veu")) {
           it.note = "";
         }
-
-        const lower = it.name.toLowerCase();
+        const lower = (it.name || "").toLowerCase();
         if (it.store === "bazar" && /cardamomo|azahar|guindilla fresca|pasta curry/i.test(lower)) {
           it.store = "marroqui";
         }
@@ -4499,55 +4572,28 @@
         if (it.category === "Esmorzar" && /esmalte|quitaesmalte|reafirmante|corporal/i.test(lower)) {
           it.category = "Perfumeria";
         }
-
-        // BUSCAR DUPLICAT EN QUALSEVOL BOTIGA:
-        // Si dos articles tenen el mateix nom normalitzat (com 'Almendra molida' en dues botigues),
-        // es fusionen en un de sol conservant preus, notes, fotos i l'estat pendent
-        const normName = normalizeProductName(it.name);
-        const existing = cleaned.find(x => 
-          normalizeProductName(x.name) === normName ||
-          (x.store === it.store && areProductNamesSimilar(x.name, it.name))
-        );
-
-        if (existing) {
-          // Si qualsevol dels dos estava pendent (a comprar), el resultat queda PENDENT
-          if (it.crossed_off === false || existing.crossed_off === false) {
-            existing.crossed_off = false;
-          }
-          // Conservar el preu si un en té i l'altre no
-          if ((!existing.price || existing.price === 0) && it.price && it.price > 0) {
-            existing.price = it.price;
-            existing.price_date = it.price_date;
-            existing.price_history = it.price_history;
-          }
-          // Prioritzar la botiga més específica
-          if ((existing.store === 'all' || !existing.store) && it.store && it.store !== 'all') {
-            existing.store = it.store;
-          }
-          if (it.qty && it.qty !== "1" && (!existing.qty || existing.qty === "1")) {
-            existing.qty = it.qty;
-            existing.unit = it.unit;
-          }
-          if (!existing.note && it.note) existing.note = it.note;
-          if (!existing.photo && it.photo) existing.photo = it.photo;
-          return;
-        }
-
-        cleaned.push(it);
       });
 
-      const diff = initialCount - cleaned.length;
-      items = cleaned;
+      // Consolidació profunda per clau canònica, plurals i semblança
+      const res = consolidateAllItems(items);
+      items = res.list;
+      const diff = initialCount - items.length;
+
       isCompletedCollapsed = true;
       localStorage.setItem(STORAGE_KEY_COLLAPSED, "1");
       saveToLocalStorage();
       renderLists();
       renderStoreTabs();
 
+      // Sincronitzar la llista neta immediatament amb el núvol (tauleta, mòbil, etc.)
+      if (typeof scheduleCloudSync === 'function') {
+        scheduleCloudSync(true);
+      }
+
       if (diff > 0) {
         showToast(`Fusionats ${diff} productes duplicats amb èxit!`, "fa-wand-magic-sparkles");
       } else {
-        showToast("Base de dades revisada. No s'han trobat duplicats", "fa-check");
+        showToast("Llista revisada. No s'han trobat més duplicats", "fa-check");
       }
 
       // Si el catàleg és obert, refrescar-lo
@@ -5428,7 +5474,9 @@
         }
       });
 
-      return Array.from(map.values());
+      const combined = Array.from(map.values());
+      const consolidated = consolidateAllItems(combined);
+      return consolidated.list;
     }
 
     function removeRemoteDevice(targetDevId, targetName) {
