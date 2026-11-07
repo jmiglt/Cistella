@@ -1415,6 +1415,33 @@
     const STORAGE_KEY_STORE_SORT = "cistella_store_sort_mode";
     const STORAGE_KEY_CHECK_MODE = "cistella_check_mode";
     const STORAGE_KEY_STORES_ORDER = "cistella_stores_order_v1";
+    const STORAGE_KEY_DELETED = "cistella_deleted_ids_v1";
+
+    let deletedItemIdsMap = {};
+
+    function loadDeletedIds() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_DELETED);
+        if (raw) deletedItemIdsMap = JSON.parse(raw);
+        else deletedItemIdsMap = {};
+      } catch (e) {
+        deletedItemIdsMap = {};
+      }
+    }
+
+    function recordItemDeletion(id) {
+      if (!id) return;
+      loadDeletedIds();
+      deletedItemIdsMap[id] = Date.now();
+      // Neteja de tombstones vells (> 30 dies) per estalvi d'espai
+      const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      for (const k in deletedItemIdsMap) {
+        if (deletedItemIdsMap[k] < cutoff) delete deletedItemIdsMap[k];
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(deletedItemIdsMap));
+      } catch(e){}
+    }
 
     let items = [];
     let currentStoreFilter = "all";
@@ -1748,9 +1775,11 @@
           map.set(canonKey, { ...it });
         } else {
           mergedCount++;
-          // Si qualsevol dels dos estava pendent (a comprar), el resultat queda PENDENT
-          if (it.crossed_off === false || existing.crossed_off === false) {
-            existing.crossed_off = false;
+          // L'estat crossed_off (pendent vs comprat) es determina per la darrera acció
+          const itTime = it.updatedAt || 0;
+          const existTime = existing.updatedAt || 0;
+          if (itTime >= existTime) {
+            existing.crossed_off = it.crossed_off;
           }
           // Conservar el preu si un en té i l'altre no
           if ((!existing.price || existing.price === 0) && it.price && it.price > 0) {
@@ -2628,6 +2657,7 @@
       const it = items[index];
       const willBeActive = it.crossed_off; // Si era true (ratllat), tornarà a dalt actiu
       it.crossed_off = !it.crossed_off;
+      it.updatedAt = Date.now();
 
       if (willBeActive) {
         // En desmarcar a sota, moure'l dalt de tot de la llista
@@ -2640,14 +2670,20 @@
       saveToLocalStorage();
       renderLists();
       renderStoreTabs();
+
+      if (typeof scheduleCloudSync === 'function') {
+        scheduleCloudSync(true);
+      }
     }
 
       // Desratllar tots els articles de la botiga actual
       function uncheckStoreCompleted() {
         let count = 0;
+        const now = Date.now();
         items.forEach(it => {
           if (it.crossed_off && (currentStoreFilter === "all" || it.store === currentStoreFilter)) {
             it.crossed_off = false;
+            it.updatedAt = now;
             count++;
           }
         });
@@ -2662,7 +2698,8 @@
       }
 
       function uncheckAllItems() {
-        items.forEach(it => it.crossed_off = false);
+        const now = Date.now();
+        items.forEach(it => { it.crossed_off = false; it.updatedAt = now; });
         saveToLocalStorage();
         renderLists();
         renderStoreTabs();
@@ -2684,11 +2721,16 @@
           return;
         }
 
+        targetCompleted.forEach(it => {
+          if (it.id) recordItemDeletion(it.id);
+        });
         items = items.filter(it => !(it.crossed_off && (currentStoreFilter === "all" || it.store === currentStoreFilter)));
         saveToLocalStorage();
         renderLists();
         renderStoreTabs();
-        showToast(`${count} articles comprats eliminats`, "fa-trash");
+        if (typeof scheduleCloudSync === 'function') {
+          scheduleCloudSync(true);
+        }
         showToast(`${targetCompleted.length} articles esborrats`, "fa-trash");
       }
 
@@ -3348,11 +3390,18 @@
 
       function deleteCurrentProduct() {
         const id = document.getElementById("edit-id").value;
-        items = items.filter(x => x.id !== id);
+        if (id) {
+          recordItemDeletion(id);
+          items = items.filter(x => x.id !== id);
+        }
         saveToLocalStorage();
         closeEditModal();
         renderLists();
         renderStoreTabs();
+
+        if (typeof scheduleCloudSync === 'function') {
+          scheduleCloudSync(true);
+        }
         showToast("Producte eliminat", "fa-trash");
       }
 
@@ -4028,6 +4077,7 @@
 
       function loadFromLocalStorage() {
         try {
+          if (typeof loadDeletedIds === 'function') loadDeletedIds();
           // Suport per a recuperació d'emergència via URL (p. ex: index.html?reset=1)
           if (typeof window !== "undefined" && window.location && window.location.search) {
             const urlParams = new URLSearchParams(window.location.search);
@@ -5467,11 +5517,13 @@
         : [];
 
       const topics = getMqttTopics(currentSyncCode);
+      loadDeletedIds();
       const payload = {
         senderDeviceId: syncDeviceId,
         senderDeviceName: syncDeviceName,
         timestamp: Date.now(),
         items: lightItems,
+        deletedIds: deletedItemIdsMap || {},
         customStores: customStoresOnly
       };
 
@@ -5495,6 +5547,21 @@
       isProcessingIncomingSync = true;
       try {
         console.log('Rebuts canvis remots de:', payload.senderDeviceName || payload.senderDeviceId);
+
+        // Integrar les eliminacions remotes (tombstones)
+        loadDeletedIds();
+        if (payload.deletedIds && typeof payload.deletedIds === 'object') {
+          let hasNewDeletions = false;
+          for (const delId in payload.deletedIds) {
+            if (!deletedItemIdsMap[delId] || payload.deletedIds[delId] > deletedItemIdsMap[delId]) {
+              deletedItemIdsMap[delId] = payload.deletedIds[delId];
+              hasNewDeletions = true;
+            }
+          }
+          if (hasNewDeletions) {
+            try { localStorage.setItem(STORAGE_KEY_DELETED, JSON.stringify(deletedItemIdsMap)); } catch(e){}
+          }
+        }
 
         const merged = mergeSyncItems(items, payload.items);
         items = merged;
@@ -5524,13 +5591,19 @@
     }
 
     function mergeSyncItems(localList, remoteList) {
+      loadDeletedIds();
       const map = new Map();
+
+      // Afegir elements locals només si NO han estat esborrats
       localList.forEach(item => {
-        if (item && item.id) map.set(item.id, { ...item });
+        if (item && item.id && !deletedItemIdsMap[item.id]) {
+          map.set(item.id, { ...item });
+        }
       });
 
+      // Afegir / actualitzar elements remots si NO han estat esborrats
       remoteList.forEach(rItem => {
-        if (!rItem || !rItem.id) return;
+        if (!rItem || !rItem.id || deletedItemIdsMap[rItem.id]) return;
         const lItem = map.get(rItem.id);
         if (!lItem) {
           map.set(rItem.id, { ...rItem });
@@ -5544,7 +5617,7 @@
         }
       });
 
-      const combined = Array.from(map.values());
+      const combined = Array.from(map.values()).filter(it => !deletedItemIdsMap[it.id]);
       const consolidated = consolidateAllItems(combined);
       return consolidated.list;
     }
