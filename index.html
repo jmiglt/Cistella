@@ -2649,7 +2649,12 @@
       } else if (isCompletedCollapsed) {
         completedContainer.innerHTML = `<div class="p-2.5 text-center text-xs text-gray-500 w-full italic cursor-pointer hover:bg-gray-100 bg-white/70 rounded-xl border border-gray-200" onclick="toggleCompletedCollapse()">Llista plegada (${completed.length} articles). Toca per desplegar.</div>`;
       } else {
-        const sortedCompleted = [...completed].sort((a, b) => (a.name || "").localeCompare(b.name || "", 'ca'));
+        // Els comprats es mostren en ordre cronològic invers: el darrer ratllat a dalt de tot
+        const sortedCompleted = [...completed].sort((a, b) => {
+          const timeA = a.crossedAt || a.updatedAt || 0;
+          const timeB = b.crossedAt || b.updatedAt || 0;
+          return timeB - timeA;
+        });
         const visibleCompleted = sortedCompleted.slice(0, completedVisibleLimit);
         let completedHTML = visibleCompleted.map(item => createItemRowHTML(item, true, false)).join("");
         if (completed.length > visibleCompleted.length) {
@@ -2793,9 +2798,12 @@
 
       if (willBeActive) {
         // En desmarcar a sota, moure'l dalt de tot de la llista
+        delete it.crossedAt;
         items.splice(index, 1);
         items.unshift(it);
         showToast(`Recuperat: ${it.name}`, "fa-arrow-up");
+      } else {
+        it.crossedAt = Date.now();
       }
 
       if (navigator.vibrate) navigator.vibrate(willBeActive ? 20 : 30);
