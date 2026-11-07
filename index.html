@@ -908,14 +908,22 @@
         </div>
 
         <div class="space-y-2 pt-1">
-          <button onclick="applyImport(true)"
+          <!-- Botó recomanat: Sincronització intel·ligent preservant preus i fotos -->
+          <button onclick="applyImport('sync')"
             class="w-full py-2.5 bg-emerald-700 text-white font-bold rounded-xl text-xs hover:bg-emerald-800 transition shadow-sm flex items-center justify-center gap-2">
-            <i class="fa-solid fa-rotate"></i> Reemplaçar llista actual
+            <i class="fa-solid fa-arrows-rotate text-sm"></i>
+            <div class="text-left">
+              <div class="leading-tight">Sincronitzar estat amb OurGroceries</div>
+              <div class="text-[10px] font-normal text-emerald-200">Conserva tots els preus, fotos, notes i historial</div>
+            </div>
           </button>
-          <button onclick="applyImport(false)"
-            class="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs hover:bg-gray-200 transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-layer-group"></i> Combinar amb l'existent
+
+          <!-- Botó secundari: Reemplaçar tot de zero -->
+          <button onclick="applyImport('replace')"
+            class="w-full py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs hover:bg-rose-50 hover:text-rose-700 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Reemplaçar tot de zero (esborra preus)
           </button>
+
           <button onclick="resetImportModal()"
             class="w-full py-1 text-gray-400 font-medium text-xs hover:text-gray-600">
             Triar un altre fitxer
@@ -4180,13 +4188,67 @@
       document.getElementById("import-confirm-modal")?.classList.remove("hidden");
     }
 
-    function applyImport(replace) {
+    function applyImport(mode) {
       if (!window._pendingImportItems) return;
 
-      if (replace) {
+      const isReplace = (mode === true || mode === 'replace');
+
+      if (isReplace) {
+        if (!confirm("⚠️ Atenció: Estàs a punt de reemplaçar TOTS els articles pel fitxer d'OurGroceries.\n\nEs perdran els preus i fotos afegits manualment o per tiquet a Cistella.\n\nVols continuar de totes maneres?")) {
+          return;
+        }
         items = window._pendingImportItems;
       } else {
-        items = [...window._pendingImportItems, ...items];
+        // MODE SINCRONITZACIÓ INTEL·LIGENT (Protegeix preus, fotos, notes i historial)
+        const importedList = window._pendingImportItems;
+        let preservedPricesCount = 0;
+        let newItemsAddedCount = 0;
+        let statusUpdatedCount = 0;
+
+        // Indexem els items existents per botiga + nom normalitzat
+        const existingMap = new Map();
+        items.forEach(it => {
+          const key = (it.store || 'all') + '::' + cleanName(it.name || '').toLowerCase();
+          existingMap.set(key, it);
+        });
+
+        importedList.forEach(imp => {
+          const impKey = (imp.store || 'all') + '::' + cleanName(imp.name || '').toLowerCase();
+          let match = existingMap.get(impKey);
+
+          // Si no coincideix per clau directa, intentem per semblança fonètica/lingüística
+          if (!match) {
+            match = items.find(it => it.store === imp.store && areProductNamesSimilar(it.name, imp.name));
+          }
+
+          if (match) {
+            // JA EXISTEIX: Sincronitzem l'estat d'OurGroceries (pendent / ratllat)
+            if (match.crossed_off !== imp.crossed_off) {
+              match.crossed_off = imp.crossed_off;
+              statusUpdatedCount++;
+            }
+            // Si OurGroceries portava nota i a Cistella estava buida
+            if (imp.note && (!match.note || match.note.trim() === '')) {
+              match.note = imp.note;
+            }
+            // Si OurGroceries portava foto i a Cistella estava buida
+            if (imp.photo && (!match.photo || match.photo.trim() === '')) {
+              match.photo = imp.photo;
+            }
+            // PRESERVEM 100% INTACTES: match.price, match.price_history, match.price_date
+            if (match.price && match.price > 0) {
+              preservedPricesCount++;
+            }
+            match.updatedAt = Date.now();
+          } else {
+            // NOU ARTICLE que no teníem: l'afegim a la llista
+            imp.updatedAt = Date.now();
+            items.unshift(imp);
+            newItemsAddedCount++;
+          }
+        });
+
+        console.log(`Sincronització completada: ${statusUpdatedCount} estats actualitzats, ${newItemsAddedCount} nous, ${preservedPricesCount} preus preservats.`);
       }
 
       window._pendingImportItems = null;
@@ -4201,7 +4263,12 @@
       saveToLocalStorage();
       renderLists();
       renderStoreTabs();
-      showToast(`Importats ${items.length} articles amb èxit!`, "fa-check");
+
+      if (isReplace) {
+        showToast(`Llista reemplaçada amb ${items.length} articles`, "fa-rotate");
+      } else {
+        showToast(`Sincronitzat amb OurGroceries! Preus i fotos conservats`, "fa-shield-halved");
+      }
     }
 
     function closeImportModal() {
