@@ -553,16 +553,15 @@
     </div>
   </div>
 
-  <!-- SUGGERIMENTS D'AUTOCOMPLETAT DES DE RATLLATS / HISTÒRIC (FASE 3) -->
+  <!-- SUGGERIMENTS D'AUTOCOMPLETAT I COINCIDÈNCIES DE PRODUCTES -->
   <div id="autocomplete-suggestions"
-    class="hidden fixed bottom-14 left-3 right-3 z-30 bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 p-2 max-h-48 overflow-y-auto space-y-1 text-xs">
-    <div
-      class="text-[10px] uppercase font-bold text-gray-400 px-2 pb-1 flex justify-between items-center border-b border-gray-100">
-      <span data-i18n="reuseHistory">Reutilitzar de l'històric / ratllats</span>
-      <span data-i18n="tapToAdd" class="text-[9px] text-emerald-600 font-normal">Toca per afegir</span>
+    class="hidden fixed bottom-14 left-3 right-3 max-w-lg mx-auto z-30 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-500/30 p-2.5 max-h-60 overflow-y-auto space-y-1.5 text-xs animate-fade-in">
+    <div class="text-[10px] uppercase font-bold text-gray-500 px-1 pb-1 flex justify-between items-center border-b border-gray-100">
+      <span id="autocomplete-header-title"><i class="fa-solid fa-magnifying-glass text-emerald-600 mr-1"></i> Productes coincidents</span>
+      <span class="text-[9.5px] text-emerald-700 font-semibold">Toca per afegir o sumar +1</span>
     </div>
-    <div id="autocomplete-items" class="space-y-0.5 pt-1">
-      <!-- Items injectats dinàmicament -->
+    <div id="autocomplete-items" class="space-y-1 pt-0.5">
+      <!-- Items injectats dinàmicament per handleQuickInputSearch() -->
     </div>
   </div>
 
@@ -911,6 +910,82 @@
       <div class="pt-2 border-t flex items-center justify-end">
         <button onclick="closeChangeCategoryModal()" class="py-2 px-4 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs transition">
           <span data-i18n="btnClose">Tancar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓ I CATEGORITZACIÓ DE NOU PRODUCTE -->
+  <div id="confirm-new-product-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-sparkles"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900" id="new-prod-modal-title">Nou producte</h3>
+            <p id="new-prod-modal-subtitle" class="text-[11px] text-gray-500">Aquest article no existeix. Comprova la categoria:</p>
+          </div>
+        </div>
+        <button onclick="closeConfirmNewProductModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2.5 flex-1 overflow-y-auto pr-1 text-xs">
+        <div>
+          <label class="block font-semibold text-gray-600 mb-1">Nom del producte</label>
+          <input type="text" id="new-prod-name" class="w-full h-8 px-2.5 border border-gray-300 rounded-lg bg-white font-bold text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-gray-600 mb-1">Quantitat</label>
+            <input type="number" step="any" min="0.1" id="new-prod-qty" value="1" class="w-full h-8 px-2 border border-gray-300 rounded-lg text-center font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-600 mb-1">Unitat</label>
+            <select id="new-prod-unit" class="w-full h-8 px-2 border border-gray-300 rounded-lg bg-white">
+              <option value="ud">ud (unitats)</option>
+              <option value="kg">kg (quilos)</option>
+              <option value="g">g (grams)</option>
+              <option value="l">l (litres)</option>
+              <option value="ml">ml (mil·lilitres)</option>
+              <option value="paquet">paquet</option>
+              <option value="ampolla">ampolla</option>
+              <option value="llauna">llauna</option>
+              <option value="bossa">bossa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-gray-600 mb-1">Llista / Botiga</label>
+            <select id="new-prod-store" class="w-full h-8 px-2 border border-gray-300 rounded-lg bg-white"></select>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-600 mb-1">Categoria assignada</label>
+            <select id="new-prod-category" onchange="updateNewProdCategoryHint(this.value)" class="w-full h-8 px-2 border border-gray-300 rounded-lg bg-white font-medium"></select>
+          </div>
+        </div>
+
+        <p id="new-prod-category-hint" class="text-[10.5px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 italic leading-tight hidden"></p>
+
+        <div>
+          <label class="block font-semibold text-gray-600 mb-1">Notes o detalls (opcional)</label>
+          <input type="text" id="new-prod-note" placeholder="Ex: ampolla petita, marca..." class="w-full h-8 px-2.5 border border-gray-300 rounded-lg bg-white text-gray-700">
+        </div>
+      </div>
+
+      <div class="pt-2 border-t flex items-center justify-between gap-2">
+        <button onclick="closeConfirmNewProductModal()" class="py-2 px-3 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs transition">
+          <span data-i18n="btnCancel">Cancel·lar</span>
+        </button>
+        <button onclick="executeConfirmNewProduct()" class="py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-xs">
+          <i class="fa-solid fa-plus"></i>
+          <span>Afegir a la llista</span>
         </button>
       </div>
     </div>
@@ -1276,24 +1351,67 @@
             class="w-full bg-white border border-gray-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600">
         </div>
 
-        <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-xs">
           <select id="catalog-store-filter" onchange="filterCatalogList()"
             class="bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-gray-700 focus:outline-none">
             <option value="all" data-i18n="filterAllStores">Totes les botigues</option>
           </select>
+          <select id="catalog-category-filter" onchange="filterCatalogList()"
+            class="bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-gray-700 focus:outline-none">
+            <option value="all">Totes les categories</option>
+          </select>
           <select id="catalog-status-filter" onchange="filterCatalogList()"
             class="bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-gray-700 focus:outline-none">
-            <option value="all" data-i18n="statusFilterAll">Tots els articles</option>
+            <option value="all" data-i18n="statusFilterAll">Tots els estats</option>
             <option value="pending" data-i18n="statusFilterPending">Només pendents (a comprar 🛒)</option>
             <option value="completed" data-i18n="statusFilterCompleted">Només a l'històric (comprats ✅)</option>
             <option value="with_price" data-i18n="statusFilterWithPrice">Només amb preu registrat 💶</option>
           </select>
+        </div>
+
+        <!-- Botons d'agrupació i selecció múltiple al catàleg -->
+        <div class="flex items-center justify-between gap-2 pt-1 border-t border-gray-200/60">
+          <button id="catalog-group-btn" onclick="toggleCatalogGrouping()"
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1.5 bg-white text-gray-700 border-gray-300 hover:border-emerald-400">
+            <i class="fa-solid fa-layer-group text-emerald-600 text-[10px]"></i>
+            <span id="catalog-group-btn-label">Agrupar per categoria</span>
+          </button>
+          <button id="catalog-select-mode-btn" onclick="toggleCatalogSelectionMode()"
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1.5 bg-white text-gray-700 border-gray-300 hover:border-teal-400">
+            <i class="fa-solid fa-list-check text-teal-600 text-[10px]"></i>
+            <span id="catalog-select-btn-label">Seleccionar</span>
+          </button>
         </div>
       </div>
 
       <!-- Llista d'articles -->
       <div id="catalog-items-container" class="flex-1 overflow-y-auto p-2 sm:p-3 space-y-1 divide-y divide-gray-100">
         <!-- Renderitzat per filterCatalogList() -->
+      </div>
+
+      <!-- BARRA DE SELECCIÓ MÚLTIPLE DINS DEL CATÀLEG -->
+      <div id="catalog-selection-action-bar"
+           class="hidden p-2 bg-teal-50 border-t border-teal-200 flex items-center justify-between gap-2 text-xs flex-shrink-0 animate-fade-in">
+        <div class="flex items-center gap-2">
+          <button onclick="toggleSelectAllCatalogItems()" class="px-2 py-1 rounded-lg bg-white border border-teal-200 font-bold text-[11px] text-teal-800 flex items-center gap-1 shadow-2xs">
+            <i id="catalog-select-all-icon" class="fa-regular fa-square text-teal-600"></i>
+            <span id="catalog-select-all-label">Tots</span>
+          </button>
+          <span id="catalog-selection-badge" class="font-bold text-teal-900 bg-white px-2 py-0.5 rounded-full border border-teal-200 text-[11px]">0 seleccionats</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="openChangeCategoryFromCatalog()" class="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold rounded-lg shadow-2xs flex items-center gap-1 text-[11px] transition">
+            <i class="fa-solid fa-tags text-[9px]"></i>
+            <span>Canviar categoria</span>
+          </button>
+          <button onclick="executeAddSelectedCatalogToPending()" class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold rounded-lg shadow-2xs flex items-center gap-1 text-[11px] transition">
+            <i class="fa-solid fa-cart-plus text-[9px]"></i>
+            <span>Afegir a la llista</span>
+          </button>
+          <button onclick="exitCatalogSelectionMode()" class="w-6 h-6 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center text-xs transition" title="Sortir">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Peu -->
@@ -3248,14 +3366,16 @@
         renderStoreTabs();
         showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
       } else {
-        // Ja era a pendents: actualitzar quantitat si cal
-        if (parsed.qty && parsed.qty !== "1") {
-          existingItem.qty = parsed.qty;
-          existingItem.unit = parsed.unit;
-        }
+        // Ja era a pendents: sumar unitats (x2, x3...)
+        const curQ = parseFloat(existingItem.qty) || 1;
+        const addQ = parseFloat(parsed.qty) || 1;
+        existingItem.qty = String(curQ + addQ);
+        if (parsed.unit && parsed.unit !== "ud") existingItem.unit = parsed.unit;
         saveToLocalStorage();
+        if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
         renderLists();
-        showToast(`Ja és a la llista: ${existingItem.name}`, "fa-circle-check");
+        renderStoreTabs();
+        showToast(`+${addQ} ${existingItem.name} (x${existingItem.qty})`, "fa-plus");
       }
     }
 
@@ -3387,47 +3507,69 @@
           items.splice(existingIndex, 1);
           items.unshift(existingItem);
           input.value = "";
+          hideAutocompleteSuggestions();
           saveToLocalStorage();
+          if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
           renderLists();
           renderStoreTabs();
           showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
           return;
         } else {
+          // L'article ja és a la llista pendent: SUMAR UNITATS (x2, x3...)
+          const curQ = parseFloat(existingItem.qty) || 1;
+          const addQ = parseFloat(parsed.qty) || 1;
+          existingItem.qty = String(curQ + addQ);
+          if (parsed.unit && parsed.unit !== "ud") existingItem.unit = parsed.unit;
           existingItem.updatedAt = Date.now();
-          if (parsed.qty && parsed.qty !== "1") {
-            existingItem.qty = parsed.qty;
-            existingItem.unit = parsed.unit;
-          }
           input.value = "";
+          hideAutocompleteSuggestions();
           saveToLocalStorage();
+          if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
           renderLists();
-          showToast(`Ja és a la llista: ${existingItem.name}`, "fa-circle-check");
+          renderStoreTabs();
+          const toastMsg = currentLang === 'es'
+            ? `+${addQ} ${existingItem.name} (total: x${existingItem.qty})`
+            : `+${addQ} ${existingItem.name} (total: x${existingItem.qty})`;
+          showToast(toastMsg, "fa-plus");
           return;
         }
       }
 
-      const newItem = {
-        id: "p_" + Date.now(),
-        name: parsed.name,
-        store: targetStore,
-        category: parsed.category,
-        qty: parsed.qty,
-        unit: parsed.unit,
-        price: 0.0,
-        note: parsed.note || "",
-        photo: "",
-        crossed_off: false,
-        updatedAt: Date.now()
-      };
+      // Si existeix a una ALTRA botiga al catàleg, ja en sabem la categoria!
+      const knownAnywhere = items.find(it => {
+        if (!it || !it.name) return false;
+        return getCanonicalProductKey(it.name) === inputCanonKey || areProductNamesSimilar(it.name, parsed.name);
+      });
 
-      items.unshift(newItem);
-      input.value = "";
-      saveToLocalStorage();
-      renderLists();
-      renderStoreTabs();
+      if (knownAnywhere) {
+        const newItem = {
+          id: "p_" + Date.now(),
+          name: parsed.name,
+          store: targetStore,
+          category: knownAnywhere.category || parsed.category || "General",
+          qty: parsed.qty || "1",
+          unit: parsed.unit || "ud",
+          price: knownAnywhere.price || 0.0,
+          note: parsed.note || "",
+          photo: knownAnywhere.photo || "",
+          crossed_off: false,
+          updatedAt: Date.now()
+        };
+        items.unshift(newItem);
+        input.value = "";
+        hideAutocompleteSuggestions();
+        saveToLocalStorage();
+        if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+        renderLists();
+        renderStoreTabs();
+        const storeObj = STORES.find(s => s.id === targetStore);
+        const storeDisp = storeObj ? getStoreDisplayName(storeObj, currentLang) : targetStore;
+        showToast(`${currentLang === 'es' ? 'Añadido' : 'Afegit'}: ${parsed.name} (${storeDisp})`, "fa-plus");
+        return;
+      }
 
-      const storeObj = STORES.find(s => s.id === targetStore);
-      showToast(`Afegit: ${parsed.name} (${storeObj ? storeObj.name : targetStore})`, "fa-plus");
+      // NOU PRODUCTE QUE NO EXISTEIX: Demanar confirmació i assignar categoria
+      openConfirmNewProductModal(parsed, targetStore);
     }
 
 
@@ -3942,11 +4084,17 @@
       renderLists();
     }
 
+    let changeCategoryTargetMode = 'list'; // 'list' | 'catalog'
+    let singleTargetItemId = null;
+
     function openChangeCategoryModal() {
       if (selectedItemIds.size === 0) {
         showToast(t('toastSelectFirst'), "fa-circle-exclamation");
         return;
       }
+      changeCategoryTargetMode = 'list';
+      singleTargetItemId = null;
+
       const searchInput = document.getElementById("change-cat-modal-search");
       if (searchInput) searchInput.value = "";
       const clearBtn = document.getElementById("change-cat-clear-search");
@@ -3960,6 +4108,7 @@
     function closeChangeCategoryModal() {
       const modal = document.getElementById("change-category-modal");
       if (modal) modal.classList.add("hidden");
+      singleTargetItemId = null;
     }
 
     function clearChangeCatModalSearch() {
@@ -3979,7 +4128,15 @@
 
       const titleEl = document.getElementById("change-cat-modal-title");
       const subEl = document.getElementById("change-cat-modal-subtitle");
-      const count = selectedItemIds.size;
+      
+      let count = 0;
+      if (singleTargetItemId) {
+        count = 1;
+      } else if (changeCategoryTargetMode === 'catalog') {
+        count = selectedCatalogItemIds.size;
+      } else {
+        count = selectedItemIds.size;
+      }
 
       if (titleEl) {
         titleEl.textContent = currentLang === "es"
@@ -4111,17 +4268,37 @@
     }
 
     function executeChangeCategorySelected(targetCategoryKey) {
-      if (selectedItemIds.size === 0) return;
-      let count = 0;
       const canonicalTarget = getCategoryCanonicalKey(targetCategoryKey) || targetCategoryKey;
+      let count = 0;
 
-      items.forEach(it => {
-        if (selectedItemIds.has(it.id)) {
+      if (singleTargetItemId) {
+        const it = items.find(x => x.id === singleTargetItemId);
+        if (it) {
           it.category = canonicalTarget;
           it.updatedAt = Date.now();
-          count++;
+          count = 1;
         }
-      });
+        singleTargetItemId = null;
+      } else if (changeCategoryTargetMode === 'catalog') {
+        if (selectedCatalogItemIds.size === 0) return;
+        items.forEach(it => {
+          if (selectedCatalogItemIds.has(it.id)) {
+            it.category = canonicalTarget;
+            it.updatedAt = Date.now();
+            count++;
+          }
+        });
+      } else {
+        if (selectedItemIds.size === 0) return;
+        items.forEach(it => {
+          if (selectedItemIds.has(it.id)) {
+            it.category = canonicalTarget;
+            it.updatedAt = Date.now();
+            count++;
+          }
+        });
+        exitSelectionMode();
+      }
 
       saveToLocalStorage();
       if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
@@ -4133,7 +4310,9 @@
 
       showToast(toastMsg, "fa-tags");
       closeChangeCategoryModal();
-      exitSelectionMode();
+      if (typeof filterCatalogList === 'function') {
+        filterCatalogList();
+      }
       renderLists();
     }
 
@@ -4863,62 +5042,335 @@
         showToast(`${targetCompleted.length} articles esborrats`, "fa-trash");
       }
 
-      // Cerca predictiva a partir dels ratllats/històric (Fase 3: Autocomplete)
+      // ==========================================
+      // GESTOR DE NOU PRODUCTE NO REGISTRAT
+      // ==========================================
+      let pendingNewProductData = null;
+
+      function openConfirmNewProductModal(parsed, targetStore) {
+        pendingNewProductData = {
+          name: parsed.name,
+          qty: parsed.qty || "1",
+          unit: parsed.unit || "ud",
+          targetStore: targetStore || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona"),
+          note: parsed.note || "",
+          category: parsed.category || "General"
+        };
+
+        const modal = document.getElementById("confirm-new-product-modal");
+        if (!modal) return;
+
+        const nameInput = document.getElementById("new-prod-name");
+        const qtyInput = document.getElementById("new-prod-qty");
+        const unitSelect = document.getElementById("new-prod-unit");
+        const storeSelect = document.getElementById("new-prod-store");
+
+        if (nameInput) nameInput.value = pendingNewProductData.name;
+        if (qtyInput) qtyInput.value = pendingNewProductData.qty;
+        if (unitSelect) unitSelect.value = pendingNewProductData.unit;
+
+        if (storeSelect) {
+          storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => 
+            `<option value="${s.id}" ${s.id === pendingNewProductData.targetStore ? 'selected' : ''}>${getStoreDisplayName(s, currentLang)}</option>`
+          ).join("");
+        }
+
+        populateNewProdCategories(pendingNewProductData.category);
+
+        modal.classList.remove("hidden");
+        if (nameInput) setTimeout(() => nameInput.focus(), 80);
+      }
+
+      function closeConfirmNewProductModal() {
+        const modal = document.getElementById("confirm-new-product-modal");
+        if (modal) modal.classList.add("hidden");
+        pendingNewProductData = null;
+      }
+
+      function populateNewProdCategories(selectedCat) {
+        const catSelect = document.getElementById("new-prod-category");
+        if (!catSelect) return;
+
+        const canonSelected = getCategoryCanonicalKey(selectedCat || "General");
+
+        let html = "";
+        MAIN_CATEGORIES.forEach(m => {
+          const groupTitle = m.name[currentLang] || m.name.ca;
+          html += `<optgroup label="${groupTitle}">`;
+          m.subcategories.forEach(sub => {
+            if (CATEGORY_ICONS[sub.id]) {
+              const isSel = getCategoryCanonicalKey(sub.id) === canonSelected ? 'selected' : '';
+              html += `<option value="${sub.id}" ${isSel}>${getCategoryDisplayName(sub.id, currentLang)}</option>`;
+            }
+          });
+          html += `</optgroup>`;
+        });
+
+        const customCats = Object.keys(CATEGORY_ICONS).filter(k => {
+          const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
+          return !inMain && k !== "General";
+        });
+        if (customCats.length > 0) {
+          html += `<optgroup label="${currentLang === 'es' ? 'Otras' : 'Altres'}">`;
+          customCats.forEach(k => {
+            const isSel = getCategoryCanonicalKey(k) === canonSelected ? 'selected' : '';
+            html += `<option value="${k}" ${isSel}>${getCategoryDisplayName(k, currentLang)}</option>`;
+          });
+          html += `</optgroup>`;
+        }
+
+        catSelect.innerHTML = html;
+        updateNewProdCategoryHint(catSelect.value);
+      }
+
+      function updateNewProdCategoryHint(catKey) {
+        const hintEl = document.getElementById("new-prod-category-hint");
+        if (!hintEl) return;
+        const ex = getCategoryExamples(catKey, currentLang);
+        if (ex) {
+          hintEl.textContent = `${currentLang === 'es' ? 'Ejemplos' : 'Exemples'}: ${ex}`;
+          hintEl.classList.remove("hidden");
+        } else {
+          hintEl.classList.add("hidden");
+        }
+      }
+
+      function executeConfirmNewProduct() {
+        const nameInput = document.getElementById("new-prod-name");
+        const qtyInput = document.getElementById("new-prod-qty");
+        const unitSelect = document.getElementById("new-prod-unit");
+        const storeSelect = document.getElementById("new-prod-store");
+        const catSelect = document.getElementById("new-prod-category");
+        const noteInput = document.getElementById("new-prod-note");
+
+        const finalName = (nameInput?.value || "").trim();
+        if (!finalName) {
+          showToast(currentLang === 'es' ? "Escribe un nombre para el producto" : "Escriu un nom per al producte", "fa-triangle-exclamation");
+          return;
+        }
+
+        const finalQty = (qtyInput?.value || "1").trim();
+        const finalUnit = unitSelect?.value || "ud";
+        const finalStore = storeSelect?.value || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+        const finalCategory = catSelect?.value || "General";
+        const finalNote = (noteInput?.value || "").trim();
+
+        const newItem = {
+          id: "p_" + Date.now(),
+          name: finalName,
+          store: finalStore,
+          category: finalCategory,
+          qty: finalQty,
+          unit: finalUnit,
+          price: 0.0,
+          note: finalNote,
+          photo: "",
+          crossed_off: false,
+          updatedAt: Date.now()
+        };
+
+        items.unshift(newItem);
+
+        const quickInput = document.getElementById("quick-input");
+        if (quickInput) quickInput.value = "";
+        hideAutocompleteSuggestions();
+        closeConfirmNewProductModal();
+
+        saveToLocalStorage();
+        if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+        renderLists();
+        renderStoreTabs();
+
+        const storeObj = STORES.find(s => s.id === finalStore);
+        const storeDisp = storeObj ? getStoreDisplayName(storeObj, currentLang) : finalStore;
+        showToast(`${currentLang === 'es' ? 'Añadido' : 'Afegit'}: ${finalName} (${storeDisp})`, "fa-plus");
+      }
+
+      // ==========================================
+      // AUTOCOMPLETAT I CERCA PREDICTIVA DE PRODUCTES
+      // ==========================================
+      function hideAutocompleteSuggestions() {
+        const container = document.getElementById("autocomplete-suggestions");
+        if (container) container.classList.add("hidden");
+      }
+
       function handleQuickInputSearch(val) {
         const container = document.getElementById("autocomplete-suggestions");
         const itemsContainer = document.getElementById("autocomplete-items");
-        const query = val.trim().toLowerCase();
+        if (!container || !itemsContainer) return;
 
-        if (query.length < 2) {
+        const raw = (val || "").trim();
+        if (raw.length < 2) {
           container.classList.add("hidden");
           return;
         }
 
-        const matches = items.filter(it => {
-          if (!it.crossed_off) return false;
-          if (currentStoreFilter !== "all" && it.store !== currentStoreFilter) return false;
-          return it.name.toLowerCase().includes(query);
-        }).slice(0, 5);
-
-        if (matches.length === 0) {
+        const parsed = parseQuickAddText(raw);
+        const searchName = parsed.name || raw;
+        const qNorm = normalizeProductName(searchName);
+        if (qNorm.length < 2) {
           container.classList.add("hidden");
           return;
         }
 
-        itemsContainer.innerHTML = matches.map(m => {
-          const sObj = STORES.find(s => s.id === m.store) || { name: m.store };
-          return `
-          <div onclick="restoreAndAddFromHistory('${m.id}')" 
-               class="px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-emerald-50 active:bg-emerald-100 flex items-center justify-between cursor-pointer transition border border-gray-100">
-            <div class="flex items-center space-x-2 truncate">
-              <i class="fa-solid fa-plus text-emerald-600 text-xs"></i>
-              <span class="font-medium text-gray-800 text-xs truncate">${m.name}</span>
-              <span class="text-[10px] text-gray-400 truncate">(${sObj.name} • ${m.category})</span>
+        const activeStore = currentStoreFilter !== "all" ? currentStoreFilter : null;
+        const matchedProducts = [];
+
+        items.forEach(it => {
+          if (!it || !it.name) return;
+          const itNorm = normalizeProductName(it.name);
+          if (!itNorm) return;
+
+          let score = 0;
+          if (itNorm === qNorm) score = 100;
+          else if (itNorm.startsWith(qNorm)) score = 80;
+          else if (itNorm.includes(qNorm)) score = 60;
+          else if (areProductNamesSimilar(it.name, searchName)) score = 50;
+
+          if (score > 0) {
+            const canon = getCanonicalProductKey(it.name);
+            const existingMatch = matchedProducts.find(m => m.canon === canon);
+            if (existingMatch) {
+              if (activeStore && it.store === activeStore && existingMatch.item.store !== activeStore) {
+                existingMatch.item = it;
+                existingMatch.score = score + 20;
+              }
+            } else {
+              matchedProducts.push({
+                item: it,
+                canon: canon,
+                score: score + (activeStore && it.store === activeStore ? 20 : 0) + (!it.crossed_off ? 10 : 0)
+              });
+            }
+          }
+        });
+
+        matchedProducts.sort((a, b) => b.score - a.score);
+        const topMatches = matchedProducts.slice(0, 7).map(m => m.item);
+
+        if (topMatches.length === 0) {
+          itemsContainer.innerHTML = `
+            <div onclick="handleQuickAdd()" class="px-2.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 cursor-pointer flex items-center justify-between transition">
+              <div class="flex items-center gap-2 truncate">
+                <i class="fa-solid fa-sparkles text-amber-600 text-xs"></i>
+                <span class="text-xs font-semibold truncate">${currentLang === 'es' ? 'Crear como nuevo:' : 'Crear com a nou:'} <strong>${searchName}</strong></span>
+              </div>
+              <span class="text-[10px] font-bold text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-md flex-shrink-0">
+                <i class="fa-solid fa-plus text-[9px] mr-1"></i>${currentLang === 'es' ? 'Categorizar' : 'Categoritzar'}
+              </span>
             </div>
-            ${m.price > 0 ? `<span class="text-[10px] font-bold text-gray-600 ml-1.5 flex-shrink-0">${Number(m.price).toFixed(2)}€</span>` : ''}
-          </div>
-        `;
+          `;
+          container.classList.remove("hidden");
+          return;
+        }
+
+        itemsContainer.innerHTML = topMatches.map(m => {
+          const sObj = STORES.find(s => s.id === m.store) || { name: m.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
+          const localizedStore = getStoreDisplayName(sObj, currentLang);
+          const localizedCat = m.category ? getCategoryDisplayName(m.category, currentLang) : '';
+          const isCurrentStore = (currentStoreFilter === 'all' || m.store === currentStoreFilter);
+          const isPending = !m.crossed_off && isCurrentStore;
+
+          let statusBadge = '';
+          let actionBtnText = '';
+          if (isPending) {
+            statusBadge = `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">${currentLang === 'es' ? 'En lista' : 'A la llista'} (x${m.qty || 1})</span>`;
+            actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>+1</span>`;
+          } else if (m.crossed_off && isCurrentStore) {
+            statusBadge = `<span class="text-[9px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-500">${currentLang === 'es' ? 'Historial' : 'Històric'}</span>`;
+            actionBtnText = `<span class="text-[9.5px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-arrow-up text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
+          } else {
+            statusBadge = `<span class="text-[9px] font-semibold px-1.5 py-0.2 rounded ${sObj.badgeBg || 'bg-gray-100'} ${sObj.badgeText || 'text-gray-700'}">${localizedStore}</span>`;
+            actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
+          }
+
+          return `
+            <div onclick="selectAutocompleteProduct('${m.id}')"
+                 class="px-2.5 py-1.5 rounded-xl bg-gray-50/90 hover:bg-emerald-50 active:bg-emerald-100 flex items-center justify-between cursor-pointer transition border border-gray-100 group">
+              <div class="flex items-center gap-2 truncate min-w-0 mr-2">
+                <i class="fa-solid ${isPending ? 'fa-cart-shopping text-emerald-600' : 'fa-magnifying-glass text-gray-400'} text-xs flex-shrink-0"></i>
+                <span class="font-bold text-xs text-gray-800 group-hover:text-emerald-900 truncate">${m.name}</span>
+                ${statusBadge}
+                ${localizedCat ? `<span class="text-[9px] text-gray-400 truncate hidden sm:inline">• ${localizedCat}</span>` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                ${m.price > 0 ? `<span class="text-[10px] font-bold text-gray-500">${Number(m.price).toFixed(2)}€</span>` : ''}
+                ${actionBtnText}
+              </div>
+            </div>
+          `;
         }).join("");
 
         container.classList.remove("hidden");
       }
 
-      function restoreAndAddFromHistory(id) {
+      function selectAutocompleteProduct(id) {
         const it = items.find(x => x.id === id);
-        if (it) {
-          it.crossed_off = false;
-          const idx = items.indexOf(it);
-          if (idx > -1) {
-            items.splice(idx, 1);
-            items.unshift(it);
+        if (!it) return;
+
+        const targetStore = currentStoreFilter !== "all" ? currentStoreFilter : it.store;
+        const input = document.getElementById("quick-input");
+        if (input) input.value = "";
+        hideAutocompleteSuggestions();
+
+        const canonKey = getCanonicalProductKey(it.name);
+        const existingInTarget = items.find(other =>
+          other.store === targetStore &&
+          (other.id === it.id || getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, it.name))
+        );
+
+        if (existingInTarget) {
+          if (existingInTarget.crossed_off) {
+            existingInTarget.crossed_off = false;
+            existingInTarget.updatedAt = Date.now();
+            const idx = items.indexOf(existingInTarget);
+            if (idx > -1) {
+              items.splice(idx, 1);
+              items.unshift(existingInTarget);
+            }
+            saveToLocalStorage();
+            if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+            renderLists();
+            renderStoreTabs();
+            showToast(`${currentLang === 'es' ? 'Recuperado a pendientes' : 'Recuperat a pendents'}: ${existingInTarget.name}`, "fa-arrow-up");
+          } else {
+            const curQ = parseFloat(existingInTarget.qty) || 1;
+            existingInTarget.qty = String(curQ + 1);
+            existingInTarget.updatedAt = Date.now();
+            saveToLocalStorage();
+            if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+            renderLists();
+            renderStoreTabs();
+            showToast(`+1 ${existingInTarget.name} (x${existingInTarget.qty})`, "fa-plus");
           }
-          saveToLocalStorage();
-          renderLists();
-          renderStoreTabs();
-          document.getElementById("quick-input").value = "";
-          document.getElementById("autocomplete-suggestions").classList.add("hidden");
-          showToast(`Recuperat de l'històric: ${it.name}`, "fa-check");
+          return;
         }
+
+        const newItem = {
+          id: "p_" + Date.now(),
+          name: it.name,
+          store: targetStore,
+          category: it.category || "General",
+          qty: "1",
+          unit: it.unit || "ud",
+          price: it.price || 0.0,
+          note: it.note || "",
+          photo: it.photo || "",
+          crossed_off: false,
+          updatedAt: Date.now()
+        };
+        items.unshift(newItem);
+        saveToLocalStorage();
+        if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+        renderLists();
+        renderStoreTabs();
+        const sObj = STORES.find(s => s.id === targetStore);
+        const sName = sObj ? getStoreDisplayName(sObj, currentLang) : targetStore;
+        showToast(`${currentLang === 'es' ? 'Añadido' : 'Afegit'}: ${newItem.name} (${sName})`, "fa-plus");
+      }
+
+      function restoreAndAddFromHistory(id) {
+        selectAutocompleteProduct(id);
       }
 
 
@@ -5659,12 +6111,62 @@
         const it = items.find(x => x.id === id);
         if (!it) return;
 
-        it.name = document.getElementById("edit-name").value.trim();
-        it.qty = document.getElementById("edit-qty").value.trim();
-        it.unit = document.getElementById("edit-unit").value.trim();
-        
+        const newName = cleanName(document.getElementById("edit-name").value.trim());
+        const newQtyStr = document.getElementById("edit-qty").value.trim();
+        const newUnit = document.getElementById("edit-unit").value.trim();
         const newPrice = parseFloat(document.getElementById("edit-price").value) || 0.0;
         const newStore = document.getElementById("edit-store").value;
+        const newCategory = document.getElementById("edit-category").value;
+        const newNote = document.getElementById("edit-note").value.trim();
+        const newPhoto = document.getElementById("edit-photo-url").value.trim();
+
+        // Comprovar si a la botiga destí JA existeix un altre article amb el mateix nom
+        const canonKey = getCanonicalProductKey(newName);
+        const existingInTarget = items.find(other =>
+          other.id !== it.id &&
+          other.store === newStore &&
+          (getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, newName))
+        );
+
+        if (existingInTarget) {
+          // Fusionar unitats (x2, x3...)
+          const curQ = parseFloat(existingInTarget.qty) || 1;
+          const addQ = parseFloat(newQtyStr) || 1;
+          existingInTarget.qty = String(curQ + addQ);
+          if (existingInTarget.crossed_off && !it.crossed_off) {
+            existingInTarget.crossed_off = false;
+          }
+          if (newPrice > 0) existingInTarget.price = newPrice;
+          if (newCategory) existingInTarget.category = newCategory;
+          if (newNote && !existingInTarget.note) existingInTarget.note = newNote;
+          if (newPhoto && !existingInTarget.photo) existingInTarget.photo = newPhoto;
+          existingInTarget.updatedAt = Date.now();
+
+          // Eliminar l'article duplicat original
+          if (typeof recordItemDeletion === 'function') {
+            recordItemDeletion(it.id);
+          }
+          items = items.filter(x => x.id !== it.id);
+
+          saveToLocalStorage();
+          if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+          closeEditModal();
+          renderLists();
+          renderStoreTabs();
+          const targetStoreObj = STORES.find(s => s.id === newStore);
+          const storeName = targetStoreObj ? getStoreDisplayName(targetStoreObj, currentLang) : newStore;
+          showToast(`${currentLang === 'es' ? 'Combinado en' : 'Combinat a'} ${storeName}: ${existingInTarget.name} (x${existingInTarget.qty})`, "fa-plus");
+          return;
+        }
+
+        it.name = newName;
+        it.qty = newQtyStr;
+        it.unit = newUnit;
+        it.store = newStore;
+        it.category = newCategory;
+        it.note = newNote;
+        it.photo = newPhoto;
+        it.updatedAt = Date.now();
 
         // Si el preu ha canviat o s'ha indicat
         if (newPrice !== it.price || !it.price_date) {
@@ -5683,16 +6185,12 @@
           }
         }
 
-        it.store = newStore;
-        it.category = document.getElementById("edit-category").value;
-        it.note = document.getElementById("edit-note").value.trim();
-        it.photo = document.getElementById("edit-photo-url").value.trim();
-
         saveToLocalStorage();
+        if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
         closeEditModal();
         renderLists();
         renderStoreTabs();
-        showToast("Canvis desats", "fa-check");
+        showToast(currentLang === 'es' ? "Cambios guardados" : "Canvis desats", "fa-check");
       }
 
       function deleteCurrentProduct() {
@@ -8511,6 +9009,10 @@
     // =========================================================================
     // CONTROLADOR DEL CATÀLEG COMPLET D'ARTICLES (BASE DE DADES)
     // =========================================================================
+    let isCatalogGroupedByCategory = false;
+    let isCatalogSelectionMode = false;
+    const selectedCatalogItemIds = new Set();
+
     function openCatalogModal() {
       const modal = document.getElementById("catalog-modal");
       if (!modal) return;
@@ -8522,6 +9024,34 @@
           STORES.filter(s => s.id !== "all").map(s => `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`).join("");
       }
 
+      // Omplir el selector de categories del catàleg
+      const catSelect = document.getElementById("catalog-category-filter");
+      if (catSelect) {
+        let catOptions = `<option value="all">${currentLang === 'es' ? 'Todas las categorías' : 'Totes les categories'}</option>`;
+        MAIN_CATEGORIES.forEach(m => {
+          const groupName = m.name[currentLang] || m.name.ca;
+          catOptions += `<optgroup label="${groupName}">`;
+          m.subcategories.forEach(sub => {
+            if (CATEGORY_ICONS[sub.id]) {
+              catOptions += `<option value="${sub.id}">${getCategoryDisplayName(sub.id, currentLang)}</option>`;
+            }
+          });
+          catOptions += `</optgroup>`;
+        });
+        const customKeys = Object.keys(CATEGORY_ICONS).filter(k => {
+          const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
+          return !inMain && k !== 'General';
+        });
+        if (customKeys.length > 0) {
+          catOptions += `<optgroup label="${currentLang === 'es' ? 'Otras' : 'Altres'}">`;
+          customKeys.forEach(k => {
+            catOptions += `<option value="${k}">${getCategoryDisplayName(k, currentLang)}</option>`;
+          });
+          catOptions += `</optgroup>`;
+        }
+        catSelect.innerHTML = catOptions;
+      }
+
       filterCatalogList();
       modal.classList.remove("hidden");
     }
@@ -8529,6 +9059,182 @@
     function closeCatalogModal() {
       const modal = document.getElementById("catalog-modal");
       if (modal) modal.classList.add("hidden");
+      if (isCatalogSelectionMode) exitCatalogSelectionMode();
+    }
+
+    function toggleCatalogGrouping() {
+      isCatalogGroupedByCategory = !isCatalogGroupedByCategory;
+      const btn = document.getElementById("catalog-group-btn");
+      const label = document.getElementById("catalog-group-btn-label");
+      if (btn) {
+        if (isCatalogGroupedByCategory) {
+          btn.className = "px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1.5 bg-emerald-600 text-white border-emerald-600 shadow-2xs";
+          if (label) label.textContent = currentLang === 'es' ? 'Agrupado por categoría' : 'Agrupat per categoria';
+        } else {
+          btn.className = "px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1.5 bg-white text-gray-700 border-gray-300 hover:border-emerald-400";
+          if (label) label.textContent = currentLang === 'es' ? 'Agrupar por categoría' : 'Agrupar per categoria';
+        }
+      }
+      filterCatalogList();
+    }
+
+    function toggleCatalogSelectionMode() {
+      if (isCatalogSelectionMode) {
+        exitCatalogSelectionMode();
+      } else {
+        enterCatalogSelectionMode();
+      }
+    }
+
+    function enterCatalogSelectionMode() {
+      isCatalogSelectionMode = true;
+      selectedCatalogItemIds.clear();
+      const btn = document.getElementById("catalog-select-mode-btn");
+      const label = document.getElementById("catalog-select-btn-label");
+      const bar = document.getElementById("catalog-selection-action-bar");
+      if (btn) {
+        btn.className = "px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1.5 bg-teal-600 text-white border-teal-600 shadow-2xs";
+        if (label) label.textContent = currentLang === 'es' ? 'Seleccionando' : 'Seleccionant';
+      }
+      if (bar) bar.classList.remove("hidden");
+      updateCatalogSelectionBar();
+      filterCatalogList();
+    }
+
+    function exitCatalogSelectionMode() {
+      isCatalogSelectionMode = false;
+      selectedCatalogItemIds.clear();
+      const btn = document.getElementById("catalog-select-mode-btn");
+      const label = document.getElementById("catalog-select-btn-label");
+      const bar = document.getElementById("catalog-selection-action-bar");
+      if (btn) {
+        btn.className = "px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1.5 bg-white text-gray-700 border-gray-300 hover:border-teal-400";
+        if (label) label.textContent = currentLang === 'es' ? 'Seleccionar' : 'Seleccionar';
+      }
+      if (bar) bar.classList.add("hidden");
+      filterCatalogList();
+    }
+
+    function toggleCatalogItemSelection(id, event) {
+      if (event) event.stopPropagation();
+      if (selectedCatalogItemIds.has(id)) {
+        selectedCatalogItemIds.delete(id);
+      } else {
+        selectedCatalogItemIds.add(id);
+      }
+      updateCatalogSelectionBar();
+      filterCatalogList();
+    }
+
+    function updateCatalogSelectionBar() {
+      const badge = document.getElementById("catalog-selection-badge");
+      if (badge) {
+        const count = selectedCatalogItemIds.size;
+        badge.textContent = currentLang === 'es'
+          ? `${count} seleccionado${count === 1 ? '' : 's'}`
+          : `${count} seleccionat${count === 1 ? '' : 's'}`;
+      }
+    }
+
+    function getCurrentlyFilteredCatalogItems() {
+      const searchInput = document.getElementById("catalog-search-input");
+      const storeFilter = document.getElementById("catalog-store-filter")?.value || "all";
+      const catFilter = document.getElementById("catalog-category-filter")?.value || "all";
+      const statusFilter = document.getElementById("catalog-status-filter")?.value || "all";
+      const query = (searchInput?.value || "").toLowerCase().trim();
+      const normQuery = normalizeProductName(query);
+
+      return items.filter(it => {
+        if (storeFilter !== "all" && it.store !== storeFilter) return false;
+        if (catFilter !== "all" && getCategoryCanonicalKey(it.category || 'General') !== getCategoryCanonicalKey(catFilter)) return false;
+        if (statusFilter === "pending" && it.crossed_off) return false;
+        if (statusFilter === "completed" && !it.crossed_off) return false;
+        if (statusFilter === "with_price" && (!it.price || it.price <= 0)) return false;
+
+        if (query) {
+          const normItem = normalizeProductName(it.name || "");
+          if (!normItem.includes(normQuery) && !(it.note || "").toLowerCase().includes(query)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function toggleSelectAllCatalogItems() {
+      const visibleItems = getCurrentlyFilteredCatalogItems();
+      if (visibleItems.length === 0) return;
+      const allSelected = visibleItems.every(it => selectedCatalogItemIds.has(it.id));
+      if (allSelected) {
+        visibleItems.forEach(it => selectedCatalogItemIds.delete(it.id));
+      } else {
+        visibleItems.forEach(it => selectedCatalogItemIds.add(it.id));
+      }
+      updateCatalogSelectionBar();
+      filterCatalogList();
+    }
+
+    function selectCatalogCategoryItems(canonicalCat, event) {
+      if (event) event.stopPropagation();
+      const catItems = items.filter(it => getCategoryCanonicalKey(it.category || 'General') === canonicalCat);
+      if (catItems.length === 0) return;
+      const allSelected = catItems.every(it => selectedCatalogItemIds.has(it.id));
+      if (allSelected) {
+        catItems.forEach(it => selectedCatalogItemIds.delete(it.id));
+      } else {
+        catItems.forEach(it => selectedCatalogItemIds.add(it.id));
+      }
+      updateCatalogSelectionBar();
+      filterCatalogList();
+    }
+
+    function openChangeCategoryFromCatalog() {
+      if (selectedCatalogItemIds.size === 0) {
+        showToast(currentLang === 'es' ? "Selecciona primero algún artículo del catálogo" : "Selecciona primer algun article del catàleg", "fa-circle-exclamation");
+        return;
+      }
+      changeCategoryTargetMode = 'catalog';
+      singleTargetItemId = null;
+      renderChangeCategoryModalList("");
+      const modal = document.getElementById("change-category-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function openChangeCategoryForSingleItem(id, event) {
+      if (event) event.stopPropagation();
+      changeCategoryTargetMode = 'catalog';
+      singleTargetItemId = id;
+      renderChangeCategoryModalList("");
+      const modal = document.getElementById("change-category-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function executeAddSelectedCatalogToPending() {
+      if (selectedCatalogItemIds.size === 0) {
+        showToast(currentLang === 'es' ? "Selecciona primero algún artículo" : "Selecciona primer algun article", "fa-circle-exclamation");
+        return;
+      }
+      let count = 0;
+      selectedCatalogItemIds.forEach(id => {
+        const it = items.find(x => x.id === id);
+        if (!it) return;
+        if (it.crossed_off) {
+          it.crossed_off = false;
+          it.updatedAt = Date.now();
+          count++;
+        } else {
+          it.qty = String((parseFloat(it.qty) || 1) + 1);
+          it.updatedAt = Date.now();
+          count++;
+        }
+      });
+      saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+      renderLists();
+      renderStoreTabs();
+      filterCatalogList();
+      exitCatalogSelectionMode();
+      showToast(`${currentLang === 'es' ? 'Añadidos a la lista' : 'Afegits a la llista'}: ${count}`, "fa-cart-plus");
     }
 
     function handleCatalogAdd(id, event) {
@@ -8541,7 +9247,6 @@
         it.updatedAt = Date.now();
         showToast(`${currentLang === 'es' ? 'Añadido a la lista' : 'Afegit a la llista'}: ${it.name} (${it.qty || 1} ${it.unit || 'ud'})`, "fa-cart-plus");
       } else {
-        // Cada clic suma una unitat més al producte
         let currentQty = parseFloat(it.qty) || 1;
         currentQty += 1;
         it.qty = String(currentQty);
@@ -8550,6 +9255,7 @@
       }
 
       saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
       renderLists();
       renderStoreTabs();
       filterCatalogList();
@@ -8573,16 +9279,92 @@
       }
 
       saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
       renderLists();
       renderStoreTabs();
       filterCatalogList();
     }
 
+    function renderCatalogItemRow(it) {
+      const storeObj = STORES.find(s => s.id === it.store) || { name: it.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
+      const priceStr = it.price && it.price > 0 ? `${Number(it.price).toFixed(2).replace('.', ',')} €` : (currentLang === 'es' ? 'Sin precio' : 'Sense preu');
+      const isPending = !it.crossed_off;
+      const localizedStore = getStoreDisplayName(storeObj, currentLang);
+      const canonicalCat = getCategoryCanonicalKey(it.category || 'General');
+      const localizedCategory = getCategoryDisplayName(canonicalCat, currentLang);
+      const isSelected = selectedCatalogItemIds.has(it.id);
+
+      const clickHandler = isCatalogSelectionMode
+        ? `toggleCatalogItemSelection('${it.id}', event)`
+        : `handleCatalogAdd('${it.id}', event)`;
+
+      return `
+        <div onclick="${clickHandler}"
+             class="py-2 px-2.5 rounded-xl transition flex items-center justify-between gap-2.5 cursor-pointer select-none group border ${
+               isSelected
+                 ? 'bg-teal-50/80 border-teal-300'
+                 : 'hover:bg-emerald-50/60 border-transparent hover:border-emerald-200'
+             }">
+          <div class="min-w-0 flex-1 flex items-center gap-2">
+            ${isCatalogSelectionMode ? `
+              <button type="button" onclick="toggleCatalogItemSelection('${it.id}', event)" class="p-1 text-teal-600 text-sm flex-shrink-0">
+                <i class="${isSelected ? 'fa-solid fa-square-check text-base text-teal-600' : 'fa-regular fa-square text-base text-gray-300'}"></i>
+              </button>
+            ` : ''}
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${!isPending ? 'text-gray-500' : ''}">${it.name}</span>
+                <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded ${storeObj.badgeBg || 'bg-gray-100'} ${storeObj.badgeText || 'text-gray-700'}">${localizedStore}</span>
+                <button type="button" onclick="openChangeCategoryForSingleItem('${it.id}', event)" title="${currentLang === 'es' ? 'Cambiar categoría' : 'Canviar categoria'}"
+                        class="text-[9px] px-1.5 py-0.2 rounded bg-gray-100 hover:bg-teal-100 text-gray-600 hover:text-teal-900 border border-gray-200/80 transition flex items-center gap-1 cursor-pointer">
+                  <i class="fa-solid fa-tag text-[8px] text-teal-600"></i>
+                  <span>${localizedCategory}</span>
+                </button>
+              </div>
+              <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
+                <span>${currentLang === 'es' ? 'Precio' : 'Preu'}: <strong class="${it.price > 0 ? 'text-emerald-700 font-bold' : 'text-gray-400 font-normal'}">${priceStr}</strong></span>
+                ${it.note ? `<span class="italic truncate text-gray-400">• ${it.note}</span>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- Accions ràpides: Sumar unitats / Restar / Editar -->
+          <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
+            ${isPending ? `
+              <div class="flex items-center gap-1 bg-emerald-50 p-0.5 rounded-lg border border-emerald-200/80">
+                <button onclick="handleCatalogDecrement('${it.id}', event)" 
+                        title="${currentLang === 'es' ? 'Quitar una unidad' : 'Treure una unitat'}"
+                        class="w-6 h-6 rounded bg-white hover:bg-rose-50 hover:text-rose-600 text-gray-600 flex items-center justify-center text-xs transition shadow-2xs">
+                  <i class="fa-solid fa-minus text-[9px]"></i>
+                </button>
+                <span class="text-[10.5px] font-bold text-emerald-900 px-1.5 min-w-[24px] text-center">${it.qty || 1}</span>
+                <button onclick="handleCatalogAdd('${it.id}', event)" 
+                        title="${currentLang === 'es' ? 'Añadir otra unidad' : 'Afegir una altra unitat'}"
+                        class="w-6 h-6 rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center text-xs transition shadow-2xs">
+                  <i class="fa-solid fa-plus text-[9px]"></i>
+                </button>
+              </div>
+            ` : `
+              <button onclick="handleCatalogAdd('${it.id}', event)"
+                class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 hover:border-emerald-600"
+                title="${currentLang === 'es' ? 'Toca para añadir a la cesta' : 'Toca per afegir a la cistella pendent'}">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+                <span class="text-[10.5px]">${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>
+              </button>
+            `}
+
+            <button onclick="event.stopPropagation(); closeCatalogModal(); openEditModal('${it.id}');" title="${currentLang === 'es' ? 'Editar artículo' : 'Editar article'}"
+              class="p-1.5 text-gray-400 hover:text-emerald-700 rounded-lg text-xs transition">
+              <i class="fa-solid fa-pencil"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     function filterCatalogList() {
       const container = document.getElementById("catalog-items-container");
-      const searchInput = document.getElementById("catalog-search-input");
-      const storeFilter = document.getElementById("catalog-store-filter")?.value || "all";
-      const statusFilter = document.getElementById("catalog-status-filter")?.value || "all";
       const subtitleCount = document.getElementById("catalog-subtitle-count");
       const statusSummary = document.getElementById("catalog-status-summary");
       const menuBadge = document.getElementById("menu-catalog-badge");
@@ -8596,26 +9378,9 @@
 
       if (!container) return;
 
-      const query = (searchInput?.value || "").toLowerCase().trim();
-      const normQuery = normalizeProductName(query);
+      const filtered = getCurrentlyFilteredCatalogItems();
 
-      let filtered = items.filter(it => {
-        if (storeFilter !== "all" && it.store !== storeFilter) return false;
-
-        if (statusFilter === "pending" && it.crossed_off) return false;
-        if (statusFilter === "completed" && !it.crossed_off) return false;
-        if (statusFilter === "with_price" && (!it.price || it.price <= 0)) return false;
-
-        if (query) {
-          const normItem = normalizeProductName(it.name || "");
-          if (!normItem.includes(normQuery) && !(it.note || "").toLowerCase().includes(query)) {
-            return false;
-          }
-        }
-        return true;
-      });
-
-      // Ordenació: pendents primer, després alfabèticament
+      // Ordenació general
       filtered.sort((a, b) => {
         if (a.crossed_off !== b.crossed_off) {
           return a.crossed_off ? 1 : -1;
@@ -8640,61 +9405,52 @@
         return;
       }
 
-      container.innerHTML = filtered.map(it => {
-        const storeObj = STORES.find(s => s.id === it.store) || { name: it.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
-        const priceStr = it.price && it.price > 0 ? `${Number(it.price).toFixed(2).replace('.', ',')} €` : (currentLang === 'es' ? 'Sin precio' : 'Sense preu');
-        const isPending = !it.crossed_off;
-        const localizedStore = getStoreDisplayName(storeObj, currentLang);
-        const localizedCategory = it.category ? getCategoryDisplayName(it.category, currentLang) : '';
+      if (isCatalogGroupedByCategory) {
+        // Agrupació per categories
+        const catMap = new Map();
+        filtered.forEach(it => {
+          const canonKey = getCategoryCanonicalKey(it.category || 'General');
+          if (!catMap.has(canonKey)) catMap.set(canonKey, []);
+          catMap.get(canonKey).push(it);
+        });
 
-        return `
-          <div onclick="handleCatalogAdd('${it.id}', event)"
-               class="py-2 px-2.5 hover:bg-emerald-50/60 rounded-xl transition flex items-center justify-between gap-2.5 cursor-pointer select-none group border border-transparent hover:border-emerald-200">
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${!isPending ? 'text-gray-500' : ''}">${it.name}</span>
-                <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded ${storeObj.badgeBg || 'bg-gray-100'} ${storeObj.badgeText || 'text-gray-700'}">${localizedStore}</span>
-                ${localizedCategory ? `<span class="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.2 rounded">${localizedCategory}</span>` : ''}
-              </div>
-              <div class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
-                <span>${currentLang === 'es' ? 'Precio' : 'Preu'}: <strong class="${it.price > 0 ? 'text-emerald-700 font-bold' : 'text-gray-400 font-normal'}">${priceStr}</strong></span>
-                ${it.note ? `<span class="italic truncate text-gray-400">• ${it.note}</span>` : ''}
-              </div>
-            </div>
+        // Ordenar grups per índex de categoria
+        const sortedCatKeys = Array.from(catMap.keys()).sort((a, b) => getCategorySortIndex(a) - getCategorySortIndex(b));
 
-            <!-- Accions ràpides: Sumar unitats / Restar / Editar -->
-            <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
-              ${isPending ? `
-                <div class="flex items-center gap-1 bg-emerald-50 p-0.5 rounded-lg border border-emerald-200/80">
-                  <button onclick="handleCatalogDecrement('${it.id}', event)" 
-                          title="${currentLang === 'es' ? 'Quitar una unidad' : 'Treure una unitat'}"
-                          class="w-6 h-6 rounded bg-white hover:bg-rose-50 hover:text-rose-600 text-gray-600 flex items-center justify-center text-xs transition shadow-2xs">
-                    <i class="fa-solid fa-minus text-[9px]"></i>
-                  </button>
-                  <span class="text-[10.5px] font-bold text-emerald-900 px-1.5 min-w-[24px] text-center">${it.qty || 1}</span>
-                  <button onclick="handleCatalogAdd('${it.id}', event)" 
-                          title="${currentLang === 'es' ? 'Añadir otra unidad' : 'Afegir una altra unitat'}"
-                          class="w-6 h-6 rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center text-xs transition shadow-2xs">
-                    <i class="fa-solid fa-plus text-[9px]"></i>
-                  </button>
+        let html = "";
+        sortedCatKeys.forEach(catKey => {
+          const groupItems = catMap.get(catKey);
+          const icon = getCategoryIcon(catKey);
+          const displayName = getCategoryDisplayName(catKey, currentLang);
+          const allCatSelected = isCatalogSelectionMode && groupItems.every(x => selectedCatalogItemIds.has(x.id));
+
+          html += `
+            <div class="mb-3 rounded-2xl border border-gray-200/80 bg-gray-50/50 p-2 space-y-1">
+              <div class="flex items-center justify-between px-1.5 py-1 border-b border-gray-200/60">
+                <div class="flex items-center gap-1.5">
+                  <i class="fa-solid ${icon} text-emerald-600 text-xs"></i>
+                  <span class="font-bold text-xs text-gray-800 uppercase tracking-wide">${displayName}</span>
+                  <span class="text-[10px] text-gray-400 font-semibold bg-gray-200/70 px-1.5 py-0.2 rounded-full">(${groupItems.length})</span>
                 </div>
-              ` : `
-                <button onclick="handleCatalogAdd('${it.id}', event)"
-                  class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 hover:border-emerald-600"
-                  title="${currentLang === 'es' ? 'Toca para añadir a la cesta' : 'Toca per afegir a la cistella pendent'}">
-                  <i class="fa-solid fa-plus text-[10px]"></i>
-                  <span class="text-[10.5px]">${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>
-                </button>
-              `}
-
-              <button onclick="event.stopPropagation(); closeCatalogModal(); openEditModal('${it.id}');" title="${currentLang === 'es' ? 'Editar artículo' : 'Editar article'}"
-                class="p-1.5 text-gray-400 hover:text-emerald-700 rounded-lg text-xs transition">
-                <i class="fa-solid fa-pencil"></i>
-              </button>
+                ${isCatalogSelectionMode ? `
+                  <button type="button" onclick="selectCatalogCategoryItems('${catKey}', event)"
+                          class="text-[10px] font-bold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2 py-0.5 rounded-md transition flex items-center gap-1">
+                    <i class="${allCatSelected ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} text-[9px]"></i>
+                    <span>${currentLang === 'es' ? 'Todo el grupo' : 'Tot el grup'}</span>
+                  </button>
+                ` : ''}
+              </div>
+              <div class="divide-y divide-gray-100">
+                ${groupItems.map(it => renderCatalogItemRow(it)).join("")}
+              </div>
             </div>
-          </div>
-        `;
-      }).join("");
+          `;
+        });
+        container.innerHTML = html;
+      } else {
+        // Llista plana normal
+        container.innerHTML = filtered.map(it => renderCatalogItemRow(it)).join("");
+      }
     }
 
     window.openCatalogModal = openCatalogModal;
@@ -8702,9 +9458,29 @@
     window.filterCatalogList = filterCatalogList;
     window.handleCatalogAdd = handleCatalogAdd;
     window.handleCatalogDecrement = handleCatalogDecrement;
+    window.toggleCatalogGrouping = toggleCatalogGrouping;
+    window.toggleCatalogSelectionMode = toggleCatalogSelectionMode;
+    window.enterCatalogSelectionMode = enterCatalogSelectionMode;
+    window.exitCatalogSelectionMode = exitCatalogSelectionMode;
+    window.toggleCatalogItemSelection = toggleCatalogItemSelection;
+    window.toggleSelectAllCatalogItems = toggleSelectAllCatalogItems;
+    window.selectCatalogCategoryItems = selectCatalogCategoryItems;
+    window.openChangeCategoryFromCatalog = openChangeCategoryFromCatalog;
+    window.openChangeCategoryForSingleItem = openChangeCategoryForSingleItem;
+    window.executeAddSelectedCatalogToPending = executeAddSelectedCatalogToPending;
+
+    window.openConfirmNewProductModal = openConfirmNewProductModal;
+    window.closeConfirmNewProductModal = closeConfirmNewProductModal;
+    window.updateNewProdCategoryHint = updateNewProdCategoryHint;
+    window.executeConfirmNewProduct = executeConfirmNewProduct;
+    window.hideAutocompleteSuggestions = hideAutocompleteSuggestions;
+    window.handleQuickInputSearch = handleQuickInputSearch;
+    window.selectAutocompleteProduct = selectAutocompleteProduct;
+
     window.getSortedStoresList = getSortedStoresList;
     Object.defineProperty(window, 'items', { get: () => items, set: (val) => { items = val; }, configurable: true });
     Object.defineProperty(window, 'selectedItemIds', { get: () => selectedItemIds, configurable: true });
+    Object.defineProperty(window, 'selectedCatalogItemIds', { get: () => selectedCatalogItemIds, configurable: true });
 
     window.openStatsModal = openStatsModal;
     window.closeStatsModal = closeStatsModal;
@@ -8776,6 +9552,27 @@
       if (typeof initCloudSync === 'function') {
         initCloudSync();
       }
+
+      // Tancar suggeriments en fer clic fora o prémer Escape
+      document.addEventListener("click", (e) => {
+        const sugg = document.getElementById("autocomplete-suggestions");
+        const quick = document.getElementById("quick-input");
+        if (sugg && !sugg.classList.contains("hidden")) {
+          if (!sugg.contains(e.target) && e.target !== quick) {
+            hideAutocompleteSuggestions();
+          }
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          hideAutocompleteSuggestions();
+          const newProdModal = document.getElementById("confirm-new-product-modal");
+          if (newProdModal && !newProdModal.classList.contains("hidden")) {
+            closeConfirmNewProductModal();
+          }
+        }
+      });
     }
 
     if (document.readyState === "loading") {
