@@ -2822,6 +2822,17 @@
       const normB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (normA === normB) return true;
 
+      // Comparació estricta de números/xifres:
+      // Si els noms contenen números diferents (ex: "Rtn Serum 1" vs "Rtn Serum 2", "Llet 1L" vs "Llet 2L", "Crema 30" vs "Crema 50"),
+      // són variants o productes diferents i MAI s'han de considerar el mateix producte!
+      const numsA = normA.match(/\d+/g) || [];
+      const numsB = normB.match(/\d+/g) || [];
+      if (numsA.length > 0 || numsB.length > 0) {
+        if (numsA.join(' ') !== numsB.join(' ')) {
+          return false;
+        }
+      }
+
       if (typeof getCanonicalProductKey === 'function') {
         const keyA = getCanonicalProductKey(nameA);
         const keyB = getCanonicalProductKey(nameB);
@@ -2829,7 +2840,7 @@
       }
 
       if (typeof stringSimilarity === 'function') {
-        return stringSimilarity(nameA, nameB) >= 0.90;
+        return stringSimilarity(nameA, nameB) >= 0.94;
       }
 
       return false;
@@ -3021,6 +3032,15 @@
       const s2 = normalizeProductName(str2);
       if (s1 === s2) return 1.0;
       if (!s1 || !s2) return 0.0;
+
+      // Si contenen números diferents (ex: "Rtn Serum 1" vs "Rtn Serum 2"), no són el mateix producte
+      const nums1 = s1.match(/\d+/g) || [];
+      const nums2 = s2.match(/\d+/g) || [];
+      if (nums1.length > 0 || nums2.length > 0) {
+        if (nums1.join(' ') !== nums2.join(' ')) {
+          return 0.30;
+        }
+      }
       
       const stems1 = getWordStems(str1);
       const stems2 = getWordStems(str2);
@@ -8043,6 +8063,53 @@
       if (modal) modal.classList.add("hidden");
     }
 
+    function handleCatalogAdd(id, event) {
+      if (event) event.stopPropagation();
+      const it = items.find(x => x.id === id);
+      if (!it) return;
+
+      if (it.crossed_off) {
+        it.crossed_off = false;
+        it.updatedAt = Date.now();
+        showToast(`${currentLang === 'es' ? 'Añadido a la lista' : 'Afegit a la llista'}: ${it.name} (${it.qty || 1} ${it.unit || 'ud'})`, "fa-cart-plus");
+      } else {
+        // Cada clic suma una unitat més al producte
+        let currentQty = parseFloat(it.qty) || 1;
+        currentQty += 1;
+        it.qty = String(currentQty);
+        it.updatedAt = Date.now();
+        showToast(`${currentLang === 'es' ? 'Añadida unidad' : 'Afegida unitat'}: ${it.name} (${it.qty} ${it.unit || 'ud'})`, "fa-plus");
+      }
+
+      saveToLocalStorage();
+      renderLists();
+      renderStoreTabs();
+      filterCatalogList();
+    }
+
+    function handleCatalogDecrement(id, event) {
+      if (event) event.stopPropagation();
+      const it = items.find(x => x.id === id);
+      if (!it) return;
+
+      let currentQty = parseFloat(it.qty) || 1;
+      if (currentQty > 1) {
+        currentQty -= 1;
+        it.qty = String(currentQty);
+        it.updatedAt = Date.now();
+        showToast(`${currentLang === 'es' ? 'Reducido a' : 'Reduït a'}: ${it.name} (${it.qty} ${it.unit || 'ud'})`, "fa-minus");
+      } else {
+        it.crossed_off = true;
+        it.updatedAt = Date.now();
+        showToast(`${currentLang === 'es' ? 'Quitado de pendientes' : 'Tret de pendents'}: ${it.name}`, "fa-check");
+      }
+
+      saveToLocalStorage();
+      renderLists();
+      renderStoreTabs();
+      filterCatalogList();
+    }
+
     function filterCatalogList() {
       const container = document.getElementById("catalog-items-container");
       const searchInput = document.getElementById("catalog-search-input");
@@ -8055,8 +8122,8 @@
       if (menuBadge) menuBadge.textContent = items.length;
       if (subtitleCount) {
         subtitleCount.textContent = currentLang === 'es'
-          ? `${items.length} artículos totales en la base de datos`
-          : `${items.length} articles totals a la base de dades`;
+          ? `${items.length} artículos en catálogo • Clic sobre un artículo para añadir o sumar unidades`
+          : `${items.length} articles al catàleg • Fes clic sobre un article per afegir o sumar unitats`;
       }
 
       if (!container) return;
@@ -8113,10 +8180,11 @@
         const localizedCategory = it.category ? getCategoryDisplayName(it.category, currentLang) : '';
 
         return `
-          <div class="py-2 px-2.5 hover:bg-gray-50 rounded-xl transition flex items-center justify-between gap-2.5">
+          <div onclick="handleCatalogAdd('${it.id}', event)"
+               class="py-2 px-2.5 hover:bg-emerald-50/60 rounded-xl transition flex items-center justify-between gap-2.5 cursor-pointer select-none group border border-transparent hover:border-emerald-200">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-xs text-gray-900 truncate ${!isPending ? 'text-gray-500' : ''}">${it.name}</span>
+                <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${!isPending ? 'text-gray-500' : ''}">${it.name}</span>
                 <span class="text-[9.5px] font-bold px-1.5 py-0.2 rounded ${storeObj.badgeBg || 'bg-gray-100'} ${storeObj.badgeText || 'text-gray-700'}">${localizedStore}</span>
                 ${localizedCategory ? `<span class="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.2 rounded">${localizedCategory}</span>` : ''}
               </div>
@@ -8126,19 +8194,32 @@
               </div>
             </div>
 
-            <!-- Accions ràpides: Commutar llista / Editar / Esborrar -->
-            <div class="flex items-center gap-1.5 flex-shrink-0">
-              <button onclick="toggleItemCheck('${it.id}'); filterCatalogList();"
-                class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
-                  isPending 
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                    : 'bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 border border-gray-200'
-                }" title="${isPending ? (currentLang === 'es' ? 'Pendiente (toca para tachar)' : 'Pendent a la compra (toca per desmarcar)') : (currentLang === 'es' ? 'Toca para añadir a la cesta' : 'Toca per afegir a la cistella pendent')}">
-                <i class="fa-solid ${isPending ? 'fa-cart-shopping' : 'fa-plus'}"></i>
-                <span class="text-[10px]">${isPending ? (currentLang === 'es' ? 'Pendiente' : 'Pendent') : (currentLang === 'es' ? 'Añadir' : 'Afegir')}</span>
-              </button>
+            <!-- Accions ràpides: Sumar unitats / Restar / Editar -->
+            <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
+              ${isPending ? `
+                <div class="flex items-center gap-1 bg-emerald-50 p-0.5 rounded-lg border border-emerald-200/80">
+                  <button onclick="handleCatalogDecrement('${it.id}', event)" 
+                          title="${currentLang === 'es' ? 'Quitar una unidad' : 'Treure una unitat'}"
+                          class="w-6 h-6 rounded bg-white hover:bg-rose-50 hover:text-rose-600 text-gray-600 flex items-center justify-center text-xs transition shadow-2xs">
+                    <i class="fa-solid fa-minus text-[9px]"></i>
+                  </button>
+                  <span class="text-[10.5px] font-bold text-emerald-900 px-1.5 min-w-[24px] text-center">${it.qty || 1}</span>
+                  <button onclick="handleCatalogAdd('${it.id}', event)" 
+                          title="${currentLang === 'es' ? 'Añadir otra unidad' : 'Afegir una altra unitat'}"
+                          class="w-6 h-6 rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center text-xs transition shadow-2xs">
+                    <i class="fa-solid fa-plus text-[9px]"></i>
+                  </button>
+                </div>
+              ` : `
+                <button onclick="handleCatalogAdd('${it.id}', event)"
+                  class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 hover:border-emerald-600"
+                  title="${currentLang === 'es' ? 'Toca para añadir a la cesta' : 'Toca per afegir a la cistella pendent'}">
+                  <i class="fa-solid fa-plus text-[10px]"></i>
+                  <span class="text-[10.5px]">${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>
+                </button>
+              `}
 
-              <button onclick="closeCatalogModal(); openEditModal('${it.id}');" title="${currentLang === 'es' ? 'Editar artículo' : 'Editar article'}"
+              <button onclick="event.stopPropagation(); closeCatalogModal(); openEditModal('${it.id}');" title="${currentLang === 'es' ? 'Editar artículo' : 'Editar article'}"
                 class="p-1.5 text-gray-400 hover:text-emerald-700 rounded-lg text-xs transition">
                 <i class="fa-solid fa-pencil"></i>
               </button>
@@ -8151,6 +8232,9 @@
     window.openCatalogModal = openCatalogModal;
     window.closeCatalogModal = closeCatalogModal;
     window.filterCatalogList = filterCatalogList;
+    window.handleCatalogAdd = handleCatalogAdd;
+    window.handleCatalogDecrement = handleCatalogDecrement;
+    Object.defineProperty(window, 'items', { get: () => items, set: (val) => { items = val; }, configurable: true });
 
     window.openStatsModal = openStatsModal;
     window.closeStatsModal = closeStatsModal;
