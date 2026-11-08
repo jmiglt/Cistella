@@ -1397,6 +1397,25 @@
     const STORAGE_KEY_COLLAPSED = "cistella_completed_collapsed";
     const STORAGE_KEY_CUSTOM_STORES = "cistella_custom_stores_v1";
 
+    let currentLang = "ca";
+    try {
+      const storedAppLang = localStorage.getItem(STORAGE_KEY_APP_LANG);
+      if (storedAppLang === "ca" || storedAppLang === "es") {
+        currentLang = storedAppLang;
+      } else {
+        const storedVoice = localStorage.getItem(STORAGE_KEY_VOICE_LANG) || "";
+        if (storedVoice.startsWith("es")) currentLang = "es";
+      }
+    } catch (e) {
+      currentLang = "ca";
+    }
+
+    let voiceLanguage = currentLang === "es" ? "es-ES" : "ca-ES";
+    try {
+      const storedVoice = localStorage.getItem(STORAGE_KEY_VOICE_LANG);
+      if (storedVoice) voiceLanguage = storedVoice;
+    } catch (e) {}
+
     // 1. CATÀLEG DE BOTIGUES (Predefinides i extensibles dinàmicament)
     const DEFAULT_STORES = [
       { id: "all", name: "Totes", color: "gray" },
@@ -1868,9 +1887,6 @@
       }
       CATEGORIES = getSortedCategoriesList();
     }
-
-    let currentLang = localStorage.getItem(STORAGE_KEY_APP_LANG) || ((localStorage.getItem(STORAGE_KEY_VOICE_LANG) || "").startsWith("es") ? "es" : "ca");
-    let voiceLanguage = localStorage.getItem(STORAGE_KEY_VOICE_LANG) || (currentLang === "es" ? "es-ES" : "ca-ES");
 
     // DADES INICIALS D'EXEMPLE
     const DEFAULT_SEED_ITEMS = [
@@ -5517,9 +5533,9 @@
     // INSTAL·LACIÓ PWA I SERVICE WORKER
     // ==========================================
     function isRunningStandalone() {
-      return (window.matchMedia('(display-mode: standalone)').matches) ||
-        (window.navigator.standalone === true) ||
-        document.referrer.includes('android-app://');
+      return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+        (window.navigator && window.navigator.standalone === true) ||
+        (typeof document.referrer === 'string' && document.referrer.includes('android-app://'));
     }
 
     if ('serviceWorker' in navigator) {
@@ -5602,34 +5618,6 @@
     function closePwaHelpModal() {
       document.getElementById('pwa-help-modal').classList.add('hidden');
     }
-
-    // INICIALITZACIÓ GLOBAL
-    window.addEventListener("DOMContentLoaded", () => {
-      loadFromLocalStorage();
-      applyLanguageUI();
-      populateSelectOptions();
-      renderStoreTabs();
-      initStoreTabsDesktopScroll();
-      renderLists();
-
-      if (isRunningStandalone()) {
-        const installBtn = document.getElementById('pwa-install-btn');
-        if (installBtn) installBtn.classList.add('hidden');
-        const menuInstallBtn = document.getElementById('menu-install-btn');
-        if (menuInstallBtn) menuInstallBtn.classList.add('hidden');
-      }
-
-      const groupCheck = document.getElementById("menu-group-check");
-      if (groupCheck) {
-        groupCheck.className = groupByCategories
-          ? "fa-solid fa-check text-emerald-600"
-          : "fa-solid fa-xmark text-gray-300";
-      }
-
-      if (typeof initCloudSync === 'function') {
-        initCloudSync();
-      }
-    });
 
     // =========================================================================
     // FASE 4: COMPARTIR LLISTA, SINCRONITZACIÓ EN DIRECTE I ESTADÍSTIQUES
@@ -7071,6 +7059,42 @@
     window.getCategoryDisplayName = getCategoryDisplayName;
     window.getCategoryCanonicalKey = getCategoryCanonicalKey;
     window.getStoreDisplayName = getStoreDisplayName;
+
+    // ==========================================
+    // INICIALITZACIÓ GLOBAL (Tots els mòduls llestos)
+    // ==========================================
+    function initApp() {
+      loadFromLocalStorage();
+      applyLanguageUI();
+      populateSelectOptions();
+      renderStoreTabs();
+      initStoreTabsDesktopScroll();
+      renderLists();
+
+      if (isRunningStandalone()) {
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) installBtn.classList.add('hidden');
+        const menuInstallBtn = document.getElementById('menu-install-btn');
+        if (menuInstallBtn) menuInstallBtn.classList.add('hidden');
+      }
+
+      const groupCheck = document.getElementById("menu-group-check");
+      if (groupCheck) {
+        groupCheck.className = groupByCategories
+          ? "fa-solid fa-check text-emerald-600"
+          : "fa-solid fa-xmark text-gray-300";
+      }
+
+      if (typeof initCloudSync === 'function') {
+        initCloudSync();
+      }
+    }
+
+    if (document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", initApp);
+    } else {
+      initApp();
+    }
 
   </script>
 </body>
