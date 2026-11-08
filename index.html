@@ -1416,6 +1416,16 @@
       if (storedVoice) voiceLanguage = storedVoice;
     } catch (e) {}
 
+    let allStoresViewMode = "stores"; // "stores" (llista vertical de botigues) o "products" (tots els productes)
+    try {
+      const savedMode = localStorage.getItem("cistella_all_view_mode");
+      if (savedMode === "stores" || savedMode === "products") {
+        allStoresViewMode = savedMode;
+      }
+    } catch (e) {
+      allStoresViewMode = "stores";
+    }
+
     // 1. CATÀLEG DE BOTIGUES (Predefinides i extensibles dinàmicament)
     const DEFAULT_STORES = [
       { id: "all", name: "Totes", color: "gray" },
@@ -1441,7 +1451,8 @@
       { id: "forn", name: "Forn", online: false, color: "amber", badgeBg: "bg-amber-50", badgeText: "text-amber-800" },
       { id: "pescaderia", name: "Peixateria", online: false, color: "blue", badgeBg: "bg-blue-50", badgeText: "text-blue-700" },
       { id: "jane", name: "Jané", online: false, color: "teal", badgeBg: "bg-teal-50", badgeText: "text-teal-700" },
-      { id: "bruno", name: "Bruno", online: false, color: "stone", badgeBg: "bg-stone-100", badgeText: "text-stone-700" }
+      { id: "bruno", name: "Bruno", online: false, color: "stone", badgeBg: "bg-stone-100", badgeText: "text-stone-700" },
+      { id: "rosadrudis", name: "Rosa Drudis", online: false, color: "rose", badgeBg: "bg-rose-50", badgeText: "text-rose-700" }
     ];
 
     let STORES = [...DEFAULT_STORES];
@@ -1452,7 +1463,9 @@
       ferreteria: { ca: "Ferreteria", es: "Ferretería" },
       bazar: { ca: "Bazar Xinès", es: "Bazar Chino" },
       pescaderia: { ca: "Peixateria", es: "Pescadería" },
-      forn: { ca: "Forn", es: "Panadería" }
+      forn: { ca: "Forn", es: "Panadería" },
+      bruno: { ca: "Bruno", es: "Bruno" },
+      rosadrudis: { ca: "Rosa Drudis", es: "Rosa Drudis" }
     };
 
     function getStoreDisplayName(storeOrId, lang = currentLang) {
@@ -1495,6 +1508,7 @@
       "Pasta i Llegums": "fa-bowl-rice",
       "Peixateria": "fa-fish",
       "Perfumeria": "fa-pump-soap",
+      "Productes Cabina": "fa-spa",
       "Salses": "fa-jar",
       "Suplements": "fa-dumbbell",
       "General": "fa-basket-shopping"
@@ -1527,6 +1541,7 @@
       "Pasta i Llegums": { ca: "Pasta i Llegums", es: "Pasta y Legumbres" },
       "Peixateria": { ca: "Peixateria", es: "Pescadería" },
       "Perfumeria": { ca: "Perfumeria", es: "Perfumería" },
+      "Productes Cabina": { ca: "Productes Cabina", es: "Productos Cabina" },
       "Salses": { ca: "Salses", es: "Salsas" },
       "Suplements": { ca: "Suplements", es: "Suplementos" },
       "General": { ca: "General", es: "General" },
@@ -1547,6 +1562,7 @@
           return key;
         }
       }
+      if (lower.includes("cabina")) return "Productes Cabina";
       if (lower === "otros" || lower === "general") return "General";
       if (lower === "lacteos") return "Lactis";
       if (lower === "limpieza") return "Neteja";
@@ -1880,6 +1896,7 @@
           const parsed = JSON.parse(stored);
           if (parsed && typeof parsed === 'object') {
             CATEGORY_ICONS = { ...DEFAULT_CATEGORY_ICONS, ...parsed };
+            if (!CATEGORY_ICONS["Productes Cabina"]) CATEGORY_ICONS["Productes Cabina"] = "fa-spa";
           }
         }
       } catch (e) {
@@ -2759,6 +2776,9 @@
         const isActive = store.id === currentStoreFilter;
         const pendingCount = items.filter(it => !it.crossed_off && (store.id === "all" || it.store === store.id)).length;
         const displayName = getStoreDisplayName(store, currentLang);
+        const iconHtml = (store.id === "all" && isActive)
+          ? `<i class="fa-solid ${allStoresViewMode === 'stores' ? 'fa-list-ul' : 'fa-basket-shopping'} text-[9px] opacity-70"></i>`
+          : '';
 
         return `
           <button data-store-id="${store.id}" 
@@ -2768,6 +2788,7 @@
             : 'bg-emerald-800/80 text-emerald-100 hover:bg-emerald-600'
           }">
             <span>${displayName}</span>
+            ${iconHtml}
             ${pendingCount > 0
             ? `<span class="px-1.5 py-0.2 text-[10px] rounded-full ${isActive ? 'bg-emerald-700 text-white' : 'bg-emerald-900 text-emerald-200'}">${pendingCount}</span>`
             : ''}
@@ -2884,7 +2905,24 @@
     }
 
     function setStoreFilter(storeId) {
-      currentStoreFilter = storeId;
+      if (storeId === "all") {
+        if (currentStoreFilter === "all") {
+          allStoresViewMode = allStoresViewMode === "stores" ? "products" : "stores";
+          showToast(
+            allStoresViewMode === "stores"
+              ? (currentLang === "es" ? "Vista: Listas de tiendas" : "Vista: Llistes de botigues")
+              : (currentLang === "es" ? "Vista: Todos los productos" : "Vista: Tots els productes"),
+            allStoresViewMode === "stores" ? "fa-list-ul" : "fa-basket-shopping"
+          );
+        } else {
+          currentStoreFilter = "all";
+          allStoresViewMode = "stores";
+        }
+        try { localStorage.setItem("cistella_all_view_mode", allStoresViewMode); } catch(e){}
+      } else {
+        currentStoreFilter = storeId;
+      }
+
       pendingVisibleLimit = 50;
       completedVisibleLimit = 40;
       saveToLocalStorage();
@@ -2895,6 +2933,13 @@
       if (activeBtn) {
         activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
+    }
+
+    function setAllStoresViewMode(mode) {
+      allStoresViewMode = mode;
+      try { localStorage.setItem("cistella_all_view_mode", allStoresViewMode); } catch(e){}
+      renderStoreTabs();
+      renderLists();
     }
 
     function toggleGrouping() {
@@ -3028,9 +3073,118 @@
       document.getElementById("completed-cost-counter").innerText = completedCost > 0 ? `• ${completedCost.toFixed(2)} €` : "";
       document.getElementById("total-summary-text").innerText = `${pending.length} ${currentLang === 'es' ? 'pendientes' : 'pendents'} (${completed.length} ${currentLang === 'es' ? 'comprados' : 'fets'}) • Total: ${totalCost.toFixed(2)} €`;
 
+      const completedSection = document.getElementById("completed-section");
+      const isAllView = currentStoreFilter === "all";
+
+      // Segmented switcher quan estem a "Totes" (per canviar entre llistes de botigues i tots els productes)
+      const switcherHtml = isAllView ? `
+        <div class="flex items-center justify-center p-1 bg-gray-100 rounded-xl mb-2.5 border border-gray-200/80 shadow-2xs">
+          <button onclick="setAllStoresViewMode('stores')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${allStoresViewMode === 'stores' ? 'bg-white text-emerald-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}">
+            <i class="fa-solid fa-list-ul text-[11px]"></i>
+            <span>${currentLang === 'es' ? 'Listas de tiendas' : 'Llistes de botigues'}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${allStoresViewMode === 'stores' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}">${STORES.filter(s => s.id !== 'all').length}</span>
+          </button>
+          <button onclick="setAllStoresViewMode('products')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${allStoresViewMode === 'products' ? 'bg-white text-emerald-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}">
+            <i class="fa-solid fa-basket-shopping text-[11px]"></i>
+            <span>${currentLang === 'es' ? 'Todos los productos' : 'Tots els productes'}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${allStoresViewMode === 'products' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}">${pending.length}</span>
+          </button>
+        </div>
+      ` : "";
+
+      // VISTA VERTICAL DE LLISTES / BOTIGUES (QUAN S'ESTÀ A "TOTES" EN MODE STORES I NO HI HA CERCA)
+      if (isAllView && allStoresViewMode === "stores" && !searchQuery) {
+        if (completedSection) completedSection.classList.add("hidden");
+
+        const pendingCounterEl = document.getElementById("pending-counter");
+        if (pendingCounterEl) {
+          pendingCounterEl.innerText = currentLang === 'es'
+            ? `Listas y tiendas (${STORES.filter(s => s.id !== 'all').length})`
+            : `Llistes i botigues (${STORES.filter(s => s.id !== 'all').length})`;
+        }
+
+        const pendingCostEl = document.getElementById("pending-cost-counter");
+        if (pendingCostEl) {
+          pendingCostEl.innerText = totalCost > 0 ? `${totalCost.toFixed(2)} € total` : "";
+        }
+
+        const otherStores = STORES.filter(s => s.id !== "all");
+        const storesData = otherStores.map(st => {
+          const pCount = items.filter(it => !it.crossed_off && it.store === st.id).length;
+          const cCount = items.filter(it => it.crossed_off && it.store === st.id).length;
+          const sCost = items.filter(it => it.store === st.id).reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
+          return {
+            store: st,
+            name: getStoreDisplayName(st, currentLang),
+            pendingCount: pCount,
+            completedCount: cCount,
+            totalCount: pCount + cCount,
+            cost: sCost
+          };
+        });
+
+        // Ordenar botigues: primer les que tenen articles pendents (més pendents primer), després alfabèticament
+        storesData.sort((a, b) => {
+          if (a.pendingCount > 0 && b.pendingCount === 0) return -1;
+          if (b.pendingCount > 0 && a.pendingCount === 0) return 1;
+          if (a.pendingCount !== b.pendingCount) return b.pendingCount - a.pendingCount;
+          return a.name.localeCompare(b.name, currentLang);
+        });
+
+        let storesListHtml = storesData.map(sd => {
+          const st = sd.store;
+          return `
+            <div onclick="setStoreFilter('${st.id}')"
+                 class="group bg-white hover:bg-emerald-50/50 active:bg-emerald-100/50 border border-gray-200 hover:border-emerald-300 rounded-2xl p-3 shadow-2xs hover:shadow-xs transition flex items-center justify-between gap-3 cursor-pointer select-none">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${st.badgeBg || 'bg-gray-100'} ${st.badgeText || 'text-gray-700'} shadow-2xs border border-black/5">
+                  <i class="fa-solid fa-store"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-bold text-sm text-gray-900 group-hover:text-emerald-800 transition truncate">${sd.name}</h4>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+                    ${sd.pendingCount > 0 
+                      ? `<span class="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid fa-cart-shopping text-[9px]"></i> ${sd.pendingCount} ${currentLang === 'es' ? 'pendientes' : 'pendents'}</span>` 
+                      : `<span class="inline-flex items-center gap-1 font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid fa-check text-[9px]"></i> ${currentLang === 'es' ? 'Sin pendientes' : 'Cap pendent'}</span>`
+                    }
+                    ${sd.completedCount > 0 ? `<span class="text-[11px] text-gray-400">• ${sd.completedCount} ${currentLang === 'es' ? 'comprados' : 'fets'}</span>` : ''}
+                    ${sd.cost > 0 ? `<span class="text-[11px] font-semibold text-gray-700">• ${sd.cost.toFixed(2)} €</span>` : ''}
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <span class="w-7 h-7 rounded-full bg-gray-50 group-hover:bg-emerald-100 text-gray-400 group-hover:text-emerald-700 flex items-center justify-center text-xs transition">
+                  <i class="fa-solid fa-chevron-right text-[11px]"></i>
+                </span>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        storesListHtml += `
+          <div class="pt-2 flex items-center gap-2">
+            <button onclick="promptCreateNewStore()" class="flex-1 py-2.5 px-3 bg-white hover:bg-emerald-50 active:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl border border-dashed border-emerald-300 flex items-center justify-center gap-2 transition shadow-2xs">
+              <i class="fa-solid fa-folder-plus text-emerald-600"></i>
+              <span>${currentLang === 'es' ? '+ Nueva lista / tienda' : '+ Nova llista / botiga'}</span>
+            </button>
+            <button onclick="openManageStoresModal()" class="py-2.5 px-3 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-600 font-bold text-xs rounded-xl border border-gray-200 flex items-center justify-center gap-1.5 transition shadow-2xs" title="${currentLang === 'es' ? 'Gestionar orden' : 'Gestionar ordre'}">
+              <i class="fa-solid fa-arrow-down-wide-short text-gray-500"></i>
+              <span>${currentLang === 'es' ? 'Gestionar' : 'Gestionar'}</span>
+            </button>
+          </div>
+        `;
+
+        pendingContainer.innerHTML = switcherHtml + storesListHtml;
+        return;
+      }
+
+      if (completedSection) completedSection.classList.remove("hidden");
+
       // Render Pendents (amb límit progressiu per protegir el rendiment del navegador)
       if (pending.length === 0) {
-        pendingContainer.innerHTML = `
+        pendingContainer.innerHTML = switcherHtml + `
           <div class="p-6 text-center text-gray-400 space-y-1 w-full bg-white rounded-2xl border border-gray-200 shadow-2xs">
             <i class="fa-solid fa-clipboard-check text-2xl text-emerald-500/50"></i>
             <p class="text-sm font-bold text-gray-600">${t('emptyPendingTitle')}</p>
@@ -3088,7 +3242,7 @@
             </div>
           `;
         }
-        pendingContainer.innerHTML = html;
+        pendingContainer.innerHTML = switcherHtml + html;
       } else {
         const visiblePending = pending.slice(0, pendingVisibleLimit);
         let pendingHTML = visiblePending.map(item => createItemRowHTML(item, false, false)).join("");
@@ -3099,7 +3253,7 @@
             </div>
           `;
         }
-        pendingContainer.innerHTML = pendingHTML;
+        pendingContainer.innerHTML = switcherHtml + pendingHTML;
       }
 
       // Render Comprats (Fase 3: Optimitzat contra congelació amb càrrega sota demanda)
@@ -4916,6 +5070,16 @@
                 it.category = "Perfumeria";
                 hadMigration = true;
               }
+              // Correcció d'articles de Rosa Drudis agrupats erròniament a Bruno
+              if (it.store === "bruno" && /rosa|drudis/i.test(lower + " " + (it.note || ""))) {
+                it.store = "rosadrudis";
+                hadMigration = true;
+              }
+              // Mantenir la categoria Productes Cabina
+              if (/cabina/i.test(lower + " " + (it.note || "") + " " + (it.category || ""))) {
+                it.category = "Productes Cabina";
+                hadMigration = true;
+              }
             });
             if (hadMigration) {
               saveToLocalStorage();
@@ -5187,8 +5351,9 @@
         "ikea": "bazar",
         "bureau": "bazar",
         "bruno": "bruno",
-        "drudis": "bruno",
-        "cabina": "bruno",
+        "rosa drudis": "rosadrudis",
+        "drudis": "rosadrudis",
+        "rosa": "rosadrudis",
         "esclat": "esclat",
         "bonpreu": "bonpreu",
         "colet": "ferreteria",
@@ -5227,7 +5392,10 @@
         "12 lactis formatge": "Formatges",
         "13.1 desayuno": "Esmorzar", "13.2 forn": "Forn",
         "electricidad": "Electricitat", "medicamentos": "Medicaments",
-        "suplements": "Suplements", "productos cabina": "Perfumeria"
+        "suplements": "Suplements",
+        "productos cabina": "Productes Cabina",
+        "productes cabina": "Productes Cabina",
+        "cabina": "Productes Cabina"
       };
 
       const shoppingLists = ogData.shopping_lists || [];
@@ -7059,6 +7227,7 @@
     window.getCategoryDisplayName = getCategoryDisplayName;
     window.getCategoryCanonicalKey = getCategoryCanonicalKey;
     window.getStoreDisplayName = getStoreDisplayName;
+    window.setAllStoresViewMode = setAllStoresViewMode;
 
     // ==========================================
     // INICIALITZACIÓ GLOBAL (Tots els mòduls llestos)
