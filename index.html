@@ -683,8 +683,9 @@
 
         <div>
           <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblCategory">Categoria</label>
-          <select id="edit-category"
+          <select id="edit-category" onchange="updateEditCategoryHint(this.value)"
             class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2 bg-white focus:outline-none"></select>
+          <p id="edit-category-hint" class="text-[10.5px] text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 rounded px-2 py-1 mt-1 italic leading-tight hidden"></p>
         </div>
       </div>
 
@@ -1547,78 +1548,504 @@
       return found ? found.name : (id || "");
     }
 
-    // 2. COL·LECCIÓ ESTÀNDARD DE CATEGORIES, TRADUCCIONS I ICONES
-    const DEFAULT_CATEGORY_ICONS = {
-      "Aperitius": "fa-cookie",
-      "Bebè": "fa-baby",
-      "Begudes": "fa-bottle-water",
-      "Cafè i Infusions": "fa-mug-saucer",
-      "Carnisseria": "fa-drumstick-bite",
-      "Congelats": "fa-snowflake",
-      "Cuina": "fa-kitchen-set",
-      "Electricitat": "fa-bolt",
-      "Embotits": "fa-bacon",
-      "Esmorzar": "fa-mug-hot",
-      "Espècies": "fa-mortar-pestle",
-      "Farines i Reposteria": "fa-wheat-awn",
-      "Farmaciola i Salut": "fa-pills",
-      "Formatges": "fa-cheese",
-      "Forn": "fa-bread-slice",
-      "Fruita i Verdura": "fa-apple-whole",
-      "Fruits Secs": "fa-seedling",
-      "Lactis": "fa-cow",
-      "Llar": "fa-house",
-      "Mascotes": "fa-paw",
-      "Medicaments": "fa-pills",
-      "Neteja": "fa-spray-can-sparkles",
-      "Oli i Vinagre": "fa-bottle-droplet",
-      "Pasta i Llegums": "fa-bowl-rice",
-      "Peixateria": "fa-fish",
-      "Perfumeria": "fa-pump-soap",
-      "Productes Cabina": "fa-spa",
-      "Salses": "fa-jar",
-      "Suplements": "fa-dumbbell",
-      "General": "fa-basket-shopping"
+    // 2. ESTRUCTURA DE CATEGORIES PRINCIPALS, SUBCATEGORIES I REFERÈNCIES
+    const MAIN_CATEGORIES = [
+      {
+        id: "frescos",
+        name: { ca: "1. Frescos i Rebost del dia", es: "1. Frescos y Despensa del día" },
+        icon: "fa-carrot",
+        subcategories: [
+          {
+            id: "Fruita i Verdura",
+            name: { ca: "Fruita i Verdura", es: "Fruta y Verdura" },
+            icon: "fa-apple-whole",
+            examples: {
+              ca: "Fruita, Verdures, Amanides preparades, Herbes aromàtiques",
+              es: "Fruta, Verduras, Ensaladas preparadas, Hierbas aromáticas"
+            }
+          },
+          {
+            id: "Carnisseria",
+            name: { ca: "Carnisseria", es: "Carnicería" },
+            icon: "fa-drumstick-bite",
+            examples: {
+              ca: "Pollastre i au, Porc, Vedella, Xai i conill, Carn picada i salsitxes",
+              es: "Pollo y ave, Cerdo, Ternera, Cordero y conejo, Carne picada y salchichas"
+            }
+          },
+          {
+            id: "Peixateria",
+            name: { ca: "Peixateria", es: "Pescadería" },
+            icon: "fa-fish",
+            examples: {
+              ca: "Peix fresc, Marisc i closca, Fumats i salaons",
+              es: "Pescado fresco, Marisco y concha, Ahumados y salazones"
+            }
+          },
+          {
+            id: "Xarcuteria i Formatges",
+            name: { ca: "Xarcuteria i Formatges", es: "Charcutería y Quesos" },
+            icon: "fa-cheese",
+            examples: {
+              ca: "Formatges, Pernil i embotits, Patés i embotits cuits",
+              es: "Quesos, Jamón y embutidos, Patés y embutidos cocidos"
+            }
+          },
+          {
+            id: "Forn i Pastisseria",
+            name: { ca: "Forn i Pastisseria", es: "Panadería y Pastelería" },
+            icon: "fa-bread-slice",
+            examples: {
+              ca: "Pa del dia, Pa de motlle i torrats, Brioixeria, Pastissos",
+              es: "Pan del día, Pan de molde y tostadas, Bollería, Pasteles"
+            }
+          }
+        ]
+      },
+      {
+        id: "alimentacio",
+        name: { ca: "2. Alimentació General i Rebost", es: "2. Alimentación General y Despensa" },
+        icon: "fa-bowl-rice",
+        subcategories: [
+          {
+            id: "Arròs, Pasta i Llegums",
+            name: { ca: "Arròs, Pasta i Llegums", es: "Arroz, Pasta y Legumbres" },
+            icon: "fa-bowl-rice",
+            examples: {
+              ca: "Arròs, Pasta seca, Llegums cuits, Llegums secs",
+              es: "Arroz, Pasta seca, Legumbres cocidas, Legumbres secas"
+            }
+          },
+          {
+            id: "Olis, Salses i Condiments",
+            name: { ca: "Olis, Salses i Condiments", es: "Aceites, Salsas y Condimentos" },
+            icon: "fa-bottle-droplet",
+            examples: {
+              ca: "Oli d'oliva i gira-sol, Vinagre, Sal i espècies, Salses i tomàquet",
+              es: "Aceite de oliva y girasol, Vinagre, Sal y especias, Salsas y tomate"
+            }
+          },
+          {
+            id: "Conserves",
+            name: { ca: "Conserves", es: "Conservas" },
+            icon: "fa-box-archive",
+            examples: {
+              ca: "Conserves de peix, Conserves vegetals, Olives i adobs",
+              es: "Conservas de pescado, Conservas vegetales, Aceitunas y encurtidos"
+            }
+          },
+          {
+            id: "Esmorzars i Berenars",
+            name: { ca: "Esmorzars i Berenars", es: "Desayunos y Meriendas" },
+            icon: "fa-mug-hot",
+            examples: {
+              ca: "Cafè i infusions, Cereals, Galetes, Cacau i xocolates, Melmelades, Fruits secs",
+              es: "Café e infusiones, Cereales, Galletas, Cacao y chocolates, Mermeladas, Frutos secos"
+            }
+          },
+          {
+            id: "Farines i Rebosteria",
+            name: { ca: "Farines i Rebosteria", es: "Harinas y Repostería" },
+            icon: "fa-wheat-awn",
+            examples: {
+              ca: "Farina, Sucre i edulcorants, Llevat i preparats",
+              es: "Harina, Azúcar y edulcorantes, Levadura y preparados"
+            }
+          }
+        ]
+      },
+      {
+        id: "lactis",
+        name: { ca: "3. Lactis, Ous i Refrigerats", es: "3. Lácteos, Huevos y Refrigerados" },
+        icon: "fa-cow",
+        subcategories: [
+          {
+            id: "Llets i Alternatives",
+            name: { ca: "Llets i Alternatives", es: "Leches y Alternativas" },
+            icon: "fa-wine-bottle",
+            examples: {
+              ca: "Llet sencera/desnatada, Llets sense lactosa, Begudes vegetals",
+              es: "Leche entera/desnatada, Leches sin lactosa, Bebidas vegetales"
+            }
+          },
+          {
+            id: "Iogurts i Postres",
+            name: { ca: "Iogurts i Postres", es: "Yogures y Postres" },
+            icon: "fa-spoon",
+            examples: {
+              ca: "Iogurts naturals/sabors, Iogurts bífidus, Postres làcties",
+              es: "Yogures naturales/sabores, Yogures bífidus, Postres lácteos"
+            }
+          },
+          {
+            id: "Mantegues i Nates",
+            name: { ca: "Mantegues i Nates", es: "Mantequillas y Natas" },
+            icon: "fa-bread-slice",
+            examples: {
+              ca: "Mantega, Margarina, Nata per cuinar/muntar",
+              es: "Mantequilla, Margarina, Nata para cocinar/montar"
+            }
+          },
+          {
+            id: "Ous",
+            name: { ca: "Ous", es: "Huevos" },
+            icon: "fa-egg",
+            examples: {
+              ca: "Ous blancs, Ous rossos, Ous ecològics",
+              es: "Huevos blancos, Huevos rubios, Huevos ecológicos"
+            }
+          },
+          {
+            id: "Plats Preparats Refrigerats",
+            name: { ca: "Plats Preparats Refrigerats", es: "Platos Preparados Refrigerados" },
+            icon: "fa-pizza-slice",
+            examples: {
+              ca: "Pizzes i masses, Cremes i sopes, Plats cuinats",
+              es: "Pizzas y masas, Cremas y sopas, Platos cocinados"
+            }
+          }
+        ]
+      },
+      {
+        id: "congelats",
+        name: { ca: "4. Congelats", es: "4. Congelados" },
+        icon: "fa-snowflake",
+        subcategories: [
+          {
+            id: "Verdures i Patates Congelades",
+            name: { ca: "Verdures i Patates", es: "Verduras y Patatas" },
+            icon: "fa-cloud-meatball",
+            examples: {
+              ca: "Verdures congelades, Patates prefrigides",
+              es: "Verduras congeladas, Patatas prefritas"
+            }
+          },
+          {
+            id: "Peix i Marisc Congelat",
+            name: { ca: "Peix i Marisc Congelat", es: "Pescado y Marisco Congelado" },
+            icon: "fa-fish",
+            examples: {
+              ca: "Filets de peix, Marisc, Arrebossats i varetes",
+              es: "Filetes de pescado, Marisco, Rebozados y varitas"
+            }
+          },
+          {
+            id: "Plats Cuinats Congelats",
+            name: { ca: "Plats Cuinats Congelats", es: "Platos Cocinados Congelados" },
+            icon: "fa-utensils",
+            examples: {
+              ca: "Pizzes congelades, Lasanyes, Canelons, Croquetes",
+              es: "Pizzas congeladas, Lasañas, Canelones, Croquetas"
+            }
+          },
+          {
+            id: "Gelats i Postres",
+            name: { ca: "Gelats i Postres", es: "Helados y Postres" },
+            icon: "fa-ice-cream",
+            examples: {
+              ca: "Gelats familiars, Talls, Gelats individuals, Gel",
+              es: "Helados familiares, Barras de helado, Helados individuales, Hielo"
+            }
+          }
+        ]
+      },
+      {
+        id: "begudes",
+        name: { ca: "5. Begudes", es: "5. Bebidas" },
+        icon: "fa-bottle-water",
+        subcategories: [
+          {
+            id: "Aigua i Sucs",
+            name: { ca: "Aigua i Sucs", es: "Agua y Zumos" },
+            icon: "fa-glass-water",
+            examples: {
+              ca: "Aigua mineral, Aigua amb gas, Sucs de fruites",
+              es: "Agua mineral, Agua con gas, Zumos de frutas"
+            }
+          },
+          {
+            id: "Refrescos i Encoratjadors",
+            name: { ca: "Refrescos i Encoratjadors", es: "Refrescos y Energéticas" },
+            icon: "fa-bolt",
+            examples: {
+              ca: "Refrescos de cola/llimona, Tòniques, Begudes energètiques",
+              es: "Refrescos de cola/limón, Tónicas, Bebidas energéticas"
+            }
+          },
+          {
+            id: "Cerveses",
+            name: { ca: "Cerveses", es: "Cervezas" },
+            icon: "fa-beer-mug-empty",
+            examples: {
+              ca: "Cerveses nacionals, Cerveses d'importació, Cerveses sense alcohol",
+              es: "Cervezas nacionales, Cervezas de importación, Cervezas sin alcohol"
+            }
+          },
+          {
+            id: "Vins i Caves",
+            name: { ca: "Vins i Caves", es: "Vinos y Cavas" },
+            icon: "fa-wine-glass",
+            examples: {
+              ca: "Vi negre, Vi blanc, Cava i xampany",
+              es: "Vino tinto, Vino blanco, Cava y champán"
+            }
+          }
+        ]
+      },
+      {
+        id: "neteja",
+        name: { ca: "6. Neteja i Llar", es: "6. Limpieza y Hogar" },
+        icon: "fa-spray-can-sparkles",
+        subcategories: [
+          {
+            id: "Bugada",
+            name: { ca: "Bugada", es: "Colada y Ropa" },
+            icon: "fa-shirt",
+            examples: {
+              ca: "Detergent roba, Suavitzant, Netejadors de taques",
+              es: "Detergente ropa, Suavizante, Quitamanchas"
+            }
+          },
+          {
+            id: "Neteja de la Llar",
+            name: { ca: "Neteja de la Llar", es: "Limpieza del Hogar" },
+            icon: "fa-soap",
+            examples: {
+              ca: "Neteja-terres, Rentavaixelles, Multiús i desgreixadors, Lleixiu",
+              es: "Fregasuelos, Lavavajillas, Multiusos y desengrasantes, Lejía"
+            }
+          },
+          {
+            id: "Utillatge de Llar",
+            name: { ca: "Utillatge de Llar", es: "Útiles de Hogar y Cocina" },
+            icon: "fa-toilet-paper",
+            examples: {
+              ca: "Paper de cuina, Bosses de brossa, Fregalls i draps, Paper d'alumini i film",
+              es: "Papel de cocina, Bolsas de basura, Estropajos y bayetas, Papel aluminio y film"
+            }
+          }
+        ]
+      },
+      {
+        id: "higiene",
+        name: { ca: "7. Higiene i Cura Personal", es: "7. Higiene y Cuidado Personal" },
+        icon: "fa-pump-soap",
+        subcategories: [
+          {
+            id: "Higiene Corporal",
+            name: { ca: "Higiene Corporal", es: "Higiene Corporal" },
+            icon: "fa-shower",
+            examples: {
+              ca: "Gel de bany, Sabó de mans, Desodorants",
+              es: "Gel de baño, Jabón de manos, Desodorantes"
+            }
+          },
+          {
+            id: "Cura del Cabell",
+            name: { ca: "Cura del Cabell", es: "Cuidado del Cabello" },
+            icon: "fa-spray-can",
+            examples: {
+              ca: "Xampú, Suavitzant i mascaretes, Fixadors",
+              es: "Champú, Suavizante y mascarillas, Fijadores"
+            }
+          },
+          {
+            id: "Higiene Bucal",
+            name: { ca: "Higiene Bucal", es: "Higiene Bucal" },
+            icon: "fa-tooth",
+            examples: {
+              ca: "Pasta de dents, Raspalls de dents, Col·lutori",
+              es: "Pasta de dientes, Cepillos de dientes, Colutorio"
+            }
+          },
+          {
+            id: "Cel·luloses i Íntim",
+            name: { ca: "Cel·luloses i Íntim", es: "Celulosas e Íntimo" },
+            icon: "fa-toilet-paper-slash",
+            examples: {
+              ca: "Paper higiènic, Compreses i tampons, Mocadors",
+              es: "Papel higiénico, Compresas y tampones, Pañuelos"
+            }
+          },
+          {
+            id: "Cosmètica",
+            name: { ca: "Cosmètica", es: "Cosmética" },
+            icon: "fa-spa",
+            examples: {
+              ca: "Cremes facials, Cremes corporals, Protecció solar, Maquillatge",
+              es: "Cremas faciales, Cremas corporales, Protección solar, Maquillaje"
+            }
+          }
+        ]
+      },
+      {
+        id: "bebes_mascotes",
+        name: { ca: "8. Bebès i Mascotes", es: "8. Bebés y Mascotas" },
+        icon: "fa-paw",
+        subcategories: [
+          {
+            id: "Nadons",
+            name: { ca: "Nadons", es: "Bebés" },
+            icon: "fa-baby",
+            examples: {
+              ca: "Bolquers, Tovalloletes, Llet infantil, Potets i farinetes",
+              es: "Pañales, Toallitas, Leche infantil, Potitos y papillas"
+            }
+          },
+          {
+            id: "Mascotes",
+            name: { ca: "Mascotes", es: "Mascotas" },
+            icon: "fa-paw",
+            examples: {
+              ca: "Menjar per a gossos, Menjar per a gats, Sorra de gat, Snacks",
+              es: "Comida para perros, Comida para gatos, Arena de gato, Snacks"
+            }
+          }
+        ]
+      },
+      {
+        id: "salut_cabina",
+        name: { ca: "9. Salut, Cabina i Benestar", es: "9. Salud, Cabina y Bienestar" },
+        icon: "fa-heart-pulse",
+        subcategories: [
+          {
+            id: "Productes Cabina",
+            name: { ca: "Productes Cabina", es: "Productos Cabina" },
+            icon: "fa-spa",
+            examples: {
+              ca: "Tractaments estètics, Cabina, Cremes professionals, Esmalts",
+              es: "Tratamientos estéticos, Cabina, Cremas profesionales, Esmaltes"
+            }
+          },
+          {
+            id: "Farmàcia i Salut",
+            name: { ca: "Farmàcia i Salut", es: "Farmacia y Salud" },
+            icon: "fa-pills",
+            examples: {
+              ca: "Medicaments, Farmaciola, Gases, Alcohol, Tiritas",
+              es: "Medicamentos, Botiquín, Gasas, Alcohol, Tiritas"
+            }
+          },
+          {
+            id: "Suplements i Dietètica",
+            name: { ca: "Suplements i Dietètica", es: "Suplementos y Dietética" },
+            icon: "fa-dumbbell",
+            examples: {
+              ca: "Vitamines, Proteïnes, Col·lagen, Suplements nutricionals",
+              es: "Vitaminas, Proteínas, Colágeno, Suplementos nutricionales"
+            }
+          }
+        ]
+      },
+      {
+        id: "bricolatge_altres",
+        name: { ca: "10. Bricolatge i Altres", es: "10. Bricolaje y Otros" },
+        icon: "fa-toolbox",
+        subcategories: [
+          {
+            id: "Bricolatge i Eines",
+            name: { ca: "Bricolatge i Eines", es: "Bricolaje y Herramientas" },
+            icon: "fa-wrench",
+            examples: {
+              ca: "Piles, Bombetes, Eines, Cargols, Ferralleria",
+              es: "Pilas, Bombillas, Herramientas, Tornillos, Ferretería"
+            }
+          },
+          {
+            id: "Papereria i Basar",
+            name: { ca: "Papereria i Basar", es: "Papelería y Bazar" },
+            icon: "fa-pen-ruler",
+            examples: {
+              ca: "Llibretes, Bolígrafs, Adhesius, Articles de basar",
+              es: "Libretas, Bolígrafos, Adhesivos, Artículos de bazar"
+            }
+          },
+          {
+            id: "General",
+            name: { ca: "General", es: "General" },
+            icon: "fa-basket-shopping",
+            examples: {
+              ca: "Sense classificar, Articles diversos",
+              es: "Sin clasificar, Artículos varios"
+            }
+          }
+        ]
+      }
+    ];
+
+    // MAPATGES HISTÒRICS PER A COMPATIBILITAT AMB ARTICLES ANTERIORS
+    const LEGACY_CAT_ALIASES = {
+      "Lactis": "Llets i Alternatives",
+      "Formatges": "Xarcuteria i Formatges",
+      "Embotits": "Xarcuteria i Formatges",
+      "Forn": "Forn i Pastisseria",
+      "Pasta i Llegums": "Arròs, Pasta i Llegums",
+      "Oli i Vinagre": "Olis, Salses i Condiments",
+      "Salses": "Olis, Salses i Condiments",
+      "Espècies": "Olis, Salses i Condiments",
+      "Esmorzar": "Esmorzars i Berenars",
+      "Cafè i Infusions": "Esmorzars i Berenars",
+      "Fruits Secs": "Esmorzars i Berenars",
+      "Farines i Reposteria": "Farines i Rebosteria",
+      "Cuina": "Utillatge de Llar",
+      "Neteja": "Neteja de la Llar",
+      "Perfumeria": "Cosmètica",
+      "Farmaciola i Salut": "Farmàcia i Salut",
+      "Medicaments": "Farmàcia i Salut",
+      "Suplements": "Suplements i Dietètica",
+      "Electricitat": "Bricolatge i Eines",
+      "Llar": "Utillatge de Llar",
+      "Bebè": "Nadons",
+      "Aperitius": "Conserves",
+      "Altres": "General"
     };
 
-    const CATEGORY_TRANSLATIONS = {
-      "Aperitius": { ca: "Aperitius", es: "Aperitivos" },
-      "Bebè": { ca: "Bebè", es: "Bebé" },
-      "Begudes": { ca: "Begudes", es: "Bebidas" },
-      "Cafè i Infusions": { ca: "Cafè i Infusions", es: "Café e Infusiones" },
-      "Carnisseria": { ca: "Carnisseria", es: "Carnicería" },
-      "Congelats": { ca: "Congelats", es: "Congelados" },
-      "Cuina": { ca: "Cuina", es: "Cocina" },
-      "Electricitat": { ca: "Electricitat", es: "Electricidad" },
-      "Embotits": { ca: "Embotits", es: "Embutidos" },
-      "Esmorzar": { ca: "Esmorzar", es: "Desayuno" },
-      "Espècies": { ca: "Espècies", es: "Especias" },
-      "Farines i Reposteria": { ca: "Farines i Reposteria", es: "Harinas y Repostería" },
-      "Farmaciola i Salut": { ca: "Farmaciola i Salut", es: "Botiquín y Salud" },
-      "Formatges": { ca: "Formatges", es: "Quesos" },
-      "Forn": { ca: "Forn", es: "Panadería" },
-      "Fruita i Verdura": { ca: "Fruita i Verdura", es: "Fruta y Verdura" },
-      "Fruits Secs": { ca: "Fruits Secs", es: "Frutos Secos" },
-      "Lactis": { ca: "Lactis", es: "Lácteos" },
-      "Llar": { ca: "Llar", es: "Hogar" },
-      "Mascotes": { ca: "Mascotes", es: "Mascotas" },
-      "Medicaments": { ca: "Medicaments", es: "Medicamentos" },
-      "Neteja": { ca: "Neteja", es: "Limpieza" },
-      "Oli i Vinagre": { ca: "Oli i Vinagre", es: "Aceite y Vinagre" },
-      "Pasta i Llegums": { ca: "Pasta i Llegums", es: "Pasta y Legumbres" },
-      "Peixateria": { ca: "Peixateria", es: "Pescadería" },
-      "Perfumeria": { ca: "Perfumeria", es: "Perfumería" },
-      "Productes Cabina": { ca: "Productes Cabina", es: "Productos Cabina" },
-      "Salses": { ca: "Salses", es: "Salsas" },
-      "Suplements": { ca: "Suplements", es: "Suplementos" },
-      "General": { ca: "General", es: "General" },
-      "Altres": { ca: "Altres", es: "Otros" }
-    };
+    // GENERACIÓ DINÀMICA DE CONSTANTS A PARTIR DE MAIN_CATEGORIES
+    const DEFAULT_CATEGORY_ICONS = {};
+    const CATEGORY_TRANSLATIONS = {};
+    const CATEGORY_EXAMPLES = {};
+    const CATEGORY_TO_MAIN = {};
+
+    MAIN_CATEGORIES.forEach(mainCat => {
+      mainCat.subcategories.forEach(sub => {
+        DEFAULT_CATEGORY_ICONS[sub.id] = sub.icon;
+        CATEGORY_TRANSLATIONS[sub.id] = sub.name;
+        CATEGORY_EXAMPLES[sub.id] = sub.examples;
+        CATEGORY_TO_MAIN[sub.id] = mainCat;
+      });
+    });
+
+    // Mantenir compatibilitat amb àlies anteriors
+    for (const [oldKey, newKey] of Object.entries(LEGACY_CAT_ALIASES)) {
+      if (!DEFAULT_CATEGORY_ICONS[oldKey] && DEFAULT_CATEGORY_ICONS[newKey]) {
+        DEFAULT_CATEGORY_ICONS[oldKey] = DEFAULT_CATEGORY_ICONS[newKey];
+      }
+      if (!CATEGORY_TRANSLATIONS[oldKey] && CATEGORY_TRANSLATIONS[newKey]) {
+        CATEGORY_TRANSLATIONS[oldKey] = CATEGORY_TRANSLATIONS[newKey];
+      }
+    }
+
+    function getCategorySortIndex(catKey) {
+      const canonical = getCategoryCanonicalKey(catKey);
+      let mainIdx = 999;
+      let subIdx = 999;
+      for (let i = 0; i < MAIN_CATEGORIES.length; i++) {
+        const m = MAIN_CATEGORIES[i];
+        const sIdx = m.subcategories.findIndex(s => s.id === canonical || s.id === catKey);
+        if (sIdx !== -1) {
+          mainIdx = i;
+          subIdx = sIdx;
+          break;
+        }
+      }
+      return { mainIdx, subIdx };
+    }
 
     function getCategoryCanonicalKey(rawCat) {
       if (!rawCat) return "General";
       const trimmed = String(rawCat).trim();
       if (CATEGORY_TRANSLATIONS[trimmed]) return trimmed;
+      if (LEGACY_CAT_ALIASES[trimmed]) return LEGACY_CAT_ALIASES[trimmed];
 
       const lower = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       for (const [key, trans] of Object.entries(CATEGORY_TRANSLATIONS)) {
@@ -1629,13 +2056,22 @@
           return key;
         }
       }
+
+      for (const [legacyKey, newKey] of Object.entries(LEGACY_CAT_ALIASES)) {
+        const legNorm = legacyKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (lower === legNorm) return newKey;
+      }
+
       if (lower.includes("cabina")) return "Productes Cabina";
       if (lower === "otros" || lower === "general") return "General";
-      if (lower === "lacteos") return "Lactis";
-      if (lower === "limpieza") return "Neteja";
-      if (lower === "fruteria" || lower === "verduras") return "Fruita i Verdura";
-      if (lower === "pescaderia") return "Peixateria";
-      if (lower === "panaderia") return "Forn";
+      if (lower === "lacteos" || lower.includes("lacti")) return "Llets i Alternatives";
+      if (lower === "limpieza" || lower.includes("neteja")) return "Neteja de la Llar";
+      if (lower.includes("fruita") || lower.includes("fruta") || lower.includes("verdur")) return "Fruita i Verdura";
+      if (lower.includes("pescad") || lower.includes("peix")) return "Peixateria";
+      if (lower.includes("panad") || lower.includes("forn")) return "Forn i Pastisseria";
+      if (lower.includes("carn")) return "Carnisseria";
+      if (lower.includes("bebida") || lower.includes("beguda")) return "Aigua i Sucs";
+      if (lower.includes("congelad") || lower.includes("congelat")) return "Plats Cuinats Congelats";
       return trimmed;
     }
 
@@ -1646,6 +2082,16 @@
         return CATEGORY_TRANSLATIONS[canonical][lang];
       }
       return rawCat;
+    }
+
+    function getCategoryExamples(rawCat, lang = currentLang) {
+      if (!rawCat) return "";
+      const canonical = getCategoryCanonicalKey(rawCat);
+      const exObj = CATEGORY_EXAMPLES[canonical] || CATEGORY_EXAMPLES[rawCat];
+      if (exObj) {
+        return exObj[lang] || exObj.ca || "";
+      }
+      return "";
     }
 
     function getCategoryIcon(rawCat) {
@@ -1960,11 +2406,13 @@
     function getSortedCategoriesList() {
       const all = Object.keys(CATEGORY_ICONS);
       return all.sort((a, b) => {
-        const nameA = getCategoryDisplayName(a, currentLang);
-        const nameB = getCategoryDisplayName(b, currentLang);
-        if (a === "General" || nameA === "General") return 1;
-        if (b === "General" || nameB === "General") return -1;
-        return nameA.localeCompare(nameB, currentLang);
+        if (a === "General") return 1;
+        if (b === "General") return -1;
+        const posA = getCategorySortIndex(a);
+        const posB = getCategorySortIndex(b);
+        if (posA.mainIdx !== posB.mainIdx) return posA.mainIdx - posB.mainIdx;
+        if (posA.subIdx !== posB.subIdx) return posA.subIdx - posB.subIdx;
+        return getCategoryDisplayName(a, currentLang).localeCompare(getCategoryDisplayName(b, currentLang), currentLang);
       });
     }
 
@@ -1985,25 +2433,29 @@
           const parsed = JSON.parse(stored);
           if (parsed && typeof parsed === 'object') {
             CATEGORY_ICONS = { ...DEFAULT_CATEGORY_ICONS, ...parsed };
-            if (!CATEGORY_ICONS["Productes Cabina"]) CATEGORY_ICONS["Productes Cabina"] = "fa-spa";
           }
         }
       } catch (e) {
         console.error("Error carregant categories:", e);
       }
+      // Assegurar que totes les categories estàndard existeixen
+      Object.keys(DEFAULT_CATEGORY_ICONS).forEach(k => {
+        if (!CATEGORY_ICONS[k]) CATEGORY_ICONS[k] = DEFAULT_CATEGORY_ICONS[k];
+      });
+      if (!CATEGORY_ICONS["Productes Cabina"]) CATEGORY_ICONS["Productes Cabina"] = "fa-spa";
       CATEGORIES = getSortedCategoriesList();
     }
 
     // DADES INICIALS D'EXEMPLE
     const DEFAULT_SEED_ITEMS = [
-      { id: "p1", name: "Detergent rentavaixelles", store: "mercadona", category: "Neteja", qty: "1", unit: "ud", price: 2.15, note: "Pols o pastilles", photo: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=100&auto=format&fit=crop&q=60", crossed_off: false },
+      { id: "p1", name: "Detergent rentavaixelles", store: "mercadona", category: "Neteja de la Llar", qty: "1", unit: "ud", price: 2.15, note: "Pols o pastilles", photo: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=100&auto=format&fit=crop&q=60", crossed_off: false },
       { id: "p2", name: "Tomàquets de branca", store: "mercadona", category: "Fruita i Verdura", qty: "1", unit: "kg", price: 1.89, note: "", photo: "https://images.unsplash.com/photo-1546470427-e26264be0b11?w=100&auto=format&fit=crop&q=60", crossed_off: false },
-      { id: "p3", name: "Acondicionador GLISS", store: "clarel", category: "Perfumeria", qty: "1", unit: "ud", price: 3.25, note: "Schwarzkopf", photo: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=100&auto=format&fit=crop&q=60", crossed_off: false },
-      { id: "p4", name: "Nueces de brasil", store: "mercadona", category: "Fruits Secs", qty: "1", unit: "paq", price: 2.80, note: "", photo: "", crossed_off: false },
-      { id: "p5", name: "Vino blanco cocina", store: "bonpreu", category: "Begudes", qty: "1", unit: "botella", price: 1.45, note: "", photo: "", crossed_off: false },
-      { id: "p6", name: "Tornillos rosca chapa 3.5", store: "ferreteria", category: "Llar", qty: "12", unit: "ud", price: 1.20, note: "Per a la taula", photo: "", crossed_off: false },
-      { id: "p7", name: "Bacalao ahumado", store: "mercadona", category: "Embotits", qty: "1", unit: "pack", price: 2.10, note: "", photo: "", crossed_off: true },
-      { id: "p8", name: "Almendra tostada sin sal", store: "mercadona", category: "Fruits Secs", qty: "1", unit: "paq", price: 2.40, note: "", photo: "", crossed_off: true }
+      { id: "p3", name: "Acondicionador GLISS", store: "clarel", category: "Cura del Cabell", qty: "1", unit: "ud", price: 3.25, note: "Schwarzkopf", photo: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=100&auto=format&fit=crop&q=60", crossed_off: false },
+      { id: "p4", name: "Nueces de brasil", store: "mercadona", category: "Esmorzars i Berenars", qty: "1", unit: "paq", price: 2.80, note: "", photo: "", crossed_off: false },
+      { id: "p5", name: "Vino blanco cocina", store: "bonpreu", category: "Vins i Caves", qty: "1", unit: "botella", price: 1.45, note: "", photo: "", crossed_off: false },
+      { id: "p6", name: "Tornillos rosca chapa 3.5", store: "ferreteria", category: "Bricolatge i Eines", qty: "12", unit: "ud", price: 1.20, note: "Per a la taula", photo: "", crossed_off: false },
+      { id: "p7", name: "Bacalao ahumado", store: "mercadona", category: "Peixateria", qty: "1", unit: "pack", price: 2.10, note: "", photo: "", crossed_off: true },
+      { id: "p8", name: "Almendra tostada sin sal", store: "mercadona", category: "Esmorzars i Berenars", qty: "1", unit: "paq", price: 2.40, note: "", photo: "", crossed_off: true }
     ];
 
     // ESTAT DE L'APLICACIÓ
@@ -2386,30 +2838,63 @@
     function detectSemanticCategory(name) {
       const n = name.toLowerCase();
 
-      if (/llet|leche|iogurt|yogur|mantega|mantequilla|nata|kefir|cuajada|quallada/i.test(n)) return "Lactis";
-      if (/formatge|queso|parmes|mozzarella|gouda|cheddar|brie|roquefort|manchego/i.test(n)) return "Formatges";
-      if (/poma|manzana|pl[àa]tan|taronja|naranja|llimona|lim[oó]n|maduixa|fresa|ra[ïi]m|uva|pera|pr[eé]ssec|mel[oó]|s[ií]ndria|tom[àa]quet|tomate|enciam|lechuga|ceba|cebolla|patata|pastanaga|zanahoria|pebrot|pimiento|all\b|ajo|calabac|alberg|espinac|br[oò]quil|mongeta|alvocat|aguacate|bolets|setas/i.test(n)) return "Fruita i Verdura";
-      if (/detergent|suavitzant|rentavaixelles|lavavajillas|lleixiu|lej[ií]a|fregona|baieta|estropajo|escombraries|basura|quitagrasas|desgreixador|paper de cuina|papel cocina|sab[oó] rentadora/i.test(n)) return "Neteja";
-      if (/xamp[uú]|champ[uú]|gel de bany|col[oò]nia|perfum|desodorant|desodorante|pasta de dents|dents|dent[ií]fric|crema|afaitar|compresa|tampon|paper higi[eè]nic|papel higi[eé]nico|toallit|esmalte|quitaesmalte|reafirmante|anticelul|corporal|hidratant|maquill|cosm[eè]tic|mascareta|s[eé]rum|b[aà]lsam|uñas|ungles/i.test(n)) return "Perfumeria";
-      if (/pollastre|pollo|vedella|ternera|porc|cerdo|hamburguesa|botifarra|llonza|costell|conill|conejo|pavo|gall dindi|carn picada|carne picada|bistec/i.test(n)) return "Carnisseria";
-      if (/peix|pescado|salm[oó]|llu[çc]|merluza|bacall[àa]|bacalao|daurada|dorada|llobarro|lubina|gamba|llagost|musclo|mejillon|calamar|s[ií]pia|sepia|pop\b|pulpo|tonyina|at[uú]n|sardina/i.test(n)) return "Peixateria";
-      if (/aigua|agua|suc\b|zumo|cervesa|cerveza|vi\b|vino|cava|refresc|cola|fanta|t[oò]nica|beguda/i.test(n)) return "Begudes";
-      if (/congelat|congelad|gelat\b|helado|croquet|nugget|gel\b|hielo|pizza/i.test(n)) return "Congelats";
-      if (/ametlla|almendra|nous|nueces|anacard|pistatx|cacauet|cacahuete|avellana|pipa|piny[oó]|fruit.*sec/i.test(n)) return "Fruits Secs";
-      if (/patat.*xip|oliva|aceituna|crocant|crispeta|palomita|aperitiu|snack|dorito|nacho/i.test(n)) return "Aperitius";
-      if (/pernil|jam[oó]n|xori[çc]|chorizo|fuet|llonganissa|salchich|mortadel|sobrassada|bac[oó]n|embotit/i.test(n)) return "Embotits";
-      if (/maionesa|mayonesa|ketchup|qu[eè]txup|mostassa|mostaza|salsa|allioli|guacamole|pesto/i.test(n)) return "Salses";
-      if (/oli\b|aceite|vinagre/i.test(n)) return "Oli i Vinagre";
-      if (/macarr[oó]|espaguet|pasta|fideu|arr[oò]s|arroz|llentia|lenteja|cigr[oó]|garbanzo|mongeta seca|jud[ií]a|fava|quinoa|cusc[uú]s/i.test(n)) return "Pasta i Llegums";
-      if (/farina|harina|llevat|levadura|sucre|az[uú]car|cacau|xocolata|chocolate|vainilla|maizena/i.test(n)) return "Farines i Reposteria";
-      if (/(?:^|\s)(?:te|té)(?:\s|$)|caf[eè]|infusi|cereal|muesli|avena|civada|galet|melmelada|mermelada|\bmel\b|miel|nutella|nocilla|colacao|nesquik/i.test(n)) return "Esmorzar";
-      if (/pa\b|pan\b|croissant|brioix|magdalena|torrada|tostada|ensaimada/i.test(n)) return "Forn";
-      if (/paper d'alumini|papel aluminio|film|paper forn|tupper|carmanyola|tovalló|servilleta/i.test(n)) return "Cuina";
-      if (/sal\b|pebre|pimienta|llorer|laurel|orenga|or[eé]gano|roman[ií]|romero|farigola|tomillo|canyella|canela|curri|curry|com[ií]|piment[oó]|safr[àa]/i.test(n)) return "Espècies";
-      if (/bombeta|bombilla|pila\b|led\b|lladre|ladron|endoll|cable|carregador/i.test(n)) return "Electricitat";
-      if (/paracetamol|ibuprof|aspirina|xarop|jarabe|tiret|tirita|cot[oó]|alcohol 96|term[oò]metre|gasa|medicament/i.test(n)) return "Medicaments";
-      if (/prote[ií]na|creatina|vitamina|magnesi|col[aà]gen|omega 3|melatonina|suplement/i.test(n)) return "Suplements";
-      if (/bombeta|pila|clau|tornillo|cargol|eina|estenedor|ambientador|f[oò]sfor|vela|espelma/i.test(n)) return "Llar";
+      // 1. Frescos i Rebost del dia
+      if (/poma|manzana|pl[àa]tan|taronja|naranja|llimona|lim[oó]n|maduixa|fresa|ra[ïi]m|uva|pera|pr[eé]ssec|mel[oó]|s[ií]ndria|tom[àa]quet|tomate|enciam|lechuga|ceba|cebolla|patata|pastanaga|zanahoria|pebrot|pimiento|all\b|ajo|calabac|alberg|espinac|br[oò]quil|mongeta tendra|judia verde|alvocat|aguacate|bolets|setas|xampiny|champiñ|herba|menta|alfàbrega|albahaca|julivert|perejil/i.test(n)) return "Fruita i Verdura";
+      if (/pollastre|pollo|vedella|ternera|porc|cerdo|hamburguesa|botifarra|llonza|costell|conill|conejo|pavo|gall dindi|carn picada|carne picada|bistec|salsitx|salchicha|costillar|aletes|alitas|chuleta/i.test(n)) return "Carnisseria";
+      if (/peix fresc|pescado|salm[oó]|llu[çc]|merluza|bacall[àa]|bacalao|daurada|dorada|llobarro|lubina|gamba|llagost|musclo|mejillon|calamar|s[ií]pia|sepia|pop\b|pulpo|tonyina|at[uú]n|sardina|anxova|anchoa|boquer|arengada|salmó fumat|ahumado/i.test(n)) return "Peixateria";
+      if (/formatge|queso|parmes|mozzarella|gouda|cheddar|brie|roquefort|manchego|pernil|jam[oó]n|xori[çc]|chorizo|fuet|llonganissa|mortadel|sobrassada|bac[oó]n|embotit|pat[eé]|foie/i.test(n)) return "Xarcuteria i Formatges";
+      if (/pa\b|pan\b|croissant|brioix|magdalena|torrada|tostada|ensaimada|baguette|barra|pa de motlle|pan de molde|pastís|pastel|ensaimad|palmera/i.test(n)) return "Forn i Pastisseria";
+
+      // 2. Alimentació General i Rebost
+      if (/macarr[oó]|espaguet|pasta\b|fideu|arr[oò]s|arroz|llentia|lenteja|cigr[oó]|garbanzo|mongeta seca|jud[ií]a seca|alubia|fava|quinoa|cusc[uú]s/i.test(n)) return "Arròs, Pasta i Llegums";
+      if (/oli\b|aceite|vinagre|sal\b|pebre|pimienta|llorer|laurel|orenga|or[eé]gano|roman[ií]|romero|farigola|tomillo|canyella|canela|curri|curry|com[ií]|piment[oó]|safr[àa]|maionesa|mayonesa|ketchup|qu[eè]txup|mostassa|mostaza|salsa|allioli|guacamole|pesto|tom[àa]quet fregit|tomate frito/i.test(n)) return "Olis, Salses i Condiments";
+      if (/conserva|llauna|lata\b|oliva|aceituna|cogombret|pepinillo|adob|encurtido|tonyina en llauna|atún en lata|espàrrecs|espárragos|berberetxo|mejillones en escabeche/i.test(n)) return "Conserves";
+      if (/(?:^|\s)(?:te|té)(?:\s|$)|caf[eè]|infusi|cereal|muesli|avena|civada|galet|melmelada|mermelada|\bmel\b|miel|nutella|nocilla|colacao|nesquik|xocolata|chocolate|ametlla|almendra|nous|nueces|anacard|pistatx|cacauet|cacahuete|avellana|pipa|piny[oó]|fruit.*sec/i.test(n)) return "Esmorzars i Berenars";
+      if (/farina|harina|llevat|levadura|sucre|az[uú]car|cacau en pols|cacao puro|vainilla|maizena|gelatina|bicarbonat/i.test(n)) return "Farines i Rebosteria";
+
+      // 3. Lactis, Ous i Refrigerats
+      if (/llet\b|leche|beguda de civada|bebida de avena|beguda de soja|bebida de soja|beguda vegetal|llet d'ametlles|leche sin lactosa|llet sense lactosa/i.test(n)) return "Llets i Alternatives";
+      if (/iogurt|yogur|danone|actimel|bífidus|bifidus|flam\b|flan\b|natilles|natillas|quallada|cuajada|petit suisse/i.test(n)) return "Iogurts i Postres";
+      if (/mantega|mantequilla|margarina|nata|nata per cuinar|nata montar/i.test(n)) return "Mantegues i Nates";
+      if (/\bou\b|\bous\b|\bhuevo\b|\bhuevos\b|claras de huevo|clares d'ou/i.test(n)) return "Ous";
+      if (/plat preparat|gaspatxo|gazpacho|salmorejo|crema de carbassa|crema de verdures|pizza fresca|massa de pizza|masa hojaldre|pasta de full|tortellini fresc/i.test(n)) return "Plats Preparats Refrigerats";
+
+      // 4. Congelats
+      if (/patates fregides congelades|patatas congeladas|pèsols congelats|guisantes congelados|espinacs congelats|verdura congelada/i.test(n)) return "Verdures i Patates Congelades";
+      if (/lluç congelat|merluza congelada|gambes congelades|gambas congeladas|varetes de peix|varitas de pescado/i.test(n)) return "Peix i Marisc Congelat";
+      if (/pizza congelada|lasanya congelada|lasaña|canelons|canelones|croquet|nugget|arrebossat|empanadilla/i.test(n)) return "Plats Cuinats Congelats";
+      if (/gelat\b|helado|polo\b|gel\b|hielo|cucurucho|corneto/i.test(n)) return "Gelats i Postres";
+
+      // 5. Begudes
+      if (/aigua|agua mineral|agua con gas|suc\b|zumo|vichy/i.test(n)) return "Aigua i Sucs";
+      if (/refresc|coca[- ]?cola|fanta|sprite|aquarius|nestea|red bull|monster|t[oò]nica/i.test(n)) return "Refrescos i Encoratjadors";
+      if (/cervesa|cerveza|estrella|mahou|heineken|voll damm|coronita|ipa\b/i.test(n)) return "Cerveses";
+      if (/vi\b|vino|cava\b|champagne|xampany|portell|rioja|ribera/i.test(n)) return "Vins i Caves";
+
+      // 6. Neteja i Llar
+      if (/detergent roba|detergente lavadora|suavitzant|suavizante|quitamanchas|neteja taques|percarbonat|ariel|skip|micolor/i.test(n)) return "Bugada";
+      if (/rentavaixelles|lavavajillas|detergent plats|fairy|finish|neteja-terres|fregasuelos|lleixiu|lej[ií]a|desgreixador|desengrasante|kh7|cillit|limpiacristales|multiús|multiusos/i.test(n)) return "Neteja de la Llar";
+      if (/paper de cuina|papel cocina|paper d'alumini|papel aluminio|paper forn|papel horno|film transparent|bossa.*brossa|bolsa.*basura|fregall|estropajo|baieta|balleta|draps|guants|fregona|pal de fregar/i.test(n)) return "Utillatge de Llar";
+
+      // 7. Higiene i Cura Personal
+      if (/gel de bany|gel de ducha|sab[oó] de mans|jab[oó]n|desodorant|desodorante|esponja|llet corporal/i.test(n)) return "Higiene Corporal";
+      if (/xamp[uú]|champ[uú]|suavitzant cabell|acondicionador|mascareta cabell|mascarilla pelo|laca\b|gomina|fixador|tinte|tint cabell/i.test(n)) return "Cura del Cabell";
+      if (/pasta de dents|pasta dental|dent[ií]fric|raspall de dents|cepillo de dientes|col·lutori|enjuague bucal|seda dental|fil dental/i.test(n)) return "Higiene Bucal";
+      if (/paper higi[eè]nic|papel higi[eé]nico|compresa|tampon|salvaslip|mocadors de paper|pañuelos/i.test(n)) return "Cel·luloses i Íntim";
+      if (/crema facial|crema hidratant|antiedat|contorn d'ulls|protector solar|protecci[oó] solar|maquillatge|maquillaje|pinta-llavis|labial|esmalte|quitaesmalte|reafirmante|s[eé]rum/i.test(n)) return "Cosmètica";
+
+      // 8. Bebès i Mascotes
+      if (/bolquer|pañal|tovallolet.*beb[eè]|toallit.*beb[eé]|potet|potito|llet infantil|farinetes|papilla|xumet|chupete|biber[oó]/i.test(n)) return "Nadons";
+      if (/gos\b|perro|gat\b|gato|pinso|pienso|sorra de gat|arena gato|purina|whiskas|snack per a mascotes/i.test(n)) return "Mascotes";
+
+      // 9. Salut, Cabina i Benestar
+      if (/cabina|est[eè]tica professional|tractament cabina/i.test(n)) return "Productes Cabina";
+      if (/paracetamol|ibuprof|aspirina|xarop|jarabe|tiret|tirita|cot[oó]|alcohol 96|term[oò]metre|gasa|farmaciola|botiqu[ií]n|medicament/i.test(n)) return "Farmàcia i Salut";
+      if (/prote[ií]na|creatina|vitamina|magnesi|col[aà]gen|omega 3|melatonina|suplement/i.test(n)) return "Suplements i Dietètica";
+
+      // 10. Bricolatge i Altres
+      if (/bombeta|bombilla|pila\b|piles|bateria|tornillo|cargol|clau\b|eina|herramienta|endoll|enchufe|cable|lladre|ladron/i.test(n)) return "Bricolatge i Eines";
+      if (/llibreta|cuaderno|bol[ií]graf|boli\b|llapis|l[aá]piz|adhesiu|pegamento|cinta adhesiva|basar|bazar/i.test(n)) return "Papereria i Basar";
 
       return "General";
     }
@@ -3554,10 +4039,14 @@
           groups[canonical].push(item);
         });
 
-        // Ordenar categories alfabèticament segons l'idioma actiu (General al final)
+        // Ordenar categories segons l'ordre dels 10 grups principals (General al final)
         const sortedCategories = Object.keys(groups).sort((a, b) => {
           if (a === "General") return 1;
           if (b === "General") return -1;
+          const posA = getCategorySortIndex(a);
+          const posB = getCategorySortIndex(b);
+          if (posA.mainIdx !== posB.mainIdx) return posA.mainIdx - posB.mainIdx;
+          if (posA.subIdx !== posB.subIdx) return posA.subIdx - posB.subIdx;
           const nameA = getCategoryDisplayName(a, currentLang);
           const nameB = getCategoryDisplayName(b, currentLang);
           return nameA.localeCompare(nameB, currentLang);
@@ -3580,10 +4069,14 @@
 
           const icon = getCategoryIcon(canonical);
           const displayName = getCategoryDisplayName(canonical, currentLang);
+          const examples = getCategoryExamples(canonical, currentLang);
           html += `
-            <div class="px-2 pt-2 pb-1 text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between w-full">
-              <span class="flex items-center gap-1.5"><i class="fa-solid ${icon} text-emerald-700 text-xs"></i> ${displayName}</span>
-              <span class="text-gray-400 font-normal text-[11px]">(${itemsInCat.length})</span>
+            <div class="px-2 pt-2.5 pb-1 w-full">
+              <div class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center justify-between">
+                <span class="flex items-center gap-1.5"><i class="fa-solid ${icon} text-emerald-700 text-xs"></i> ${displayName}</span>
+                <span class="text-gray-400 font-normal text-[11px]">(${itemsInCat.length})</span>
+              </div>
+              ${examples ? `<div class="text-[10px] text-gray-400 font-normal normal-case italic truncate mt-0.5" title="${examples}">Ex: ${examples}</div>` : ''}
             </div>
           `;
           html += toRender.map(item => createItemRowHTML(item, false, true)).join("");
@@ -4142,7 +4635,11 @@
         if (!query) return true;
         const disp = getCategoryDisplayName(c, currentLang).toLowerCase();
         const raw = c.toLowerCase();
-        return disp.includes(query) || raw.includes(query);
+        const ex = getCategoryExamples(c, currentLang).toLowerCase();
+        const canonical = getCategoryCanonicalKey(c);
+        const mainCat = CATEGORY_TO_MAIN[canonical];
+        const mainName = mainCat ? (mainCat.name[currentLang] || mainCat.name.ca).toLowerCase() : "";
+        return disp.includes(query) || raw.includes(query) || ex.includes(query) || mainName.includes(query);
       });
 
       if (countEl) {
@@ -4167,22 +4664,29 @@
         const canonical = getCategoryCanonicalKey(catKey);
         const isStandard = Boolean(DEFAULT_CATEGORY_ICONS[canonical] || DEFAULT_CATEGORY_ICONS[catKey]);
         const countInCart = items.filter(it => !it.crossed_off && getCategoryCanonicalKey(it.category) === canonical).length;
+        const mainCat = CATEGORY_TO_MAIN[canonical];
+        const mainCatName = mainCat ? (mainCat.name[currentLang] || mainCat.name.ca) : "";
+        const examples = getCategoryExamples(canonical, currentLang);
 
         return `
-          <div class="py-2 px-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg transition">
-            <div class="flex items-center gap-2.5 min-w-0 flex-1">
-              <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs flex-shrink-0">
+          <div class="py-2.5 px-2 flex items-start justify-between gap-2 hover:bg-gray-50 rounded-xl transition border-b border-gray-100 last:border-b-0">
+            <div class="flex items-start gap-2.5 min-w-0 flex-1">
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm flex-shrink-0 mt-0.5">
                 <i class="fa-solid ${icon}"></i>
               </div>
-              <div class="min-w-0">
-                <div class="text-xs font-bold text-gray-800 truncate">${displayName}</div>
-                <div class="text-[10px] text-gray-400 flex items-center gap-1.5">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs font-bold text-gray-800">${displayName}</span>
+                  ${mainCatName ? `<span class="text-[9.5px] font-semibold px-1.5 py-0.2 rounded-full bg-emerald-100/70 text-emerald-800 border border-emerald-200/50">${mainCatName}</span>` : ''}
+                </div>
+                ${examples ? `<div class="text-[11px] text-gray-500 italic mt-0.5 leading-snug"><strong class="text-gray-600 not-italic">${currentLang === 'es' ? 'Incluye' : 'Inclou'}:</strong> ${examples}</div>` : ''}
+                <div class="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
                   ${currentLang === "es" && displayName !== catKey ? `<span class="italic text-gray-400">(${catKey})</span>` : ''}
                   ${countInCart > 0 ? `<span class="text-emerald-700 font-semibold">• ${countInCart} ${currentLang === 'es' ? 'pendientes' : 'pendents'}</span>` : ''}
                 </div>
               </div>
             </div>
-            <div class="flex items-center gap-1.5 flex-shrink-0">
+            <div class="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
               <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded ${isStandard ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700 border border-amber-200'}">
                 ${isStandard ? (currentLang === 'es' ? 'Estándar' : 'Estàndard') : (currentLang === 'es' ? 'Personalizada' : 'Personalitzada')}
               </span>
@@ -4505,6 +5009,7 @@
           const canonicalCat = getCategoryCanonicalKey(it.category);
           catSelect.value = canonicalCat || it.category;
           if (!catSelect.value && it.category) catSelect.value = it.category;
+          if (typeof updateEditCategoryHint === "function") updateEditCategoryHint(catSelect.value);
         }
         document.getElementById("edit-note").value = it.note || "";
         document.getElementById("edit-photo-url").value = it.photo || "";
@@ -5332,6 +5837,19 @@
       }
     }
 
+    function updateEditCategoryHint(cat) {
+      const hintEl = document.getElementById("edit-category-hint");
+      if (!hintEl) return;
+      const ex = getCategoryExamples(cat, currentLang);
+      if (ex) {
+        hintEl.innerHTML = `<i class="fa-solid fa-circle-info text-emerald-600 mr-1"></i><strong>${currentLang === 'es' ? 'Incluye' : 'Inclou'}:</strong> ${ex}`;
+        hintEl.classList.remove("hidden");
+      } else {
+        hintEl.classList.add("hidden");
+        hintEl.innerHTML = "";
+      }
+    }
+
     function populateSelectOptions() {
       const storeSelect = document.getElementById("edit-store");
       if (storeSelect) {
@@ -5343,9 +5861,35 @@
       CATEGORIES = getSortedCategoriesList();
       const catSelect = document.getElementById("edit-category");
       if (catSelect) {
-        catSelect.innerHTML = CATEGORIES.map(c =>
-          `<option value="${c}">${getCategoryDisplayName(c, currentLang)}</option>`
-        ).join("");
+        let optHtml = "";
+        MAIN_CATEGORIES.forEach(m => {
+          const groupTitle = m.name[currentLang] || m.name.ca;
+          const validSubs = m.subcategories.filter(sub => CATEGORY_ICONS[sub.id]);
+          if (validSubs.length > 0) {
+            optHtml += `<optgroup label="${groupTitle}">`;
+            validSubs.forEach(sub => {
+              const displayName = getCategoryDisplayName(sub.id, currentLang);
+              optHtml += `<option value="${sub.id}">${displayName}</option>`;
+            });
+            optHtml += `</optgroup>`;
+          }
+        });
+
+        // Categories personalitzades no incloses als 10 grups
+        const customCats = CATEGORIES.filter(c => {
+          return !MAIN_CATEGORIES.some(m => m.subcategories.some(s => s.id === c));
+        });
+        if (customCats.length > 0) {
+          const otherLabel = currentLang === 'es' ? 'Otras / Personalizadas' : 'Altres / Personalitzades';
+          optHtml += `<optgroup label="${otherLabel}">`;
+          customCats.forEach(c => {
+            optHtml += `<option value="${c}">${getCategoryDisplayName(c, currentLang)}</option>`;
+          });
+          optHtml += `</optgroup>`;
+        }
+
+        catSelect.innerHTML = optHtml;
+        updateEditCategoryHint(catSelect.value);
       }
     }
 
@@ -5455,6 +5999,12 @@
               // Mantenir la categoria Productes Cabina
               if (/cabina/i.test(lower + " " + (it.note || "") + " " + (it.category || ""))) {
                 it.category = "Productes Cabina";
+                hadMigration = true;
+              }
+
+              // Migració transparent de categories antigues a la nova taxonomia
+              if (it.category && LEGACY_CAT_ALIASES[it.category]) {
+                it.category = LEGACY_CAT_ALIASES[it.category];
                 hadMigration = true;
               }
             });
@@ -7616,6 +8166,10 @@
     window.resetCategoriesToDefault = resetCategoriesToDefault;
     window.getCategoryDisplayName = getCategoryDisplayName;
     window.getCategoryCanonicalKey = getCategoryCanonicalKey;
+    window.getCategoryExamples = getCategoryExamples;
+    window.updateEditCategoryHint = updateEditCategoryHint;
+    window.getCategorySortIndex = getCategorySortIndex;
+    window.MAIN_CATEGORIES = MAIN_CATEGORIES;
     window.getStoreDisplayName = getStoreDisplayName;
     window.setAllStoresViewMode = setAllStoresViewMode;
 
