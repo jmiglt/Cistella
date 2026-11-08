@@ -537,9 +537,14 @@
     </div>
     <div class="flex items-center gap-1.5">
       <button onclick="openMoveItemsModal()"
-        class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition">
+        class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 transition">
         <i class="fa-solid fa-arrow-right-arrow-left text-[10px]"></i>
-        <span id="btn-move-selected-label">Canviar de llista</span>
+        <span id="btn-move-selected-label">Canviar llista</span>
+      </button>
+      <button onclick="openChangeCategoryModal()"
+        class="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 transition">
+        <i class="fa-solid fa-tags text-[10px]"></i>
+        <span id="btn-change-cat-selected-label">Categoria</span>
       </button>
       <button onclick="exitSelectionMode()"
         class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center text-xs transition" title="Sortir">
@@ -682,9 +687,22 @@
         </div>
 
         <div>
-          <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblCategory">Categoria</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block font-semibold text-gray-600" data-i18n="lblCategory">Categoria</label>
+            <span id="edit-category-match-count" class="text-[10px] text-gray-400 font-normal"></span>
+          </div>
+          <div class="relative mb-1.5">
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+            <input type="search" id="edit-category-search" oninput="filterEditCategoryDropdown(this.value)"
+              placeholder="Filtrar categoria o producte..."
+              autocomplete="off"
+              class="w-full h-7 pl-7 pr-7 text-xs border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+            <button type="button" id="edit-category-search-clear" onclick="clearEditCategorySearch()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5">
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+          </div>
           <select id="edit-category" onchange="updateEditCategoryHint(this.value)"
-            class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2 bg-white focus:outline-none"></select>
+            class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"></select>
           <p id="edit-category-hint" class="text-[10.5px] text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 rounded px-2 py-1 mt-1 italic leading-tight hidden"></p>
         </div>
       </div>
@@ -852,6 +870,46 @@
           <span data-i18n="btnNewStore">Nova llista</span>
         </button>
         <button onclick="closeMoveItemsModal()" class="py-2 px-4 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs transition">
+          <span data-i18n="btnClose">Tancar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CANVIAR ARTICLES DE CATEGORIA -->
+  <div id="change-category-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-tags"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900" id="change-cat-modal-title">Canviar categoria</h3>
+            <p id="change-cat-modal-subtitle" class="text-[11px] text-gray-500">Tria la nova categoria per als articles</p>
+          </div>
+        </div>
+        <button onclick="closeChangeCategoryModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Cerca instantània de categoria -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+        <input type="search" id="change-cat-modal-search" oninput="renderChangeCategoryModalList(this.value)"
+               placeholder="Cercar categoria (ex: cosmètica, fruita, lactis)..."
+               autocomplete="off"
+               class="w-full h-8 pl-8 pr-7 text-xs border border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-500">
+        <button type="button" id="change-cat-clear-search" onclick="clearChangeCatModalSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+
+      <div id="change-categories-list" class="flex-1 overflow-y-auto space-y-2 pr-1 max-h-[55vh]"></div>
+
+      <div class="pt-2 border-t flex items-center justify-end">
+        <button onclick="closeChangeCategoryModal()" class="py-2 px-4 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs transition">
           <span data-i18n="btnClose">Tancar</span>
         </button>
       </div>
@@ -2234,7 +2292,7 @@
         confirmDeleteAll: "Segur que vols buidar TOTES les dades de la llista?",
         confirmDeleteCompleted: "Segur que vols esborrar definitivament tots els articles comprats d'aquesta botiga?",
 
-        menuSelectMove: "Seleccionar / Moure articles",
+        menuSelectMove: "Seleccionar / Moure o canviar categoria",
         btnSelect: "Seleccionar",
         btnCancelSelect: "Cancel·lar",
         btnSelectAll: "Tots",
@@ -2243,7 +2301,16 @@
         moveModalTitle: "Canviar articles de llista",
         moveModalSubtitle: "Tria la llista o botiga de destí",
         toastMovedItems: (count, storeName) => `${count} articles moguts a ${storeName}`,
-        toastSelectFirst: "Selecciona almenys un article"
+        toastSelectFirst: "Selecciona almenys un article",
+        btnChangeCategory: "Canviar categoria",
+        changeCatModalTitle: "Canviar categoria",
+        changeCatModalSubtitle: "Tria la nova categoria per als articles seleccionats",
+        changeCatSearchPlaceholder: "Cercar categoria (ex: cosmètica, fruita, lactis)...",
+        toastChangedCategory: (count, catName) => `${count} articles canviats a "${catName}"`,
+        selectCategoryAll: "Seleccionar",
+        deselectCategoryAll: "Desmarcar",
+        filterCategoryPlaceholder: "Filtrar categoria o producte...",
+        categoriesFound: (n) => `${n} trobades`
       },
       es: {
         appTitle: "Cistella",
@@ -2378,7 +2445,7 @@
         confirmDeleteAll: "¿Seguro que quieres vaciar TODOS los datos de la lista?",
         confirmDeleteCompleted: "¿Seguro que quieres borrar definitivamente todos los artículos comprados de esta tienda?",
 
-        menuSelectMove: "Seleccionar / Mover artículos",
+        menuSelectMove: "Seleccionar / Mover o cambiar categoría",
         btnSelect: "Seleccionar",
         btnCancelSelect: "Cancelar",
         btnSelectAll: "Todos",
@@ -2387,7 +2454,16 @@
         moveModalTitle: "Cambiar artículos de lista",
         moveModalSubtitle: "Elige la lista o tienda de destino",
         toastMovedItems: (count, storeName) => `${count} artículos movidos a ${storeName}`,
-        toastSelectFirst: "Selecciona al menos un artículo"
+        toastSelectFirst: "Selecciona al menos un artículo",
+        btnChangeCategory: "Cambiar categoría",
+        changeCatModalTitle: "Cambiar categoría",
+        changeCatModalSubtitle: "Elige la nueva categoría para los artículos seleccionados",
+        changeCatSearchPlaceholder: "Buscar categoría (ej: cosmética, fruta, lácteos)...",
+        toastChangedCategory: (count, catName) => `${count} artículos cambiados a "${catName}"`,
+        selectCategoryAll: "Seleccionar",
+        deselectCategoryAll: "Desmarcar",
+        filterCategoryPlaceholder: "Filtrar categoría o producto...",
+        categoriesFound: (n) => `${n} encontradas`
       }
     };
 
@@ -3681,6 +3757,10 @@
         if (selectAllIcon) {
           selectAllIcon.className = allSelected ? "fa-solid fa-square-check text-emerald-600" : "fa-regular fa-square text-emerald-600";
         }
+        const moveBtnLabel = document.getElementById("btn-move-selected-label");
+        if (moveBtnLabel) moveBtnLabel.textContent = currentLang === 'es' ? 'Cambiar lista' : 'Canviar llista';
+        const catBtnLabel = document.getElementById("btn-change-cat-selected-label");
+        if (catBtnLabel) catBtnLabel.textContent = currentLang === 'es' ? 'Categoría' : 'Categoria';
       } else {
         if (bar) bar.classList.add("hidden");
         if (fabVoice) fabVoice.classList.remove("hidden");
@@ -3862,6 +3942,333 @@
       renderLists();
     }
 
+    function openChangeCategoryModal() {
+      if (selectedItemIds.size === 0) {
+        showToast(t('toastSelectFirst'), "fa-circle-exclamation");
+        return;
+      }
+      const searchInput = document.getElementById("change-cat-modal-search");
+      if (searchInput) searchInput.value = "";
+      const clearBtn = document.getElementById("change-cat-clear-search");
+      if (clearBtn) clearBtn.classList.add("hidden");
+
+      renderChangeCategoryModalList("");
+      const modal = document.getElementById("change-category-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeChangeCategoryModal() {
+      const modal = document.getElementById("change-category-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function clearChangeCatModalSearch() {
+      const searchInput = document.getElementById("change-cat-modal-search");
+      if (searchInput) {
+        searchInput.value = "";
+        searchInput.focus();
+      }
+      const clearBtn = document.getElementById("change-cat-clear-search");
+      if (clearBtn) clearBtn.classList.add("hidden");
+      renderChangeCategoryModalList("");
+    }
+
+    function renderChangeCategoryModalList(query) {
+      const container = document.getElementById("change-categories-list");
+      if (!container) return;
+
+      const titleEl = document.getElementById("change-cat-modal-title");
+      const subEl = document.getElementById("change-cat-modal-subtitle");
+      const count = selectedItemIds.size;
+
+      if (titleEl) {
+        titleEl.textContent = currentLang === "es"
+          ? `Cambiar categoría (${count} artículo${count === 1 ? '' : 's'})`
+          : `Canviar categoria (${count} article${count === 1 ? '' : 's'})`;
+      }
+      if (subEl) {
+        subEl.textContent = currentLang === "es"
+          ? `Selecciona la nueva categoría para los artículos`
+          : `Tria la nova categoria per als articles seleccionats`;
+      }
+
+      const q = (query || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const clearBtn = document.getElementById("change-cat-clear-search");
+      if (clearBtn) {
+        if (q) clearBtn.classList.remove("hidden");
+        else clearBtn.classList.add("hidden");
+      }
+
+      let html = "";
+      let totalGroupsRendered = 0;
+
+      MAIN_CATEGORIES.forEach(m => {
+        const groupTitle = m.name[currentLang] || m.name.ca;
+        const normGroupTitle = groupTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const groupMatches = q ? normGroupTitle.includes(q) : false;
+
+        const validSubs = m.subcategories.filter(sub => {
+          if (!CATEGORY_ICONS[sub.id]) return false;
+          if (!q || groupMatches) return true;
+          const subName = (getCategoryDisplayName(sub.id, currentLang) || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const subEx = (getCategoryExamples(sub.id, currentLang) || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return subName.includes(q) || subEx.includes(q);
+        });
+
+        if (validSubs.length > 0) {
+          totalGroupsRendered++;
+          html += `
+            <div class="rounded-xl border border-gray-200/80 bg-gray-50/70 p-2 space-y-1.5">
+              <div class="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider px-1 flex items-center gap-1.5">
+                <i class="fa-solid ${m.icon || 'fa-folder'} text-teal-600 text-[10px]"></i>
+                <span>${groupTitle}</span>
+              </div>
+              <div class="grid grid-cols-1 gap-1">
+                ${validSubs.map(sub => {
+                  const icon = getCategoryIcon(sub.id);
+                  const displayName = getCategoryDisplayName(sub.id, currentLang);
+                  const examples = getCategoryExamples(sub.id, currentLang);
+                  return `
+                    <button type="button" onclick="executeChangeCategorySelected('${sub.id}')"
+                            class="w-full text-left p-2 rounded-lg bg-white hover:bg-teal-50 border border-gray-200/80 hover:border-teal-300 transition flex items-start gap-2 shadow-2xs group cursor-pointer active:scale-[0.99]">
+                      <div class="w-6 h-6 rounded-md bg-teal-50 text-teal-700 flex items-center justify-center text-xs flex-shrink-0 group-hover:bg-teal-100 group-hover:text-teal-800 transition">
+                        <i class="fa-solid ${icon}"></i>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="font-bold text-xs text-gray-900 group-hover:text-teal-900 transition flex items-center justify-between">
+                          <span>${displayName}</span>
+                          <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 group-hover:text-teal-600 transition"></i>
+                        </div>
+                        ${examples ? `<div class="text-[10px] text-gray-400 group-hover:text-gray-500 font-normal italic truncate mt-0.5">Ex: ${examples}</div>` : ''}
+                      </div>
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      // Categories addicionals / personalitzades
+      const customCats = Object.keys(CATEGORY_ICONS).filter(k => {
+        const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
+        return !inMain && k !== "General";
+      });
+
+      if (customCats.length > 0) {
+        const matchingCustom = customCats.filter(k => {
+          if (!q) return true;
+          const name = getCategoryDisplayName(k, currentLang).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const ex = (getCategoryExamples(k, currentLang) || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return name.includes(q) || ex.includes(q);
+        });
+        if (matchingCustom.length > 0) {
+          totalGroupsRendered++;
+          html += `
+            <div class="rounded-xl border border-gray-200/80 bg-gray-50/70 p-2 space-y-1.5">
+              <div class="text-[10.5px] font-bold text-gray-500 uppercase tracking-wider px-1">
+                ${currentLang === 'es' ? 'Otras categorías' : 'Altres categories'}
+              </div>
+              <div class="grid grid-cols-1 gap-1">
+                ${matchingCustom.map(k => {
+                  const icon = getCategoryIcon(k);
+                  const displayName = getCategoryDisplayName(k, currentLang);
+                  const examples = getCategoryExamples(k, currentLang);
+                  return `
+                    <button type="button" onclick="executeChangeCategorySelected('${k}')"
+                            class="w-full text-left p-2 rounded-lg bg-white hover:bg-teal-50 border border-gray-200/80 hover:border-teal-300 transition flex items-start gap-2 shadow-2xs group cursor-pointer active:scale-[0.99]">
+                      <div class="w-6 h-6 rounded-md bg-teal-50 text-teal-700 flex items-center justify-center text-xs flex-shrink-0 group-hover:bg-teal-100 group-hover:text-teal-800 transition">
+                        <i class="fa-solid ${icon}"></i>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="font-bold text-xs text-gray-900 group-hover:text-teal-900 transition flex items-center justify-between">
+                          <span>${displayName}</span>
+                          <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 group-hover:text-teal-600 transition"></i>
+                        </div>
+                        ${examples ? `<div class="text-[10px] text-gray-400 group-hover:text-gray-500 font-normal italic truncate mt-0.5">Ex: ${examples}</div>` : ''}
+                      </div>
+                    </button>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      if (totalGroupsRendered === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center text-gray-400 space-y-1.5">
+            <i class="fa-solid fa-magnifying-glass text-xl text-gray-300"></i>
+            <p class="text-xs font-semibold text-gray-600">${currentLang === 'es' ? "No se han encontrado categorías" : "No s'ha trobat cap categoria"}</p>
+            <p class="text-[11px] text-gray-400">${currentLang === 'es' ? "Prueba con otro término de búsqueda" : "Prova amb un altre terme de cerca"}</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = html;
+      }
+    }
+
+    function executeChangeCategorySelected(targetCategoryKey) {
+      if (selectedItemIds.size === 0) return;
+      let count = 0;
+      const canonicalTarget = getCategoryCanonicalKey(targetCategoryKey) || targetCategoryKey;
+
+      items.forEach(it => {
+        if (selectedItemIds.has(it.id)) {
+          it.category = canonicalTarget;
+          it.updatedAt = Date.now();
+          count++;
+        }
+      });
+
+      saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+
+      const catDisplayName = getCategoryDisplayName(canonicalTarget, currentLang);
+      const toastMsg = currentLang === 'es'
+        ? `${count} artículo${count === 1 ? '' : 's'} cambiado${count === 1 ? '' : 's'} a "${catDisplayName}"`
+        : `${count} article${count === 1 ? '' : 's'} canviat${count === 1 ? '' : 's'} a "${catDisplayName}"`;
+
+      showToast(toastMsg, "fa-tags");
+      closeChangeCategoryModal();
+      exitSelectionMode();
+      renderLists();
+    }
+
+    function selectCategoryItems(canonicalCat, event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      const canonical = getCategoryCanonicalKey(canonicalCat);
+      const catItems = items.filter(it => {
+        if (it.crossed_off) return false;
+        if (currentStoreFilter !== "all" && it.store !== currentStoreFilter) return false;
+        const itCat = getCategoryCanonicalKey(it.category || "General");
+        return itCat === canonical;
+      });
+
+      if (catItems.length === 0) return;
+
+      if (!isSelectionMode) {
+        isSelectionMode = true;
+      }
+
+      const allSelected = catItems.every(it => selectedItemIds.has(it.id));
+      if (allSelected) {
+        catItems.forEach(it => selectedItemIds.delete(it.id));
+      } else {
+        catItems.forEach(it => selectedItemIds.add(it.id));
+      }
+
+      updateSelectionUI();
+      renderLists();
+    }
+
+    function filterEditCategoryDropdown(query) {
+      const catSelect = document.getElementById("edit-category");
+      if (!catSelect) return;
+      const q = (query || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const clearBtn = document.getElementById("edit-category-search-clear");
+      if (clearBtn) {
+        if (q) clearBtn.classList.remove("hidden");
+        else clearBtn.classList.add("hidden");
+      }
+
+      const prevSelectedVal = catSelect.value;
+      let optHtml = "";
+      let totalMatchingSubs = 0;
+
+      MAIN_CATEGORIES.forEach(m => {
+        const groupTitle = m.name[currentLang] || m.name.ca;
+        const normGroupTitle = groupTitle.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const groupMatches = q ? normGroupTitle.includes(q) : false;
+
+        const validSubs = m.subcategories.filter(sub => {
+          if (!CATEGORY_ICONS[sub.id]) return false;
+          if (!q || groupMatches) return true;
+          const subName = (getCategoryDisplayName(sub.id, currentLang) || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const subEx = (getCategoryExamples(sub.id, currentLang) || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return subName.includes(q) || subEx.includes(q);
+        });
+
+        if (validSubs.length > 0) {
+          totalMatchingSubs += validSubs.length;
+          optHtml += `<optgroup label="${groupTitle}">`;
+          validSubs.forEach(sub => {
+            const displayName = getCategoryDisplayName(sub.id, currentLang);
+            optHtml += `<option value="${sub.id}">${displayName}</option>`;
+          });
+          optHtml += `</optgroup>`;
+        }
+      });
+
+      // Categories personalitzades / altres no incloses
+      const customCats = Object.keys(CATEGORY_ICONS).filter(k => {
+        const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
+        return !inMain && k !== "General";
+      });
+
+      if (customCats.length > 0) {
+        const matchingCustom = customCats.filter(k => {
+          if (!q) return true;
+          const name = getCategoryDisplayName(k, currentLang).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const ex = (getCategoryExamples(k, currentLang) || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return name.includes(q) || ex.includes(q);
+        });
+        if (matchingCustom.length > 0) {
+          totalMatchingSubs += matchingCustom.length;
+          optHtml += `<optgroup label="${currentLang === 'es' ? 'Otras categorías' : 'Altres categories'}">`;
+          matchingCustom.forEach(c => {
+            optHtml += `<option value="${c}">${getCategoryDisplayName(c, currentLang)}</option>`;
+          });
+          optHtml += `</optgroup>`;
+        }
+      }
+
+      // Afegir General si escau
+      const generalMatches = !q || "general".includes(q) || (currentLang === 'es' ? "otros".includes(q) : "altres".includes(q));
+      if (generalMatches) {
+        totalMatchingSubs += 1;
+        optHtml += `<optgroup label="${currentLang === 'es' ? 'Sin categoría' : 'Sense categoria'}">`;
+        optHtml += `<option value="General">${getCategoryDisplayName("General", currentLang)}</option>`;
+        optHtml += `</optgroup>`;
+      }
+
+      if (totalMatchingSubs === 0) {
+        optHtml = `<option value="" disabled selected>${currentLang === 'es' ? "No se han encontrado categorías" : "No s'ha trobat cap categoria"}</option>`;
+      }
+
+      catSelect.innerHTML = optHtml;
+
+      // Intentar preservar la selecció anterior si encara és present
+      if (prevSelectedVal && Array.from(catSelect.options).some(o => o.value === prevSelectedVal)) {
+        catSelect.value = prevSelectedVal;
+      } else if (catSelect.options.length > 0 && catSelect.options[0].value) {
+        catSelect.selectedIndex = 0;
+      }
+
+      const countEl = document.getElementById("edit-category-match-count");
+      if (countEl) {
+        countEl.textContent = q ? (currentLang === 'es' ? `${totalMatchingSubs} encontradas` : `${totalMatchingSubs} trobades`) : "";
+      }
+
+      if (typeof updateEditCategoryHint === "function") {
+        updateEditCategoryHint(catSelect.value);
+      }
+    }
+
+    function clearEditCategorySearch() {
+      const catSearchInput = document.getElementById("edit-category-search");
+      if (catSearchInput) {
+        catSearchInput.value = "";
+        catSearchInput.focus();
+      }
+      filterEditCategoryDropdown("");
+    }
+
     function toggleGrouping() {
       groupByCategories = !groupByCategories;
       localStorage.setItem(STORAGE_KEY_GROUP_MODE, groupByCategories ? "1" : "0");
@@ -3959,6 +4366,15 @@
     }
 
     function renderLists() {
+      // Auto-consolidació immediata si hi ha duplicats pendents
+      if (typeof consolidateAllItems === 'function') {
+        const cons = consolidateAllItems(items);
+        if (cons.mergedCount > 0) {
+          items = cons.list;
+          saveToLocalStorage();
+        }
+      }
+
       const pendingContainer = document.getElementById("pending-list");
       const completedContainer = document.getElementById("completed-list");
 
@@ -4068,8 +4484,7 @@
                       ? `<span class="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid fa-cart-shopping text-[9px]"></i> ${sd.pendingCount} ${currentLang === 'es' ? 'pendientes' : 'pendents'}</span>` 
                       : `<span class="inline-flex items-center gap-1 font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid fa-check text-[9px]"></i> ${currentLang === 'es' ? 'Sin pendientes' : 'Cap pendent'}</span>`
                     }
-                    ${sd.completedCount > 0 ? `<span class="text-[11px] text-gray-400">• ${sd.completedCount} ${currentLang === 'es' ? 'comprados' : 'fets'}</span>` : ''}
-                    ${sd.cost > 0 ? `<span class="text-[11px] font-semibold text-gray-700">• ${sd.cost.toFixed(2)} €</span>` : ''}
+                    ${sd.cost > 0 ? `<span class="text-[11px] font-semibold text-gray-700">${sd.cost.toFixed(2)} €</span>` : ''}
                   </div>
                 </div>
               </div>
@@ -4150,11 +4565,20 @@
           const icon = getCategoryIcon(canonical);
           const displayName = getCategoryDisplayName(canonical, currentLang);
           const examples = getCategoryExamples(canonical, currentLang);
+          const isAllCatSelected = itemsInCat.length > 0 && itemsInCat.every(it => selectedItemIds.has(it.id));
           html += `
             <div class="px-2 pt-2.5 pb-1 w-full">
               <div class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center justify-between">
                 <span class="flex items-center gap-1.5"><i class="fa-solid ${icon} text-emerald-700 text-xs"></i> ${displayName}</span>
-                <span class="text-gray-400 font-normal text-[11px]">(${itemsInCat.length})</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-gray-400 font-normal text-[11px]">(${itemsInCat.length})</span>
+                  <button type="button" onclick="selectCategoryItems('${canonical}', event)"
+                          class="text-[10px] ${isAllCatSelected ? 'text-teal-800 bg-teal-100 font-bold border-teal-300' : 'text-gray-600 hover:text-emerald-800 bg-gray-100 hover:bg-emerald-50 font-semibold border-gray-200'} px-2 py-0.5 rounded-lg flex items-center gap-1 transition border shadow-2xs select-none"
+                          title="${currentLang === 'es' ? 'Seleccionar todos los artículos de esta categoría' : 'Seleccionar tots els articles d\'aquesta categoria'}">
+                    <i class="fa-${isAllCatSelected ? 'solid fa-square-check text-teal-600' : 'regular fa-square text-gray-400'} text-[10px]"></i>
+                    <span>${isAllCatSelected ? (currentLang === 'es' ? 'Desmarcar' : 'Desmarcar') : (currentLang === 'es' ? 'Seleccionar' : 'Seleccionar')}</span>
+                  </button>
+                </div>
               </div>
               ${examples ? `<div class="text-[10px] text-gray-400 font-normal normal-case italic truncate mt-0.5" title="${examples}">Ex: ${examples}</div>` : ''}
             </div>
@@ -5084,6 +5508,17 @@
         document.getElementById("edit-unit").value = it.unit || "ud";
         document.getElementById("edit-price").value = it.price ? it.price : "";
         document.getElementById("edit-store").value = it.store;
+
+        const catSearchInput = document.getElementById("edit-category-search");
+        if (catSearchInput) {
+          catSearchInput.value = "";
+          const clearBtn = document.getElementById("edit-category-search-clear");
+          if (clearBtn) clearBtn.classList.add("hidden");
+        }
+        if (typeof filterEditCategoryDropdown === "function") {
+          filterEditCategoryDropdown("");
+        }
+
         const catSelect = document.getElementById("edit-category");
         if (catSelect) {
           const canonicalCat = getCategoryCanonicalKey(it.category);
@@ -5939,37 +6374,10 @@
       }
 
       CATEGORIES = getSortedCategoriesList();
-      const catSelect = document.getElementById("edit-category");
-      if (catSelect) {
-        let optHtml = "";
-        MAIN_CATEGORIES.forEach(m => {
-          const groupTitle = m.name[currentLang] || m.name.ca;
-          const validSubs = m.subcategories.filter(sub => CATEGORY_ICONS[sub.id]);
-          if (validSubs.length > 0) {
-            optHtml += `<optgroup label="${groupTitle}">`;
-            validSubs.forEach(sub => {
-              const displayName = getCategoryDisplayName(sub.id, currentLang);
-              optHtml += `<option value="${sub.id}">${displayName}</option>`;
-            });
-            optHtml += `</optgroup>`;
-          }
-        });
-
-        // Categories personalitzades no incloses als 10 grups
-        const customCats = CATEGORIES.filter(c => {
-          return !MAIN_CATEGORIES.some(m => m.subcategories.some(s => s.id === c));
-        });
-        if (customCats.length > 0) {
-          const otherLabel = currentLang === 'es' ? 'Otras / Personalizadas' : 'Altres / Personalitzades';
-          optHtml += `<optgroup label="${otherLabel}">`;
-          customCats.forEach(c => {
-            optHtml += `<option value="${c}">${getCategoryDisplayName(c, currentLang)}</option>`;
-          });
-          optHtml += `</optgroup>`;
-        }
-
-        catSelect.innerHTML = optHtml;
-        updateEditCategoryHint(catSelect.value);
+      if (typeof filterEditCategoryDropdown === "function") {
+        const catSearchInput = document.getElementById("edit-category-search");
+        const q = catSearchInput ? catSearchInput.value : "";
+        filterEditCategoryDropdown(q);
       }
     }
 
@@ -8327,6 +8735,14 @@
     window.openMoveItemsModal = openMoveItemsModal;
     window.closeMoveItemsModal = closeMoveItemsModal;
     window.executeMoveSelectedToStore = executeMoveSelectedToStore;
+    window.openChangeCategoryModal = openChangeCategoryModal;
+    window.closeChangeCategoryModal = closeChangeCategoryModal;
+    window.renderChangeCategoryModalList = renderChangeCategoryModalList;
+    window.clearChangeCatModalSearch = clearChangeCatModalSearch;
+    window.executeChangeCategorySelected = executeChangeCategorySelected;
+    window.selectCategoryItems = selectCategoryItems;
+    window.filterEditCategoryDropdown = filterEditCategoryDropdown;
+    window.clearEditCategorySearch = clearEditCategorySearch;
     window.handleCardTouchStart = handleCardTouchStart;
     window.handleCardTouchEnd = handleCardTouchEnd;
     window.handleCardTouchMove = handleCardTouchMove;
