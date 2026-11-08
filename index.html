@@ -2970,12 +2970,25 @@
           map.set(dedupKey, { ...it });
         } else {
           mergedCount++;
-          // L'estat crossed_off (pendent vs comprat) es determina per la darrera acció
-          const itTime = it.updatedAt || 0;
-          const existTime = existing.updatedAt || 0;
-          if (itTime >= existTime) {
-            existing.crossed_off = it.crossed_off;
+          if (typeof recordItemDeletion === 'function') {
+            recordItemDeletion(it.id);
           }
+
+          // Si algun dels dos és pendent (o tots dos), l'article fusionat queda PENDENT i se'n sumen les unitats!
+          if (!it.crossed_off || !existing.crossed_off) {
+            existing.crossed_off = false;
+            const qtyA = parseFloat(existing.qty) || 1;
+            const qtyB = parseFloat(it.qty) || 1;
+            existing.qty = String(qtyA + qtyB);
+          } else {
+            // Tots dos ratllats: mantenir l'estat i el timestamp més recent
+            const itTime = it.updatedAt || 0;
+            const existTime = existing.updatedAt || 0;
+            if (itTime >= existTime) {
+              existing.crossed_off = it.crossed_off;
+            }
+          }
+
           // Conservar el preu si un en té i l'altre no
           if ((!existing.price || existing.price === 0) && it.price && it.price > 0) {
             existing.price = it.price;
@@ -2985,10 +2998,6 @@
           // Prioritzar botiga més concreta que 'all'
           if ((existing.store === 'all' || !existing.store) && it.store && it.store !== 'all') {
             existing.store = it.store;
-          }
-          if (it.qty && it.qty !== "1" && (!existing.qty || existing.qty === "1")) {
-            existing.qty = it.qty;
-            existing.unit = it.unit;
           }
           if (!existing.note && it.note) existing.note = it.note;
           if (!existing.photo && it.photo) existing.photo = it.photo;
@@ -3388,13 +3397,9 @@
     // ==========================================
     // RENDERITZAT DE LA INTERFÍCIE (DENSITAT ALTA)
     // ==========================================
-    function renderStoreTabs() {
-      const container = document.getElementById("store-tabs");
-      if (!container) return;
-
-      // Ordenació dinàmica de botigues: "all" sempre primera
+    function getSortedStoresList(includeAll = false) {
       const allStore = STORES.find(s => s.id === "all") || { id: "all", name: "Totes", color: "gray" };
-      let otherStores = STORES.filter(s => s.id !== "all");
+      let otherStores = [...STORES.filter(s => s.id !== "all")];
 
       if (storeSortMode === "active_first") {
         otherStores.sort((a, b) => {
@@ -3408,9 +3413,16 @@
       } else if (storeSortMode === "alphabetical") {
         otherStores.sort((a, b) => getStoreDisplayName(a, currentLang).localeCompare(getStoreDisplayName(b, currentLang), currentLang));
       }
-      // "default" manté l'ordre definit a STORES
+      // "default" manté exactament l'ordre definit per l'usuari a la configuració (STORES)
 
-      const storesToRender = [allStore, ...otherStores];
+      return includeAll ? [allStore, ...otherStores] : otherStores;
+    }
+
+    function renderStoreTabs() {
+      const container = document.getElementById("store-tabs");
+      if (!container) return;
+
+      const storesToRender = getSortedStoresList(true);
 
       let html = storesToRender.map(store => {
         const isActive = store.id === currentStoreFilter;
@@ -3778,21 +3790,70 @@
       const targetStore = STORES.find(s => s.id === targetStoreId);
       const targetStoreName = targetStore ? getStoreDisplayName(targetStore, currentLang) : targetStoreId;
       let count = 0;
+      let mergedCount = 0;
 
-      items.forEach(it => {
-        if (selectedItemIds.has(it.id)) {
+      const itemsToMove = items.filter(it => selectedItemIds.has(it.id));
+
+      itemsToMove.forEach(it => {
+        if (it.store === targetStoreId) return;
+
+        // Comprovar si a la llista de destí JA hi ha un article igual
+        const canonKey = getCanonicalProductKey(it.name);
+        const existingInTarget = items.find(other => 
+          other.id !== it.id && 
+          other.store === targetStoreId && 
+          (getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, it.name))
+        );
+
+        if (existingInTarget) {
+          // L'article ja hi era: sumem les unitats en comptes de duplicar!
+          const currentQty = parseFloat(existingInTarget.qty) || 1;
+          const addQty = parseFloat(it.qty) || 1;
+          existingInTarget.qty = String(currentQty + addQty);
+
+          // Si estava ratllat a la llista de destí, es recupera com a pendent
+          if (existingInTarget.crossed_off) {
+            existingInTarget.crossed_off = false;
+          }
+
+          if (it.note && !existingInTarget.note) existingInTarget.note = it.note;
+          if (it.photo && !existingInTarget.photo) existingInTarget.photo = it.photo;
+          if ((!existingInTarget.price || existingInTarget.price === 0) && it.price) {
+            existingInTarget.price = it.price;
+          }
+          existingInTarget.updatedAt = Date.now();
+
+          // Donar de baixa l'article traslladat que ara queda combinat
+          if (typeof recordItemDeletion === 'function') {
+            recordItemDeletion(it.id);
+          }
+          items = items.filter(x => x.id !== it.id);
+          mergedCount++;
+          count++;
+        } else {
+          // No hi era: simplement reassignem la botiga
           it.store = targetStoreId;
           it.updatedAt = Date.now();
           count++;
         }
       });
 
+      // Assegurar consolidació global
+      if (typeof consolidateAllItems === 'function') {
+        const cons = consolidateAllItems(items);
+        if (cons.mergedCount > 0) items = cons.list;
+      }
+
       saveToLocalStorage();
       if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
 
-      const toastMsg = typeof I18N[currentLang]?.toastMovedItems === 'function'
-        ? I18N[currentLang].toastMovedItems(count, targetStoreName)
-        : `${count} articles moguts a ${targetStoreName}`;
+      const toastMsg = mergedCount > 0
+        ? (currentLang === 'es'
+            ? `${count} artículos pasados a ${targetStoreName} (${mergedCount} sumando unidades)`
+            : `${count} articles passats a ${targetStoreName} (${mergedCount} sumant unitats)`)
+        : (typeof I18N[currentLang]?.toastMovedItems === 'function'
+            ? I18N[currentLang].toastMovedItems(count, targetStoreName)
+            : `${count} articles moguts a ${targetStoreName}`);
 
       showToast(toastMsg, "fa-arrow-right-arrow-left");
       closeMoveItemsModal();
@@ -3962,16 +4023,23 @@
             : `Llistes i botigues (${STORES.filter(s => s.id !== 'all').length})`;
         }
 
+        const pendingCost = pending.reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
         const pendingCostEl = document.getElementById("pending-cost-counter");
         if (pendingCostEl) {
-          pendingCostEl.innerText = totalCost > 0 ? `${totalCost.toFixed(2)} € total` : "";
+          pendingCostEl.innerText = pendingCost > 0 
+            ? `${pendingCost.toFixed(2)} € ${currentLang === 'es' ? 'pendiente' : 'pendent'}` 
+            : "";
         }
 
-        const otherStores = STORES.filter(s => s.id !== "all");
+        // Respectar estrictament l'ordre de botigues configurat a STORES / opcions d'ordenació
+        const otherStores = typeof getSortedStoresList === "function" ? getSortedStoresList(false) : STORES.filter(s => s.id !== "all");
         const storesData = otherStores.map(st => {
           const pCount = items.filter(it => !it.crossed_off && it.store === st.id).length;
           const cCount = items.filter(it => it.crossed_off && it.store === st.id).length;
-          const sCost = items.filter(it => it.store === st.id).reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
+          // NOMÉS els euros de la compra pendent a aquesta botiga
+          const sCost = items
+            .filter(it => !it.crossed_off && it.store === st.id)
+            .reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
           return {
             store: st,
             name: getStoreDisplayName(st, currentLang),
@@ -3980,14 +4048,6 @@
             totalCount: pCount + cCount,
             cost: sCost
           };
-        });
-
-        // Ordenar botigues: primer les que tenen articles pendents (més pendents primer), després alfabèticament
-        storesData.sort((a, b) => {
-          if (a.pendingCount > 0 && b.pendingCount === 0) return -1;
-          if (b.pendingCount > 0 && a.pendingCount === 0) return 1;
-          if (a.pendingCount !== b.pendingCount) return b.pendingCount - a.pendingCount;
-          return a.name.localeCompare(b.name, currentLang);
         });
 
         let storesListHtml = storesData.map(sd => {
@@ -8234,7 +8294,9 @@
     window.filterCatalogList = filterCatalogList;
     window.handleCatalogAdd = handleCatalogAdd;
     window.handleCatalogDecrement = handleCatalogDecrement;
+    window.getSortedStoresList = getSortedStoresList;
     Object.defineProperty(window, 'items', { get: () => items, set: (val) => { items = val; }, configurable: true });
+    Object.defineProperty(window, 'selectedItemIds', { get: () => selectedItemIds, configurable: true });
 
     window.openStatsModal = openStatsModal;
     window.closeStatsModal = closeStatsModal;
