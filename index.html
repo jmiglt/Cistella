@@ -356,6 +356,13 @@
               <span data-i18n="menuUncheckAll">Desratllar tots</span>
             </span>
           </button>
+          <button onclick="toggleSelectionMode(); toggleOptionsMenu();"
+            class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-list-check text-slate-500 w-4 text-center text-xs"></i>
+              <span data-i18n="menuSelectMove">Seleccionar / Moure articles</span>
+            </span>
+          </button>
         </div>
       </div>
 
@@ -473,7 +480,13 @@
       <div
         class="flex justify-between items-center px-1.5 py-1 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
         <span id="pending-counter">Pendents (0)</span>
-        <span id="pending-cost-counter" class="text-emerald-700 font-semibold normal-case">0.00 €</span>
+        <div class="flex items-center gap-2">
+          <button id="toggle-select-mode-btn" onclick="toggleSelectionMode()" class="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 font-bold text-[10px] normal-case flex items-center gap-1 transition border border-gray-200/60 shadow-2xs">
+            <i class="fa-solid fa-list-check text-[10px]"></i>
+            <span id="toggle-select-btn-label">Seleccionar</span>
+          </button>
+          <span id="pending-cost-counter" class="text-emerald-700 font-semibold normal-case">0.00 €</span>
+        </div>
       </div>
 
       <div id="pending-list"
@@ -510,6 +523,30 @@
     </section>
 
   </main>
+
+  <!-- BARRA D'ACCIÓ FLOTANT PER A SELECCIÓ MÚLTIPLE (CANVI DE LLISTA) -->
+  <div id="selection-action-bar"
+    class="hidden fixed bottom-14 left-3 right-3 z-40 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-500/30 p-2 sm:p-2.5 flex items-center justify-between gap-2 max-w-lg mx-auto animate-fade-in">
+    <div class="flex items-center gap-2">
+      <button onclick="toggleSelectAllVisibleItems()"
+        class="text-xs font-bold text-gray-700 hover:text-emerald-700 px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-emerald-50 flex items-center gap-1.5 transition border border-gray-200/60 shadow-2xs">
+        <i id="select-all-icon" class="fa-regular fa-square-check text-emerald-600"></i>
+        <span id="select-all-btn-label">Tots</span>
+      </button>
+      <span id="selection-count-badge" class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">0 seleccionats</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button onclick="openMoveItemsModal()"
+        class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-arrow-right-arrow-left text-[10px]"></i>
+        <span id="btn-move-selected-label">Canviar de llista</span>
+      </button>
+      <button onclick="exitSelectionMode()"
+        class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center text-xs transition" title="Sortir">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
 
   <!-- SUGGERIMENTS D'AUTOCOMPLETAT DES DE RATLLATS / HISTÒRIC (FASE 3) -->
   <div id="autocomplete-suggestions"
@@ -784,6 +821,36 @@
         </button>
         <button onclick="closeManageStoresModal()"
           class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold transition">
+          <span data-i18n="btnClose">Tancar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE MOURE ARTICLES DE LLISTA -->
+  <div id="move-items-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900" id="move-modal-title">Canviar articles de llista</h3>
+            <p id="move-modal-subtitle" class="text-[11px] text-gray-500">Tria la llista o botiga de destí</p>
+          </div>
+        </div>
+        <button onclick="closeMoveItemsModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div id="move-destinations-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[55vh]"></div>
+      <div class="pt-2 border-t flex items-center justify-between gap-2">
+        <button onclick="promptCreateNewStore(); closeMoveItemsModal();" class="py-2 px-3 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-gray-200">
+          <i class="fa-solid fa-plus text-emerald-600"></i>
+          <span data-i18n="btnNewStore">Nova llista</span>
+        </button>
+        <button onclick="closeMoveItemsModal()" class="py-2 px-4 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs transition">
           <span data-i18n="btnClose">Tancar</span>
         </button>
       </div>
@@ -1719,7 +1786,18 @@
         deletedToast: "Producte eliminat",
         allUncheckedToast: "Tots els articles tornats a pendents",
         confirmDeleteAll: "Segur que vols buidar TOTES les dades de la llista?",
-        confirmDeleteCompleted: "Segur que vols esborrar definitivament tots els articles comprats d'aquesta botiga?"
+        confirmDeleteCompleted: "Segur que vols esborrar definitivament tots els articles comprats d'aquesta botiga?",
+
+        menuSelectMove: "Seleccionar / Moure articles",
+        btnSelect: "Seleccionar",
+        btnCancelSelect: "Cancel·lar",
+        btnSelectAll: "Tots",
+        btnDeselectAll: "Cap",
+        btnMoveSelected: "Canviar de llista",
+        moveModalTitle: "Canviar articles de llista",
+        moveModalSubtitle: "Tria la llista o botiga de destí",
+        toastMovedItems: (count, storeName) => `${count} articles moguts a ${storeName}`,
+        toastSelectFirst: "Selecciona almenys un article"
       },
       es: {
         appTitle: "Cistella",
@@ -1852,7 +1930,18 @@
         deletedToast: "Producto eliminado",
         allUncheckedToast: "Todos los artículos devueltos a pendientes",
         confirmDeleteAll: "¿Seguro que quieres vaciar TODOS los datos de la lista?",
-        confirmDeleteCompleted: "¿Seguro que quieres borrar definitivamente todos los artículos comprados de esta tienda?"
+        confirmDeleteCompleted: "¿Seguro que quieres borrar definitivamente todos los artículos comprados de esta tienda?",
+
+        menuSelectMove: "Seleccionar / Mover artículos",
+        btnSelect: "Seleccionar",
+        btnCancelSelect: "Cancelar",
+        btnSelectAll: "Todos",
+        btnDeselectAll: "Ninguno",
+        btnMoveSelected: "Cambiar de lista",
+        moveModalTitle: "Cambiar artículos de lista",
+        moveModalSubtitle: "Elige la lista o tienda de destino",
+        toastMovedItems: (count, storeName) => `${count} artículos movidos a ${storeName}`,
+        toastSelectFirst: "Selecciona al menos un artículo"
       }
     };
 
@@ -2124,6 +2213,7 @@
 
       // Refrescar pestanyes i llistes
       if (typeof renderStoreTabs === 'function') renderStoreTabs();
+      if (typeof updateSelectionUI === 'function') updateSelectionUI();
       if (typeof renderLists === 'function') renderLists();
 
       // Refrescar modals oberts si n'hi ha algun
@@ -2942,6 +3032,225 @@
       renderLists();
     }
 
+    // ==========================================
+    // SELECCIÓ MÚLTIPLE I CANVI DE LLISTA
+    // ==========================================
+    let isSelectionMode = false;
+    let selectedItemIds = new Set();
+    let longPressTimer = null;
+    let touchMoved = false;
+
+    function toggleSelectionMode() {
+      if (isSelectionMode) {
+        exitSelectionMode();
+      } else {
+        enterSelectionMode();
+      }
+    }
+
+    function enterSelectionMode(initialItemId = null) {
+      isSelectionMode = true;
+      selectedItemIds.clear();
+      if (initialItemId) {
+        selectedItemIds.add(initialItemId);
+      }
+      updateSelectionUI();
+      renderLists();
+    }
+
+    function exitSelectionMode() {
+      isSelectionMode = false;
+      selectedItemIds.clear();
+      updateSelectionUI();
+      renderLists();
+    }
+
+    function toggleItemSelection(id) {
+      if (selectedItemIds.has(id)) {
+        selectedItemIds.delete(id);
+      } else {
+        selectedItemIds.add(id);
+      }
+      updateSelectionUI();
+      renderLists();
+    }
+
+    function toggleSelectAllVisibleItems() {
+      const visibleItems = items.filter(it => !it.crossed_off && (currentStoreFilter === "all" || it.store === currentStoreFilter));
+      const allSelected = visibleItems.length > 0 && visibleItems.every(it => selectedItemIds.has(it.id));
+      if (allSelected) {
+        visibleItems.forEach(it => selectedItemIds.delete(it.id));
+      } else {
+        visibleItems.forEach(it => selectedItemIds.add(it.id));
+      }
+      updateSelectionUI();
+      renderLists();
+    }
+
+    function updateSelectionUI() {
+      const bar = document.getElementById("selection-action-bar");
+      const toggleBtn = document.getElementById("toggle-select-mode-btn");
+      const toggleBtnLabel = document.getElementById("toggle-select-btn-label");
+      const badge = document.getElementById("selection-count-badge");
+      const selectAllLabel = document.getElementById("select-all-btn-label");
+      const selectAllIcon = document.getElementById("select-all-icon");
+      const fabVoice = document.getElementById("floating-voice-btn");
+
+      if (isSelectionMode) {
+        if (bar) bar.classList.remove("hidden");
+        if (fabVoice) fabVoice.classList.add("hidden");
+        if (toggleBtn) {
+          toggleBtn.className = "px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-[10px] normal-case flex items-center gap-1 transition border border-emerald-300 shadow-2xs";
+        }
+        if (toggleBtnLabel) toggleBtnLabel.textContent = t('btnCancelSelect');
+
+        const count = selectedItemIds.size;
+        if (badge) {
+          badge.textContent = currentLang === "es"
+            ? `${count} seleccionado${count === 1 ? '' : 's'}`
+            : `${count} seleccionat${count === 1 ? '' : 's'}`;
+        }
+
+        const visibleItems = items.filter(it => !it.crossed_off && (currentStoreFilter === "all" || it.store === currentStoreFilter));
+        const allSelected = visibleItems.length > 0 && visibleItems.every(it => selectedItemIds.has(it.id));
+        if (selectAllLabel) {
+          selectAllLabel.textContent = allSelected ? t('btnDeselectAll') : t('btnSelectAll');
+        }
+        if (selectAllIcon) {
+          selectAllIcon.className = allSelected ? "fa-solid fa-square-check text-emerald-600" : "fa-regular fa-square text-emerald-600";
+        }
+      } else {
+        if (bar) bar.classList.add("hidden");
+        if (fabVoice) fabVoice.classList.remove("hidden");
+        if (toggleBtn) {
+          toggleBtn.className = "px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-emerald-50 text-gray-600 hover:text-emerald-700 font-bold text-[10px] normal-case flex items-center gap-1 transition border border-gray-200/60 shadow-2xs";
+        }
+        if (toggleBtnLabel) toggleBtnLabel.textContent = t('btnSelect');
+      }
+    }
+
+    function handleCardTouchStart(event, id) {
+      if (isSelectionMode) return;
+      touchMoved = false;
+      longPressTimer = setTimeout(() => {
+        if (!touchMoved) {
+          if (navigator.vibrate) navigator.vibrate(40);
+          enterSelectionMode(id);
+        }
+      }, 500);
+    }
+
+    function handleCardTouchEnd(event) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+
+    function handleCardTouchMove(event) {
+      touchMoved = true;
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+
+    function handleCardContextMenu(event, id) {
+      if (!isSelectionMode) {
+        event.preventDefault();
+        enterSelectionMode(id);
+      }
+    }
+
+    function openMoveItemsModal() {
+      if (selectedItemIds.size === 0) {
+        showToast(t('toastSelectFirst'), "fa-circle-exclamation");
+        return;
+      }
+      renderMoveDestinationsList();
+      const modal = document.getElementById("move-items-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeMoveItemsModal() {
+      const modal = document.getElementById("move-items-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function renderMoveDestinationsList() {
+      const container = document.getElementById("move-destinations-list");
+      if (!container) return;
+
+      const titleEl = document.getElementById("move-modal-title");
+      const subEl = document.getElementById("move-modal-subtitle");
+      const count = selectedItemIds.size;
+
+      if (titleEl) {
+        titleEl.textContent = currentLang === "es"
+          ? `Mover ${count} artículo${count === 1 ? '' : 's'} a...`
+          : `Moure ${count} article${count === 1 ? '' : 's'} a...`;
+      }
+      if (subEl) {
+        subEl.textContent = t('moveModalSubtitle');
+      }
+
+      const validStores = STORES.filter(s => s.id !== "all");
+
+      container.innerHTML = validStores.map(store => {
+        const isCurrent = store.id === currentStoreFilter;
+        const displayName = getStoreDisplayName(store, currentLang);
+        const storeCount = items.filter(it => !it.crossed_off && it.store === store.id).length;
+
+        return `
+          <div onclick="executeMoveSelectedToStore('${store.id}')"
+               class="p-2.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer hover:bg-emerald-50 active:bg-emerald-100 ${
+                 isCurrent ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-200 bg-white hover:border-emerald-300'
+               }">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg ${store.badgeBg || 'bg-gray-100'} ${store.badgeText || 'text-gray-700'} flex items-center justify-center text-xs font-bold shadow-2xs">
+                <i class="fa-solid fa-store"></i>
+              </div>
+              <div>
+                <span class="text-xs font-bold text-gray-900">${displayName}</span>
+                ${isCurrent ? `<span class="ml-1.5 text-[10px] text-emerald-700 font-semibold">(${currentLang === 'es' ? 'actual' : 'actual'})</span>` : ''}
+                <p class="text-[10px] text-gray-500">${storeCount} ${currentLang === 'es' ? 'pendientes' : 'pendents'}</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function executeMoveSelectedToStore(targetStoreId) {
+      if (selectedItemIds.size === 0) return;
+
+      const targetStore = STORES.find(s => s.id === targetStoreId);
+      const targetStoreName = targetStore ? getStoreDisplayName(targetStore, currentLang) : targetStoreId;
+      let count = 0;
+
+      items.forEach(it => {
+        if (selectedItemIds.has(it.id)) {
+          it.store = targetStoreId;
+          it.updatedAt = Date.now();
+          count++;
+        }
+      });
+
+      saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+
+      const toastMsg = typeof I18N[currentLang]?.toastMovedItems === 'function'
+        ? I18N[currentLang].toastMovedItems(count, targetStoreName)
+        : `${count} articles moguts a ${targetStoreName}`;
+
+      showToast(toastMsg, "fa-arrow-right-arrow-left");
+      closeMoveItemsModal();
+      exitSelectionMode();
+      renderStoreTabs();
+      renderLists();
+    }
+
     function toggleGrouping() {
       groupByCategories = !groupByCategories;
       localStorage.setItem(STORAGE_KEY_GROUP_MODE, groupByCategories ? "1" : "0");
@@ -3300,41 +3609,57 @@
       const hasNote = Boolean(item.note && item.note.trim() !== "");
       const hasSubtitle = showStore || showCategory || hasNote;
 
-      // Mode de ratllar: si és "click", el clic global ratlla. Si és "swipe", el clic global obre l'edició
-      const cardClickAction = checkMode === "click" ? `toggleItemCheck('${item.id}')` : `openEditModal('${item.id}')`;
+      const isSelected = isSelectionMode && selectedItemIds.has(item.id);
+
+      // Mode de selecció activa: clic a la targeta commuta selecció
+      const cardClickAction = isSelectionMode
+        ? `toggleItemSelection('${item.id}')`
+        : (checkMode === "click" ? `toggleItemCheck('${item.id}')` : `openEditModal('${item.id}')`);
+
+      const touchHandlers = isSelectionMode
+        ? ''
+        : `oncontextmenu="handleCardContextMenu(event, '${item.id}')" ontouchstart="handleCardTouchStart(event, '${item.id}')" ontouchend="handleCardTouchEnd(event)" ontouchmove="handleCardTouchMove(event)"`;
 
       return `
         <div data-item-id="${item.id}"
              onclick="${cardClickAction}"
+             ${touchHandlers}
              class="item-card relative flex items-stretch justify-between p-0 pr-2 sm:pr-2.5 rounded-xl border transition-all duration-150 select-none cursor-pointer w-full overflow-hidden ${
                hasSubtitle ? 'min-h-[42px]' : 'h-10 sm:h-11'
              } ${
-               isCrossed
-                 ? 'bg-gray-100/70 border-gray-200/80 opacity-60'
-                 : 'bg-white border-gray-200/90 shadow-2xs hover:border-emerald-300'
+               isSelected
+                 ? 'bg-emerald-50/90 border-emerald-400 ring-2 ring-emerald-500/60 shadow-xs'
+                 : (isCrossed
+                     ? 'bg-gray-100/70 border-gray-200/80 opacity-60'
+                     : 'bg-white border-gray-200/90 shadow-2xs hover:border-emerald-300')
              }">
-          <!-- ESQUERRA: FOTO O ICONA (Clic sempre ratlla/desratlla l'article) -->
+          <!-- ESQUERRA: CHECKBOX (EN MODE SELECCIÓ) O FOTO/ICONA -->
           <div class="flex items-center flex-1 min-w-0 mr-1.5">
-            ${item.photo
-              ? `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
-                      class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-pointer relative group" 
-                      title="${isCrossed ? (currentLang === 'es' ? 'Recuperar a pendientes' : 'Tornar a pendents') : (currentLang === 'es' ? 'Tachar / Comprado' : 'Ratllar / Comprat')}">
-                   <img src="${item.photo}" class="w-full h-full object-cover">
-                   <div class="absolute inset-0 bg-emerald-600/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition">
-                     <i class="fa-solid fa-check"></i>
-                   </div>
-                   <button onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(item.photo)}', '${encodeURIComponent(item.name || '')}')"
-                           title="${currentLang === 'es' ? 'Ver foto ampliada' : 'Veure foto en gran'}"
-                           class="absolute bottom-0 right-0 p-0.5 bg-black/60 hover:bg-black text-white text-[8px] rounded-tl opacity-0 group-hover:opacity-100 transition">
-                     <i class="fa-solid fa-magnifying-glass-plus"></i>
-                   </button>
+            ${isSelectionMode
+              ? `<div class="w-9 sm:w-10 self-stretch flex-shrink-0 flex items-center justify-center ${isSelected ? 'text-emerald-700 bg-emerald-100/80' : 'text-gray-400 bg-gray-50'} border-r border-gray-200 transition">
+                   <i class="fa-solid ${isSelected ? 'fa-square-check text-base text-emerald-600' : 'fa-regular fa-square text-base text-gray-400'}"></i>
                  </div>`
-              : `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
-                      class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
-                   isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60 hover:bg-emerald-100'
-                 } flex items-center justify-center text-xs cursor-pointer transition" title="${isCrossed ? (currentLang === 'es' ? 'Recuperar a pendientes' : 'Tornar a pendents') : (currentLang === 'es' ? 'Tachar / Comprado' : 'Ratllar / Comprat')}">
-                   <i class="fa-solid ${catIcon}"></i>
-                 </div>`
+              : (item.photo
+                  ? `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
+                          class="w-10 sm:w-11 self-stretch flex-shrink-0 bg-gray-100 overflow-hidden flex items-center justify-center cursor-pointer relative group" 
+                          title="${isCrossed ? (currentLang === 'es' ? 'Recuperar a pendientes' : 'Tornar a pendents') : (currentLang === 'es' ? 'Tachar / Comprado' : 'Ratllar / Comprat')}">
+                       <img src="${item.photo}" class="w-full h-full object-cover">
+                       <div class="absolute inset-0 bg-emerald-600/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition">
+                         <i class="fa-solid fa-check"></i>
+                       </div>
+                       <button onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(item.photo)}', '${encodeURIComponent(item.name || '')}')"
+                               title="${currentLang === 'es' ? 'Ver foto ampliada' : 'Veure foto en gran'}"
+                               class="absolute bottom-0 right-0 p-0.5 bg-black/60 hover:bg-black text-white text-[8px] rounded-tl opacity-0 group-hover:opacity-100 transition">
+                         <i class="fa-solid fa-magnifying-glass-plus"></i>
+                       </button>
+                     </div>`
+                  : `<div onclick="event.stopPropagation(); toggleItemCheck('${item.id}')"
+                          class="w-9 sm:w-10 self-stretch flex-shrink-0 ${
+                       isCrossed ? 'bg-gray-200/80 text-gray-400' : 'bg-emerald-50 text-emerald-700 border-r border-emerald-100/60 hover:bg-emerald-100'
+                     } flex items-center justify-center text-xs cursor-pointer transition" title="${isCrossed ? (currentLang === 'es' ? 'Recuperar a pendientes' : 'Tornar a pendents') : (currentLang === 'es' ? 'Tachar / Comprado' : 'Ratllar / Comprat')}">
+                       <i class="fa-solid ${catIcon}"></i>
+                     </div>`
+                )
             }
 
             <!-- CENTRE: NOM + DETALLS (COMPACTE I SENSE DUPLICATS) -->
@@ -3368,34 +3693,41 @@
 
           <!-- DRETA: PREU ACTUALITZABLE I BOTÓ EDITAR -->
           <div class="flex items-center space-x-1 flex-shrink-0 py-1 pl-1">
-            ${totalItemPrice > 0
-              ? (isCrossed
-                  ? `<span class="text-xs sm:text-sm font-bold text-gray-400 line-through mr-0.5">${totalItemPrice.toFixed(2)} €</span>`
-                  : (isStale
-                      ? `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
-                                 title="Preu antic: fes clic per actualitzar"
-                                 class="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-700 text-xs font-medium mr-0.5 transition">
-                           <i class="fa-regular fa-clock text-[9px]"></i>
-                           <span>${totalItemPrice.toFixed(2)} €</span>
-                         </button>`
-                      : `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
-                                 title="Preu actualitzat: fes clic per modificar"
-                                 class="text-xs sm:text-sm font-bold text-gray-800 hover:text-emerald-700 mr-0.5 transition">
-                           ${totalItemPrice.toFixed(2)} €
-                         </button>`
+            ${isSelectionMode
+              ? `<div class="w-6 h-6 flex items-center justify-center text-emerald-600">
+                   <i class="fa-solid fa-arrow-right-arrow-left text-[11px] opacity-40"></i>
+                 </div>`
+              : (totalItemPrice > 0
+                  ? (isCrossed
+                      ? `<span class="text-xs sm:text-sm font-bold text-gray-400 line-through mr-0.5">${totalItemPrice.toFixed(2)} €</span>`
+                      : (isStale
+                          ? `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
+                                     title="Preu antic: fes clic per actualitzar"
+                                     class="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-700 text-xs font-medium mr-0.5 transition">
+                               <i class="fa-regular fa-clock text-[9px]"></i>
+                               <span>${totalItemPrice.toFixed(2)} €</span>
+                             </button>`
+                          : `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
+                                     title="Preu actualitzat: fes clic per modificar"
+                                     class="text-xs sm:text-sm font-bold text-gray-800 hover:text-emerald-700 mr-0.5 transition">
+                               ${totalItemPrice.toFixed(2)} €
+                             </button>`
+                        )
                     )
+                  : `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
+                             title="Afegir preu"
+                             class="text-[10px] text-gray-300 hover:text-emerald-600 px-1 py-0.5 rounded transition">
+                       <i class="fa-solid fa-tag"></i>
+                     </button>`
                 )
-              : `<button onclick="event.stopPropagation(); promptQuickPriceUpdate('${item.id}')"
-                         title="Afegir preu"
-                         class="text-[10px] text-gray-300 hover:text-emerald-600 px-1 py-0.5 rounded transition">
-                   <i class="fa-solid fa-tag"></i>
-                 </button>`
             }
-            <button onclick="event.stopPropagation(); openEditModal('${item.id}')" 
-                    title="Editar fitxa" 
-                    class="text-gray-400 hover:text-emerald-700 w-7 h-7 rounded-full flex items-center justify-center hover:bg-gray-100 active:bg-gray-200 transition">
-              <i class="fa-solid fa-pen text-[10px]"></i>
-            </button>
+            ${!isSelectionMode ? `
+              <button onclick="event.stopPropagation(); openEditModal('${item.id}')" 
+                      title="Editar fitxa" 
+                      class="text-gray-400 hover:text-emerald-700 w-7 h-7 rounded-full flex items-center justify-center hover:bg-gray-100 active:bg-gray-200 transition">
+                <i class="fa-solid fa-pen text-[10px]"></i>
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
@@ -7228,6 +7560,19 @@
     window.getCategoryCanonicalKey = getCategoryCanonicalKey;
     window.getStoreDisplayName = getStoreDisplayName;
     window.setAllStoresViewMode = setAllStoresViewMode;
+
+    window.toggleSelectionMode = toggleSelectionMode;
+    window.enterSelectionMode = enterSelectionMode;
+    window.exitSelectionMode = exitSelectionMode;
+    window.toggleItemSelection = toggleItemSelection;
+    window.toggleSelectAllVisibleItems = toggleSelectAllVisibleItems;
+    window.openMoveItemsModal = openMoveItemsModal;
+    window.closeMoveItemsModal = closeMoveItemsModal;
+    window.executeMoveSelectedToStore = executeMoveSelectedToStore;
+    window.handleCardTouchStart = handleCardTouchStart;
+    window.handleCardTouchEnd = handleCardTouchEnd;
+    window.handleCardTouchMove = handleCardTouchMove;
+    window.handleCardContextMenu = handleCardContextMenu;
 
     // ==========================================
     // INICIALITZACIÓ GLOBAL (Tots els mòduls llestos)
