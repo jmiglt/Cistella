@@ -2244,29 +2244,52 @@
       // 1. Netejar expressions inicials de petició
       text = text.replace(/^(comprar|compra|afegir|afegeix|apunta|apuntar|posa|posar|traer|trae|comprar-me|necessitem|cal comprar|cal portar|falta|falten)\s+/i, "").trim();
 
-      // 2. Detecció de botiga al text
+      // 1.5. Extreure parèntesi com a nota o categoria / botiga: ex. "Paper de alumini (perfumeria)"
+      let customCategoryFromParen = null;
+      let noteFromParen = "";
       let detectedStore = null;
-      for (const s of STORES) {
-        if (s.id === "all") continue;
 
-        let pattern = `\\b(en|al|a la|del|de la|a)\\s+${s.name}\\b|\\b${s.name}\\b`;
-        if (s.id === "ametller") {
-          pattern = `\\b(en|al|a la|a)\\s+(casa ametller|ametller origen|ametller)\\b|\\b(casa ametller|ametller)\\b`;
-        } else if (s.id === "bonpreu") {
-          pattern = `\\b(en|al|a)\\s+(bonpreu|bon preu|esclat)\\b|\\b(bonpreu|esclat)\\b`;
-        } else if (s.id === "bazar") {
-          pattern = `\\b(en el|al|al bazar|en)\\s+(bazar xinès|bazar chino|bazar|chino|xino)\\b|\\b(bazar)\\b`;
-        } else if (s.id === "marroqui") {
-          pattern = `\\b(en el|al|a la|en)\\s+(marroquí|marroqui|botiga marroquina|marroc)\\b|\\b(marroquí|marroqui)\\b`;
-        } else if (s.id === "bodega") {
-          pattern = `\\b(en la|a la|al|en|a)\\s+(bodega|celler)\\b|\\b(bodega|celler)\\b`;
+      const parenMatch = text.match(/\(([^)]+)\)/);
+      if (parenMatch) {
+        const inside = parenMatch[1].trim();
+        const canonCat = (typeof getCategoryCanonicalKey === 'function') ? getCategoryCanonicalKey(inside) : null;
+        if (canonCat && canonCat !== "General" && typeof CATEGORY_TRANSLATIONS !== 'undefined' && CATEGORY_TRANSLATIONS[canonCat]) {
+          customCategoryFromParen = canonCat;
+        } else {
+          const matchedStore = STORES.find(s => s.id !== "all" && (s.name.toLowerCase() === inside.toLowerCase() || s.id === inside.toLowerCase()));
+          if (matchedStore) {
+            detectedStore = matchedStore.id;
+          } else {
+            noteFromParen = inside;
+          }
         }
+        text = text.replace(parenMatch[0], "").trim();
+      }
 
-        const storeRegex = new RegExp(pattern, "i");
-        if (storeRegex.test(text)) {
-          detectedStore = s.id;
-          text = text.replace(storeRegex, " ").replace(/\s{2,}/g, " ").trim();
-          break;
+      // 2. Detecció de botiga al text (només amb preposició explícita de destinació)
+      if (!detectedStore) {
+        for (const s of STORES) {
+          if (s.id === "all") continue;
+
+          let pattern = `\\b(en el|en la|en|al|a la|a)\\s+${s.name}\\b`;
+          if (s.id === "ametller") {
+            pattern = `\\b(en el|en la|en|al|a la|a)\\s+(casa ametller|ametller origen|ametller)\\b`;
+          } else if (s.id === "bonpreu") {
+            pattern = `\\b(en el|en la|en|al|a la|a)\\s+(bonpreu|bon preu|esclat)\\b`;
+          } else if (s.id === "bazar") {
+            pattern = `\\b(en el|al|al bazar|en)\\s+(bazar xinès|bazar chino|bazar)\\b`;
+          } else if (s.id === "marroqui") {
+            pattern = `\\b(en el|al|a la|en)\\s+(marroquí|marroqui|botiga marroquina)\\b`;
+          } else if (s.id === "bodega") {
+            pattern = `\\b(en la|a la|al|en|a)\\s+(bodega|celler)\\b`;
+          }
+
+          const storeRegex = new RegExp(pattern, "i");
+          if (storeRegex.test(text)) {
+            detectedStore = s.id;
+            text = text.replace(storeRegex, " ").replace(/\s{2,}/g, " ").trim();
+            break;
+          }
         }
       }
 
@@ -2315,15 +2338,16 @@
       // Assegurar majúscula inicial al nom del producte
       const productName = text ? text.charAt(0).toUpperCase() + text.slice(1) : "Article sense nom";
 
-      // 4. Autoassignació semàntica de categoria (25 categories)
-      const category = detectSemanticCategory(productName);
+      // 4. Autoassignació semàntica de categoria (25 categories o indicada al parèntesi)
+      const category = customCategoryFromParen || detectSemanticCategory(productName);
 
       return {
         name: productName,
         store: detectedStore,
         category: category,
         qty: qty,
-        unit: unit
+        unit: unit,
+        note: noteFromParen
       };
     }
 
@@ -2342,6 +2366,10 @@
       const b = cleanName(nameB).toLowerCase().trim();
       if (a === b) return true;
 
+      const normA = a.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const normB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (normA === normB) return true;
+
       if (typeof getCanonicalProductKey === 'function') {
         const keyA = getCanonicalProductKey(nameA);
         const keyB = getCanonicalProductKey(nameB);
@@ -2349,12 +2377,10 @@
       }
 
       if (typeof stringSimilarity === 'function') {
-        return stringSimilarity(nameA, nameB) >= 0.84;
+        return stringSimilarity(nameA, nameB) >= 0.90;
       }
 
-      const normA = a.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const normB = b.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      return normA === normB;
+      return false;
     }
 
     function detectSemanticCategory(name) {
@@ -2542,8 +2568,10 @@
       b1.forEach(b => { if (b2.has(b)) intersection++; });
       const dice = (2 * intersection) / (b1.size + b2.size || 1);
 
-      if (sharedStems > 0) {
-        return Math.max(dice, 0.75 + (sharedStems * 0.10));
+      const totalStems = Math.max(stems1.length, stems2.length);
+      const stemRatio = totalStems > 0 ? (sharedStems / totalStems) : 0;
+      if (stemRatio >= 0.8) {
+        return Math.max(dice, 0.88);
       }
       return dice;
     }
@@ -2732,21 +2760,36 @@
       const parsed = parseProductInput(val);
       const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
 
-      // Comprovar si ja existeix aquest producte (canònic, plural o similar)
+      // Comprovar si ja existeix aquest producte
+      // Si estem en una botiga concreta, comprovem NOMÉS a la botiga actual
       const inputCanonKey = getCanonicalProductKey(parsed.name);
-      let existingIndex = items.findIndex(it => {
-        if (!it || !it.name) return false;
-        return getCanonicalProductKey(it.name) === inputCanonKey || areProductNamesSimilar(it.name, parsed.name);
-      });
+      let existingIndex = -1;
+
+      if (currentStoreFilter !== "all" && !parsed.store) {
+        existingIndex = items.findIndex(it => {
+          if (!it || !it.name || it.store !== targetStore) return false;
+          return getCanonicalProductKey(it.name) === inputCanonKey || areProductNamesSimilar(it.name, parsed.name);
+        });
+      } else {
+        existingIndex = items.findIndex(it => {
+          if (!it || !it.name) return false;
+          if (parsed.store && it.store !== targetStore) return false;
+          return getCanonicalProductKey(it.name) === inputCanonKey || areProductNamesSimilar(it.name, parsed.name);
+        });
+      }
 
       if (existingIndex !== -1) {
         const existingItem = items[existingIndex];
         if (parsed.store && existingItem.store !== targetStore) {
           existingItem.store = targetStore;
         }
+        if (parsed.note && !existingItem.note) {
+          existingItem.note = parsed.note;
+        }
 
         if (existingItem.crossed_off) {
           existingItem.crossed_off = false;
+          existingItem.updatedAt = Date.now();
           if (parsed.qty && parsed.qty !== "1") {
             existingItem.qty = parsed.qty;
             existingItem.unit = parsed.unit;
@@ -2760,6 +2803,7 @@
           showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
           return;
         } else {
+          existingItem.updatedAt = Date.now();
           if (parsed.qty && parsed.qty !== "1") {
             existingItem.qty = parsed.qty;
             existingItem.unit = parsed.unit;
@@ -2780,9 +2824,10 @@
         qty: parsed.qty,
         unit: parsed.unit,
         price: 0.0,
-        note: "",
+        note: parsed.note || "",
         photo: "",
-        crossed_off: false
+        crossed_off: false,
+        updatedAt: Date.now()
       };
 
       items.unshift(newItem);
@@ -7325,6 +7370,19 @@
           ${isEs
             ? `Hay ${itemsWithPrice} de ${totalItems} productos con precio registrado (${Math.round((itemsWithPrice / (totalItems || 1)) * 100)}%).`
             : `Hi ha ${itemsWithPrice} de ${totalItems} productes amb preu registrat (${Math.round((itemsWithPrice / (totalItems || 1)) * 100)}%).`}
+        </div>
+
+        <!-- Guia explicativa de comptadors i reinici -->
+        <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-xs text-emerald-950 space-y-1.5 shadow-2xs">
+          <div class="font-bold flex items-center gap-1.5 text-emerald-900 text-xs">
+            <i class="fa-solid fa-circle-question text-emerald-600"></i>
+            <span>${isEs ? '¿Cómo funcionan estos importes y contadores?' : 'Com funcionen aquests imports i comptadors?'}</span>
+          </div>
+          <ul class="space-y-1 text-[11px] text-emerald-900/90 leading-relaxed list-disc list-inside">
+            <li><strong>${isEs ? 'Pendiente' : 'Pendent'}:</strong> ${isEs ? 'Suma de los productos que tienes pendientes de comprar ahora mismo.' : 'Suma dels productes que tens pendents de comprar ara mateix.'}</li>
+            <li><strong>${isEs ? 'Ya comprado' : 'Ja comprat'}:</strong> ${isEs ? 'Gasto acumulado de los artículos tachados/comprados en esta compra.' : 'Despesa acumulada dels articles ratllats/comprats en aquesta compra.'}</li>
+            <li><strong>${isEs ? '¿Cuándo reiniciar?' : 'Quan reiniciar?'}:</strong> ${isEs ? 'Al terminar la compra del día o semana, pulsa "Limpiar comprados" (en la lista o menú). Esto archiva/borra los tachados y pone el gasto comprado a 0 € para el siguiente viaje a la tienda.' : 'En acabar la compra del dia o de la setmana, prem "Netejar comprats" (a la llista o menú). Això buida els ratllats i posa la despesa comprada a 0 € per al següent cicle de compra.'}</li>
+          </ul>
         </div>
 
         <!-- Desglossament per botiga -->
