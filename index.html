@@ -582,7 +582,7 @@
         autocorrect="off"
         class="w-full pl-3 pr-9 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
         oninput="handleQuickInputSearch(this.value)" onfocus="handleQuickInputSearch(this.value)" onkeydown="if(event.key === 'Enter') handleQuickAdd()">
-      <button id="quick-add-btn" onclick="handleQuickAdd()" title="Afegir a la llista" data-i18n-title="quickAddTitle"
+      <button id="quick-add-btn" onclick="handleQuickAddBtnClick()" title="Obrir catàleg complet de productes" data-i18n-title="quickAddTitle"
         class="absolute right-2 top-2 text-gray-400 hover:text-emerald-600 p-0.5">
         <i class="fa-solid fa-plus text-base"></i>
       </button>
@@ -1347,6 +1347,11 @@
 
       <!-- Barra de cerca i filtres -->
       <div class="p-3 bg-gray-50 border-b border-gray-200 space-y-2 flex-shrink-0">
+        <!-- Indicador de botiga activa de destí -->
+        <div id="catalog-target-store-banner" class="w-full">
+          <!-- Renderitzat per filterCatalogList() -->
+        </div>
+
         <div class="relative">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
           <input type="search" id="catalog-search-input" oninput="filterCatalogList()"
@@ -3462,6 +3467,15 @@
     }
 
     function handleQuickAdd() {
+      if (currentStoreFilter === "all") {
+        showToast(
+          currentLang === "es"
+            ? 'Selecciona primero una tienda o lista concreta para añadir artículos (no desde "Todas")'
+            : 'Selecciona primer una botiga o llista concreta per afegir articles (no des de "Totes")',
+          "fa-circle-exclamation"
+        );
+        return;
+      }
       const input = document.getElementById("quick-input");
       const val = input.value.trim();
       if (!val) return;
@@ -3773,6 +3787,22 @@
       }
     }
 
+    function updateQuickInputPlaceholder() {
+      const input = document.getElementById("quick-input");
+      if (!input) return;
+      if (currentStoreFilter === "all") {
+        input.placeholder = currentLang === "es"
+          ? "Selecciona una tienda para añadir productos..."
+          : "Selecciona una botiga per afegir productes...";
+      } else {
+        const sObj = STORES.find(s => s.id === currentStoreFilter);
+        const sName = sObj ? getStoreDisplayName(sObj, currentLang) : currentStoreFilter;
+        input.placeholder = currentLang === "es"
+          ? `Añadir a ${sName}... (o clic en + para catálogo)`
+          : `Afegir a ${sName}... (o clic a + per catàleg)`;
+      }
+    }
+
     function setStoreFilter(storeId) {
       if (storeId === "all") {
         if (currentStoreFilter === "all") {
@@ -3797,6 +3827,7 @@
       saveToLocalStorage();
       renderStoreTabs();
       renderLists();
+      updateQuickInputPlaceholder();
 
       const activeBtn = document.querySelector(`[data-store-id="${storeId}"]`);
       if (activeBtn) {
@@ -5193,10 +5224,44 @@
         if (container) container.classList.add("hidden");
       }
 
+      function handleQuickAddBtnClick() {
+        if (currentStoreFilter === "all") {
+          showToast(
+            currentLang === "es"
+              ? 'Selecciona una tienda específica para añadir productos (no desde "Todas")'
+              : 'Selecciona una botiga específica per afegir productes (no des de "Totes")',
+            "fa-circle-exclamation"
+          );
+          return;
+        }
+        const qInput = document.getElementById("quick-input");
+        const initialText = qInput ? qInput.value.trim() : "";
+        openCatalogModal();
+        const catSearch = document.getElementById("catalog-search-input");
+        if (catSearch) {
+          catSearch.value = initialText;
+          filterCatalogList();
+          setTimeout(() => catSearch.focus(), 150);
+        }
+      }
+
       function handleQuickInputSearch(val) {
         const container = document.getElementById("autocomplete-suggestions");
         const itemsContainer = document.getElementById("autocomplete-items");
         if (!container || !itemsContainer) return;
+
+        // Si som a "Totes", avisar que cal seleccionar una botiga
+        if (currentStoreFilter === "all") {
+          itemsContainer.innerHTML = `
+            <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-center space-y-1">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
+              <p class="font-bold text-xs">${currentLang === 'es' ? 'Estás en la vista "Todas"' : 'Estàs a la vista "Totes"'}</p>
+              <p class="text-[11px] text-amber-700 leading-tight">${currentLang === 'es' ? 'Selecciona una tienda en las pestañas superiores para poder añadir productos.' : 'Selecciona una botiga a les pestanyes superiors per poder afegir productes.'}</p>
+            </div>
+          `;
+          container.classList.remove("hidden");
+          return;
+        }
 
         const raw = (val || "").trim();
         if (raw.length < 1) {
@@ -5212,7 +5277,7 @@
           return;
         }
 
-        const activeStore = currentStoreFilter !== "all" ? currentStoreFilter : null;
+        const activeStore = currentStoreFilter;
         const matchedProducts = [];
 
         items.forEach(it => {
@@ -5266,8 +5331,9 @@
         itemsContainer.innerHTML = topMatches.map(m => {
           const sObj = STORES.find(s => s.id === m.store) || { name: m.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
           const localizedStore = getStoreDisplayName(sObj, currentLang);
-          const localizedCat = m.category ? getCategoryDisplayName(m.category, currentLang) : '';
-          const isCurrentStore = (currentStoreFilter === 'all' || m.store === currentStoreFilter);
+          const canonicalCat = getCategoryCanonicalKey(m.category || 'General');
+          const localizedCat = getCategoryDisplayName(canonicalCat, currentLang);
+          const isCurrentStore = (currentStoreFilter !== 'all' && m.store === currentStoreFilter);
           const isPending = !m.crossed_off && isCurrentStore;
 
           let statusBadge = '';
@@ -5304,10 +5370,23 @@
       }
 
       function selectAutocompleteProduct(id) {
+        if (currentStoreFilter === "all") {
+          showToast(
+            currentLang === "es"
+              ? 'Selecciona una tienda específica para añadir productos (no desde "Todas")'
+              : 'Selecciona una botiga específica per afegir productes (no des de "Totes")',
+            "fa-circle-exclamation"
+          );
+          return;
+        }
+
         const it = items.find(x => x.id === id);
         if (!it) return;
 
-        const targetStore = currentStoreFilter !== "all" ? currentStoreFilter : it.store;
+        const targetStore = currentStoreFilter;
+        const targetStoreObj = STORES.find(s => s.id === targetStore);
+        const storeName = targetStoreObj ? getStoreDisplayName(targetStoreObj, currentLang) : targetStore;
+
         const input = document.getElementById("quick-input");
         if (input) input.value = "";
         hideAutocompleteSuggestions();
@@ -5331,7 +5410,7 @@
             if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
             renderLists();
             renderStoreTabs();
-            showToast(`${currentLang === 'es' ? 'Recuperado a pendientes' : 'Recuperat a pendents'}: ${existingInTarget.name}`, "fa-arrow-up");
+            showToast(`${currentLang === 'es' ? 'Recuperado a' : 'Recuperat a'} ${storeName}: ${existingInTarget.name}`, "fa-arrow-up");
           } else {
             const curQ = parseFloat(existingInTarget.qty) || 1;
             existingInTarget.qty = String(curQ + 1);
@@ -5340,7 +5419,7 @@
             if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
             renderLists();
             renderStoreTabs();
-            showToast(`+1 ${existingInTarget.name} (x${existingInTarget.qty})`, "fa-plus");
+            showToast(`+1 ${existingInTarget.name} (x${existingInTarget.qty}) a ${storeName}`, "fa-plus");
           }
           return;
         }
@@ -5363,9 +5442,7 @@
         if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
         renderLists();
         renderStoreTabs();
-        const sObj = STORES.find(s => s.id === targetStore);
-        const sName = sObj ? getStoreDisplayName(sObj, currentLang) : targetStore;
-        showToast(`${currentLang === 'es' ? 'Añadido' : 'Afegit'}: ${newItem.name} (${sName})`, "fa-plus");
+        showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeName}: ${newItem.name}`, "fa-plus");
       }
 
       function restoreAndAddFromHistory(id) {
@@ -9307,48 +9384,122 @@
     }
 
     function executeAddSelectedCatalogToPending() {
+      if (currentStoreFilter === "all") {
+        showToast(
+          currentLang === "es"
+            ? 'Selecciona primero una tienda específica para añadir artículos (no desde "Todas")'
+            : 'Selecciona primer una botiga específica per afegir articles (no des de "Totes")',
+          "fa-circle-exclamation"
+        );
+        return;
+      }
       if (selectedCatalogItemIds.size === 0) {
         showToast(currentLang === 'es' ? "Selecciona primero algún artículo" : "Selecciona primer algun article", "fa-circle-exclamation");
         return;
       }
+      const targetStore = currentStoreFilter;
+      const targetStoreObj = STORES.find(s => s.id === targetStore);
+      const storeName = targetStoreObj ? getStoreDisplayName(targetStoreObj, currentLang) : targetStore;
       let count = 0;
+
       selectedCatalogItemIds.forEach(id => {
-        const it = items.find(x => x.id === id);
-        if (!it) return;
-        if (it.crossed_off) {
-          it.crossed_off = false;
-          it.updatedAt = Date.now();
-          count++;
+        const catIt = items.find(x => x.id === id);
+        if (!catIt) return;
+
+        const canonKey = getCanonicalProductKey(catIt.name);
+        const existingInTarget = items.find(other =>
+          other.store === targetStore &&
+          (getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, catIt.name))
+        );
+
+        if (existingInTarget) {
+          if (existingInTarget.crossed_off) {
+            existingInTarget.crossed_off = false;
+          } else {
+            existingInTarget.qty = String((parseFloat(existingInTarget.qty) || 1) + 1);
+          }
+          existingInTarget.updatedAt = Date.now();
         } else {
-          it.qty = String((parseFloat(it.qty) || 1) + 1);
-          it.updatedAt = Date.now();
-          count++;
+          const newItem = {
+            ...catIt,
+            id: "it_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+            store: targetStore,
+            crossed_off: false,
+            qty: "1",
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          };
+          items.unshift(newItem);
         }
+        count++;
       });
+
+      if (typeof consolidateAllItems === 'function') {
+        const cons = consolidateAllItems(items);
+        if (cons.mergedCount > 0) items = cons.list;
+      }
+
       saveToLocalStorage();
       if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
       renderLists();
       renderStoreTabs();
       filterCatalogList();
       exitCatalogSelectionMode();
-      showToast(`${currentLang === 'es' ? 'Añadidos a la lista' : 'Afegits a la llista'}: ${count}`, "fa-cart-plus");
+      showToast(`${currentLang === 'es' ? 'Añadidos a' : 'Afegits a'} ${storeName}: ${count}`, "fa-cart-plus");
     }
 
     function handleCatalogAdd(id, event) {
       if (event) event.stopPropagation();
-      const it = items.find(x => x.id === id);
-      if (!it) return;
+      if (currentStoreFilter === "all") {
+        showToast(
+          currentLang === "es"
+            ? 'Selecciona una tienda específica para añadir productos (no desde "Todas")'
+            : 'Selecciona una botiga específica per afegir productes (no des de "Totes")',
+          "fa-circle-exclamation"
+        );
+        return;
+      }
+      const catIt = items.find(x => x.id === id);
+      if (!catIt) return;
 
-      if (it.crossed_off) {
-        it.crossed_off = false;
-        it.updatedAt = Date.now();
-        showToast(`${currentLang === 'es' ? 'Añadido a la lista' : 'Afegit a la llista'}: ${it.name} (${it.qty || 1} ${it.unit || 'ud'})`, "fa-cart-plus");
+      const targetStore = currentStoreFilter;
+      const targetStoreObj = STORES.find(s => s.id === targetStore);
+      const storeName = targetStoreObj ? getStoreDisplayName(targetStoreObj, currentLang) : targetStore;
+
+      const canonKey = getCanonicalProductKey(catIt.name);
+      const existingInTarget = items.find(other =>
+        other.store === targetStore &&
+        (getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, catIt.name))
+      );
+
+      if (existingInTarget) {
+        if (existingInTarget.crossed_off) {
+          existingInTarget.crossed_off = false;
+          existingInTarget.updatedAt = Date.now();
+          showToast(`${currentLang === 'es' ? 'Recuperado a' : 'Recuperat a'} ${storeName}: ${existingInTarget.name}`, "fa-cart-plus");
+        } else {
+          const curQ = parseFloat(existingInTarget.qty) || 1;
+          existingInTarget.qty = String(curQ + 1);
+          existingInTarget.updatedAt = Date.now();
+          showToast(`+1 ${existingInTarget.name} (x${existingInTarget.qty}) a ${storeName}`, "fa-plus");
+        }
       } else {
-        let currentQty = parseFloat(it.qty) || 1;
-        currentQty += 1;
-        it.qty = String(currentQty);
-        it.updatedAt = Date.now();
-        showToast(`${currentLang === 'es' ? 'Añadida unidad' : 'Afegida unitat'}: ${it.name} (${it.qty} ${it.unit || 'ud'})`, "fa-plus");
+        const newItem = {
+          ...catIt,
+          id: "it_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+          store: targetStore,
+          crossed_off: false,
+          qty: "1",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+        items.unshift(newItem);
+        showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeName}: ${newItem.name}`, "fa-plus");
+      }
+
+      if (typeof consolidateAllItems === 'function') {
+        const cons = consolidateAllItems(items);
+        if (cons.mergedCount > 0) items = cons.list;
       }
 
       saveToLocalStorage();
@@ -9360,19 +9511,29 @@
 
     function handleCatalogDecrement(id, event) {
       if (event) event.stopPropagation();
-      const it = items.find(x => x.id === id);
-      if (!it) return;
+      if (currentStoreFilter === "all") return;
+      const catIt = items.find(x => x.id === id);
+      if (!catIt) return;
 
-      let currentQty = parseFloat(it.qty) || 1;
+      const targetStore = currentStoreFilter;
+      const canonKey = getCanonicalProductKey(catIt.name);
+      const existingInTarget = items.find(other =>
+        other.store === targetStore &&
+        !other.crossed_off &&
+        (getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, catIt.name))
+      );
+      if (!existingInTarget) return;
+
+      let currentQty = parseFloat(existingInTarget.qty) || 1;
       if (currentQty > 1) {
         currentQty -= 1;
-        it.qty = String(currentQty);
-        it.updatedAt = Date.now();
-        showToast(`${currentLang === 'es' ? 'Reducido a' : 'Reduït a'}: ${it.name} (${it.qty} ${it.unit || 'ud'})`, "fa-minus");
+        existingInTarget.qty = String(currentQty);
+        existingInTarget.updatedAt = Date.now();
+        showToast(`${currentLang === 'es' ? 'Reducido a' : 'Reduït a'}: ${existingInTarget.name} (${existingInTarget.qty})`, "fa-minus");
       } else {
-        it.crossed_off = true;
-        it.updatedAt = Date.now();
-        showToast(`${currentLang === 'es' ? 'Quitado de pendientes' : 'Tret de pendents'}: ${it.name}`, "fa-check");
+        existingInTarget.crossed_off = true;
+        existingInTarget.updatedAt = Date.now();
+        showToast(`${currentLang === 'es' ? 'Quitado de pendientes' : 'Tret de pendents'}: ${existingInTarget.name}`, "fa-check");
       }
 
       saveToLocalStorage();
@@ -9384,14 +9545,21 @@
 
     function renderCatalogItemRow(it) {
       const priceStr = it.price && it.price > 0 ? `${Number(it.price).toFixed(2).replace('.', ',')} €` : '';
-      const isPending = !it.crossed_off;
       const canonicalCat = getCategoryCanonicalKey(it.category || 'General');
       const localizedCategory = getCategoryDisplayName(canonicalCat, currentLang);
       const isSelected = selectedCatalogItemIds.has(it.id);
 
+      const isAll = currentStoreFilter === "all";
+      const canonKey = getCanonicalProductKey(it.name);
+      const existingPendingInTarget = !isAll ? items.find(other =>
+        other.store === currentStoreFilter &&
+        !other.crossed_off &&
+        (getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, it.name))
+      ) : null;
+
       const clickHandler = isCatalogSelectionMode
         ? `toggleCatalogItemSelection('${it.id}', event)`
-        : `handleCatalogAdd('${it.id}', event)`;
+        : (isAll ? `showToast(currentLang === 'es' ? 'Selecciona una tienda específica para añadir productos' : 'Selecciona una botiga específica per afegir productes', 'fa-circle-exclamation')` : `handleCatalogAdd('${it.id}', event)`);
 
       return `
         <div draggable="true"
@@ -9417,7 +9585,7 @@
 
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${!isPending ? 'text-gray-500' : ''}">${it.name}</span>
+                <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${existingPendingInTarget ? 'text-emerald-950' : 'text-gray-600'}">${it.name}</span>
                 <button type="button" onclick="openChangeCategoryForSingleItem('${it.id}', event)" title="${currentLang === 'es' ? 'Cambiar categoría' : 'Canviar categoria'}"
                         class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-teal-100 text-emerald-800 hover:text-teal-900 border border-emerald-200/80 transition flex items-center gap-1 cursor-pointer font-medium">
                   <i class="fa-solid fa-tag text-[8px] text-emerald-600"></i>
@@ -9431,16 +9599,18 @@
             </div>
           </div>
 
-          <!-- Accions ràpides: Sumar unitats / Restar / Editar -->
+          <!-- Accions ràpides: Sumar unitats / Restar / Afegir / Editar -->
           <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
-            ${isPending ? `
+            ${isAll ? `
+              <span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-lg font-medium border border-gray-200/60">${currentLang === 'es' ? 'En "Todas"' : 'A "Totes"'}</span>
+            ` : existingPendingInTarget ? `
               <div class="flex items-center gap-1 bg-emerald-50 p-0.5 rounded-lg border border-emerald-200/80">
                 <button onclick="handleCatalogDecrement('${it.id}', event)" 
                         title="${currentLang === 'es' ? 'Quitar una unidad' : 'Treure una unitat'}"
                         class="w-6 h-6 rounded bg-white hover:bg-rose-50 hover:text-rose-600 text-gray-600 flex items-center justify-center text-xs transition shadow-2xs">
                   <i class="fa-solid fa-minus text-[9px]"></i>
                 </button>
-                <span class="text-[10.5px] font-bold text-emerald-900 px-1.5 min-w-[24px] text-center">${it.qty || 1}</span>
+                <span class="text-[10.5px] font-bold text-emerald-900 px-1.5 min-w-[24px] text-center">${existingPendingInTarget.qty || 1}</span>
                 <button onclick="handleCatalogAdd('${it.id}', event)" 
                         title="${currentLang === 'es' ? 'Añadir otra unidad' : 'Afegir una altra unitat'}"
                         class="w-6 h-6 rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center text-xs transition shadow-2xs">
@@ -9450,7 +9620,7 @@
             ` : `
               <button onclick="handleCatalogAdd('${it.id}', event)"
                 class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 hover:border-emerald-600"
-                title="${currentLang === 'es' ? 'Toca para añadir a la cesta' : 'Toca per afegir a la cistella pendent'}">
+                title="${currentLang === 'es' ? 'Toca para añadir a la cesta' : 'Toca per afegir a la llista'}">
                 <i class="fa-solid fa-plus text-[10px]"></i>
                 <span class="text-[10.5px]">${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>
               </button>
@@ -9470,12 +9640,41 @@
       const subtitleCount = document.getElementById("catalog-subtitle-count");
       const statusSummary = document.getElementById("catalog-status-summary");
       const menuBadge = document.getElementById("menu-catalog-badge");
+      const bannerEl = document.getElementById("catalog-target-store-banner");
 
       if (menuBadge) menuBadge.textContent = items.length;
       if (subtitleCount) {
         subtitleCount.textContent = currentLang === 'es'
           ? `${items.length} artículos en catálogo • Arrastra entre categorías o clica para gestionar`
           : `${items.length} articles al catàleg • Arrossega entre categories o clica per gestionar`;
+      }
+
+      if (bannerEl) {
+        if (currentStoreFilter === "all") {
+          bannerEl.innerHTML = `
+            <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between gap-2 shadow-2xs">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base flex-shrink-0"></i>
+                <div>
+                  <p class="font-bold text-xs">${currentLang === 'es' ? 'Estás en "Todas las tiendas" (Modo Consulta)' : 'Estàs a "Totes les botigues" (Mode Consulta)'}</p>
+                  <p class="text-[11px] text-amber-700 leading-tight">${currentLang === 'es' ? 'Para añadir artículos a una lista, selecciona primero una tienda específica.' : 'Per afegir articles a una llista, selecciona primer una botiga específica.'}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          const sObj = STORES.find(s => s.id === currentStoreFilter);
+          const sName = sObj ? getStoreDisplayName(sObj, currentLang) : currentStoreFilter;
+          bannerEl.innerHTML = `
+            <div class="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-2 shadow-2xs">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="fa-solid fa-cart-shopping text-emerald-600 flex-shrink-0"></i>
+                <span class="truncate">${currentLang === 'es' ? 'Añadiendo a:' : 'Afegint a:'} <strong class="text-emerald-950 font-bold">${sName}</strong></span>
+              </div>
+              <span class="text-[10px] text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full font-semibold flex-shrink-0">${currentLang === 'es' ? 'Toca un producto para sumar' : 'Toca un producte per sumar'}</span>
+            </div>
+          `;
+        }
       }
 
       if (!container) return;
@@ -9637,6 +9836,7 @@
     window.handleCardTouchEnd = handleCardTouchEnd;
     window.handleCardTouchMove = handleCardTouchMove;
     window.handleCardContextMenu = handleCardContextMenu;
+    window.handleQuickAddBtnClick = handleQuickAddBtnClick;
 
     // ==========================================
     // INICIALITZACIÓ GLOBAL (Tots els mòduls llestos)
