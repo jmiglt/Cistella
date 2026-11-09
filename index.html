@@ -688,26 +688,33 @@
             class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2 bg-white focus:outline-none"></select>
         </div>
 
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="block font-semibold text-gray-600" data-i18n="lblCategory">Categoria</label>
-            <span id="edit-category-match-count" class="text-[10px] text-gray-400 font-normal"></span>
+        <div class="relative">
+          <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblCategory">Categoria</label>
+          <button type="button" id="edit-category-btn" onclick="toggleEditCategoryDropdown(event)"
+            class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2.5 bg-white flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-emerald-600 shadow-2xs hover:border-emerald-400 transition">
+            <span id="edit-category-btn-text" class="truncate font-medium text-gray-800">General</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-gray-400 ml-1 flex-shrink-0"></i>
+          </button>
+          <input type="hidden" id="edit-category" value="General">
+
+          <!-- Menú desplegable flotant amb cerca integrada -->
+          <div id="edit-category-popover" class="hidden absolute left-0 right-0 top-full mt-1 z-[95] bg-white border border-gray-200 rounded-xl shadow-2xl p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-100 max-h-60 flex flex-col">
+            <div class="relative flex-shrink-0">
+              <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+              <input type="search" id="edit-category-popover-search" oninput="filterEditCategoryPopover(this.value)"
+                placeholder="Cercar categoria..." autocomplete="off"
+                class="w-full h-7 pl-7 pr-6 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <button type="button" id="edit-category-popover-clear" onclick="clearEditCategoryPopoverSearch()" class="hidden absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5">
+                <i class="fa-solid fa-xmark text-xs"></i>
+              </button>
+            </div>
+            <div id="edit-category-popover-list" class="flex-1 overflow-y-auto space-y-1 text-xs pr-0.5 max-h-44">
+              <!-- Injecció dinàmica de categories -->
+            </div>
           </div>
-          <div class="relative mb-1.5">
-            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
-            <input type="search" id="edit-category-search" oninput="filterEditCategoryDropdown(this.value)"
-              placeholder="Filtrar categoria o producte..."
-              autocomplete="off"
-              class="w-full h-7 pl-7 pr-7 text-xs border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
-            <button type="button" id="edit-category-search-clear" onclick="clearEditCategorySearch()" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5">
-              <i class="fa-solid fa-xmark text-xs"></i>
-            </button>
-          </div>
-          <select id="edit-category" onchange="updateEditCategoryHint(this.value)"
-            class="w-full h-8 text-xs border border-gray-300 rounded-lg px-2 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"></select>
-          <p id="edit-category-hint" class="text-[10.5px] text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 rounded px-2 py-1 mt-1 italic leading-tight hidden"></p>
         </div>
       </div>
+      <p id="edit-category-hint" class="text-[10px] text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 rounded px-2 py-0.5 italic leading-tight hidden -mt-1.5"></p>
 
       <!-- NOTES -->
       <div>
@@ -4376,18 +4383,70 @@
       renderLists();
     }
 
-    function filterEditCategoryDropdown(query) {
-      const catSelect = document.getElementById("edit-category");
-      if (!catSelect) return;
-      const q = (query || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const clearBtn = document.getElementById("edit-category-search-clear");
+    function toggleEditCategoryDropdown(event) {
+      if (event) event.stopPropagation();
+      const popover = document.getElementById("edit-category-popover");
+      if (!popover) return;
+      const isHidden = popover.classList.contains("hidden");
+      if (isHidden) {
+        popover.classList.remove("hidden");
+        const searchInput = document.getElementById("edit-category-popover-search");
+        if (searchInput) {
+          searchInput.value = "";
+          setTimeout(() => searchInput.focus(), 80);
+        }
+        renderEditCategoryPopoverList("");
+      } else {
+        popover.classList.add("hidden");
+      }
+    }
+
+    function closeEditCategoryPopover() {
+      const popover = document.getElementById("edit-category-popover");
+      if (popover) popover.classList.add("hidden");
+    }
+
+    function filterEditCategoryPopover(query) {
+      const q = (query || "").trim();
+      const clearBtn = document.getElementById("edit-category-popover-clear");
       if (clearBtn) {
         if (q) clearBtn.classList.remove("hidden");
         else clearBtn.classList.add("hidden");
       }
+      renderEditCategoryPopoverList(q);
+    }
 
-      const prevSelectedVal = catSelect.value;
-      let optHtml = "";
+    function clearEditCategoryPopoverSearch() {
+      const searchInput = document.getElementById("edit-category-popover-search");
+      if (searchInput) {
+        searchInput.value = "";
+        searchInput.focus();
+      }
+      const clearBtn = document.getElementById("edit-category-popover-clear");
+      if (clearBtn) clearBtn.classList.add("hidden");
+      renderEditCategoryPopoverList("");
+    }
+
+    function selectEditCategory(catId) {
+      const input = document.getElementById("edit-category");
+      const btnText = document.getElementById("edit-category-btn-text");
+      if (input) input.value = catId;
+      if (btnText) {
+        btnText.textContent = getCategoryDisplayName(catId, currentLang);
+      }
+      if (typeof updateEditCategoryHint === "function") {
+        updateEditCategoryHint(catId);
+      }
+      closeEditCategoryPopover();
+    }
+
+    function renderEditCategoryPopoverList(query) {
+      const container = document.getElementById("edit-category-popover-list");
+      if (!container) return;
+      const currentVal = document.getElementById("edit-category")?.value || "General";
+      const q = (query || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      let html = "";
       let totalMatchingSubs = 0;
 
       MAIN_CATEGORIES.forEach(m => {
@@ -4405,12 +4464,38 @@
 
         if (validSubs.length > 0) {
           totalMatchingSubs += validSubs.length;
-          optHtml += `<optgroup label="${groupTitle}">`;
-          validSubs.forEach(sub => {
-            const displayName = getCategoryDisplayName(sub.id, currentLang);
-            optHtml += `<option value="${sub.id}">${displayName}</option>`;
-          });
-          optHtml += `</optgroup>`;
+          html += `
+            <div class="pt-1.5 first:pt-0">
+              <div class="text-[9.5px] font-bold text-gray-400 uppercase tracking-wider px-2 py-0.5 bg-gray-50/80 rounded">
+                ${groupTitle}
+              </div>
+              <div class="space-y-0.5 mt-0.5">
+                ${validSubs.map(sub => {
+                  const isSelected = sub.id === currentVal;
+                  const displayName = getCategoryDisplayName(sub.id, currentLang);
+                  const icon = CATEGORY_ICONS[sub.id] || "fa-tag";
+                  const ex = getCategoryExamples(sub.id, currentLang);
+                  return `
+                    <div onclick="selectEditCategory('${sub.id}')"
+                         class="px-2 py-1.5 rounded-lg cursor-pointer transition flex items-center justify-between text-left ${
+                           isSelected
+                             ? 'bg-emerald-100 text-emerald-950 font-bold'
+                             : 'hover:bg-emerald-50 text-gray-700'
+                         }">
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                          <i class="fa-solid ${icon} text-[10px] text-emerald-600 flex-shrink-0"></i>
+                          <span class="truncate">${displayName}</span>
+                          ${isSelected ? '<i class="fa-solid fa-check text-[10px] text-emerald-700 ml-1"></i>' : ''}
+                        </div>
+                        ${ex ? `<p class="text-[9.5px] text-gray-400 truncate mt-0.5">${ex}</p>` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          `;
         }
       });
 
@@ -4429,54 +4514,68 @@
         });
         if (matchingCustom.length > 0) {
           totalMatchingSubs += matchingCustom.length;
-          optHtml += `<optgroup label="${currentLang === 'es' ? 'Otras categorías' : 'Altres categories'}">`;
-          matchingCustom.forEach(c => {
-            optHtml += `<option value="${c}">${getCategoryDisplayName(c, currentLang)}</option>`;
-          });
-          optHtml += `</optgroup>`;
+          html += `
+            <div class="pt-1.5">
+              <div class="text-[9.5px] font-bold text-gray-400 uppercase tracking-wider px-2 py-0.5 bg-gray-50/80 rounded">
+                ${currentLang === 'es' ? 'Otras categorías' : 'Altres categories'}
+              </div>
+              <div class="space-y-0.5 mt-0.5">
+                ${matchingCustom.map(c => {
+                  const isSelected = c === currentVal;
+                  return `
+                    <div onclick="selectEditCategory('${c}')"
+                         class="px-2 py-1.5 rounded-lg cursor-pointer transition flex items-center justify-between text-left ${
+                           isSelected
+                             ? 'bg-emerald-100 text-emerald-950 font-bold'
+                             : 'hover:bg-emerald-50 text-gray-700'
+                         }">
+                      <span class="truncate">${getCategoryDisplayName(c, currentLang)}</span>
+                      ${isSelected ? '<i class="fa-solid fa-check text-[10px] text-emerald-700"></i>' : ''}
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          `;
         }
       }
 
-      // Afegir General si escau
+      // General / Sense categoria
       const generalMatches = !q || "general".includes(q) || (currentLang === 'es' ? "otros".includes(q) : "altres".includes(q));
       if (generalMatches) {
         totalMatchingSubs += 1;
-        optHtml += `<optgroup label="${currentLang === 'es' ? 'Sin categoría' : 'Sense categoria'}">`;
-        optHtml += `<option value="General">${getCategoryDisplayName("General", currentLang)}</option>`;
-        optHtml += `</optgroup>`;
+        const isSelected = currentVal === "General";
+        html += `
+          <div class="pt-1.5">
+            <div onclick="selectEditCategory('General')"
+                 class="px-2 py-1.5 rounded-lg cursor-pointer transition flex items-center justify-between text-left ${
+                   isSelected
+                     ? 'bg-emerald-100 text-emerald-950 font-bold'
+                     : 'hover:bg-emerald-50 text-gray-700'
+                 }">
+              <span class="truncate">${getCategoryDisplayName("General", currentLang)}</span>
+              ${isSelected ? '<i class="fa-solid fa-check text-[10px] text-emerald-700"></i>' : ''}
+            </div>
+          </div>
+        `;
       }
 
       if (totalMatchingSubs === 0) {
-        optHtml = `<option value="" disabled selected>${currentLang === 'es' ? "No se han encontrado categorías" : "No s'ha trobat cap categoria"}</option>`;
+        html = `<div class="p-3 text-center text-gray-400 text-xs italic">${currentLang === 'es' ? 'No se han encontrado categorías' : "No s'ha trobat cap categoria"}</div>`;
       }
 
-      catSelect.innerHTML = optHtml;
-
-      // Intentar preservar la selecció anterior si encara és present
-      if (prevSelectedVal && Array.from(catSelect.options).some(o => o.value === prevSelectedVal)) {
-        catSelect.value = prevSelectedVal;
-      } else if (catSelect.options.length > 0 && catSelect.options[0].value) {
-        catSelect.selectedIndex = 0;
-      }
-
-      const countEl = document.getElementById("edit-category-match-count");
-      if (countEl) {
-        countEl.textContent = q ? (currentLang === 'es' ? `${totalMatchingSubs} encontradas` : `${totalMatchingSubs} trobades`) : "";
-      }
-
-      if (typeof updateEditCategoryHint === "function") {
-        updateEditCategoryHint(catSelect.value);
-      }
+      container.innerHTML = html;
     }
 
-    function clearEditCategorySearch() {
-      const catSearchInput = document.getElementById("edit-category-search");
-      if (catSearchInput) {
-        catSearchInput.value = "";
-        catSearchInput.focus();
+    // Tancar popover si es fa clic a fora
+    document.addEventListener("click", (e) => {
+      const popover = document.getElementById("edit-category-popover");
+      const btn = document.getElementById("edit-category-btn");
+      if (!popover || popover.classList.contains("hidden")) return;
+      if (!popover.contains(e.target) && (!btn || !btn.contains(e.target))) {
+        popover.classList.add("hidden");
       }
-      filterEditCategoryDropdown("");
-    }
+    });
 
     function toggleGrouping() {
       groupByCategories = !groupByCategories;
@@ -6023,6 +6122,13 @@
       // ==========================================
       // FULL INFERIOR (BOTTOM SHEET) D'EDICIÓ
       // ==========================================
+      let isEditingFromCatalog = false;
+
+      function openEditModalFromCatalog(id) {
+        isEditingFromCatalog = true;
+        openEditModal(id);
+      }
+
       function openEditModal(id) {
         const card = document.querySelector(`.item-card[data-item-id="${id}"]`);
         if (card && card._justSwiped) return;
@@ -6037,23 +6143,19 @@
         document.getElementById("edit-price").value = it.price ? it.price : "";
         document.getElementById("edit-store").value = it.store;
 
-        const catSearchInput = document.getElementById("edit-category-search");
-        if (catSearchInput) {
-          catSearchInput.value = "";
-          const clearBtn = document.getElementById("edit-category-search-clear");
-          if (clearBtn) clearBtn.classList.add("hidden");
-        }
-        if (typeof filterEditCategoryDropdown === "function") {
-          filterEditCategoryDropdown("");
-        }
-
-        const catSelect = document.getElementById("edit-category");
-        if (catSelect) {
+        const catInput = document.getElementById("edit-category");
+        const catBtnText = document.getElementById("edit-category-btn-text");
+        if (catInput) {
           const canonicalCat = getCategoryCanonicalKey(it.category);
-          catSelect.value = canonicalCat || it.category;
-          if (!catSelect.value && it.category) catSelect.value = it.category;
-          if (typeof updateEditCategoryHint === "function") updateEditCategoryHint(catSelect.value);
+          const finalVal = canonicalCat || it.category || "General";
+          catInput.value = finalVal;
+          if (catBtnText) {
+            catBtnText.textContent = getCategoryDisplayName(finalVal, currentLang);
+          }
+          if (typeof updateEditCategoryHint === "function") updateEditCategoryHint(finalVal);
         }
+        closeEditCategoryPopover();
+
         document.getElementById("edit-note").value = it.note || "";
         document.getElementById("edit-photo-url").value = it.photo || "";
 
@@ -6093,6 +6195,13 @@
       function closeEditModal() {
         document.getElementById("modal-backdrop").classList.add("hidden");
         document.getElementById("edit-modal").classList.add("closed");
+        closeEditCategoryPopover();
+        if (isEditingFromCatalog) {
+          isEditingFromCatalog = false;
+          const catModal = document.getElementById("catalog-modal");
+          if (catModal) catModal.classList.remove("hidden");
+          if (typeof filterCatalogList === 'function') filterCatalogList();
+        }
       }
 
       function updatePhotoPreview(url) {
@@ -6948,10 +7057,8 @@
       }
 
       CATEGORIES = getSortedCategoriesList();
-      if (typeof filterEditCategoryDropdown === "function") {
-        const catSearchInput = document.getElementById("edit-category-search");
-        const q = catSearchInput ? catSearchInput.value : "";
-        filterEditCategoryDropdown(q);
+      if (typeof renderEditCategoryPopoverList === "function") {
+        renderEditCategoryPopoverList("");
       }
     }
 
@@ -9706,7 +9813,7 @@
               </button>
             `}
 
-            <button onclick="event.stopPropagation(); closeCatalogModal(); openEditModal('${it.id}');" title="${currentLang === 'es' ? 'Editar artículo' : 'Editar article'}"
+            <button onclick="event.stopPropagation(); openEditModalFromCatalog('${it.id}');" title="${currentLang === 'es' ? 'Editar artículo' : 'Editar article'}"
               class="p-1.5 text-gray-400 hover:text-emerald-700 rounded-lg text-xs transition">
               <i class="fa-solid fa-pencil"></i>
             </button>
@@ -9911,8 +10018,12 @@
     window.clearChangeCatModalSearch = clearChangeCatModalSearch;
     window.executeChangeCategorySelected = executeChangeCategorySelected;
     window.selectCategoryItems = selectCategoryItems;
-    window.filterEditCategoryDropdown = filterEditCategoryDropdown;
-    window.clearEditCategorySearch = clearEditCategorySearch;
+    window.toggleEditCategoryDropdown = toggleEditCategoryDropdown;
+    window.closeEditCategoryPopover = closeEditCategoryPopover;
+    window.filterEditCategoryPopover = filterEditCategoryPopover;
+    window.clearEditCategoryPopoverSearch = clearEditCategoryPopoverSearch;
+    window.selectEditCategory = selectEditCategory;
+    window.openEditModalFromCatalog = openEditModalFromCatalog;
     window.handleCardTouchStart = handleCardTouchStart;
     window.handleCardTouchEnd = handleCardTouchEnd;
     window.handleCardTouchMove = handleCardTouchMove;
