@@ -7620,9 +7620,65 @@
         }
       });
 
-      // Consolidació profunda per clau canònica, plurals i semblança
+      // 1. Consolidació per botiga
       const res = consolidateAllItems(items);
-      items = res.list;
+      let workingList = res.list;
+
+      // 2. Consolidació de duplicats històrics (ratllats) entre diferents botigues
+      const canonGroups = new Map();
+      workingList.forEach(it => {
+        if (!it || !it.name) return;
+        const key = getCanonicalProductKey(it.name);
+        if (!key) {
+          finalCleanList.push(it);
+          return;
+        }
+        if (!canonGroups.has(key)) canonGroups.set(key, []);
+        canonGroups.get(key).push(it);
+      });
+
+      const finalCleanList = [];
+      let crossStoreCleaned = 0;
+
+      canonGroups.forEach(group => {
+        if (group.length === 1) {
+          finalCleanList.push(group[0]);
+          return;
+        }
+
+        const pending = group.filter(x => !x.crossed_off);
+        const crossed = group.filter(x => x.crossed_off);
+
+        if (pending.length > 0) {
+          // Es conserven tots els pendents
+          pending.forEach(p => finalCleanList.push(p));
+          // Els ratllats redundants es descarten
+          crossed.forEach(c => {
+            if (typeof recordItemDeletion === 'function') recordItemDeletion(c.id);
+            crossStoreCleaned++;
+          });
+        } else {
+          // Cap pendent: es fusionen tots els ratllats redundants en 1 sol registre mestre
+          const master = { ...crossed[0] };
+          for (let i = 1; i < crossed.length; i++) {
+            const other = crossed[i];
+            if ((!master.price || master.price === 0) && other.price && other.price > 0) {
+              master.price = other.price;
+              master.price_date = other.price_date;
+            }
+            if ((!master.category || master.category === 'General') && other.category && other.category !== 'General') {
+              master.category = other.category;
+            }
+            if (!master.note && other.note) master.note = other.note;
+            if (!master.photo && other.photo) master.photo = other.photo;
+            if (typeof recordItemDeletion === 'function') recordItemDeletion(other.id);
+            crossStoreCleaned++;
+          }
+          finalCleanList.push(master);
+        }
+      });
+
+      items = finalCleanList;
       const diff = initialCount - items.length;
 
       isCompletedCollapsed = true;
@@ -7637,9 +7693,9 @@
       }
 
       if (diff > 0) {
-        showToast(`Fusionats ${diff} productes duplicats amb èxit!`, "fa-wand-magic-sparkles");
+        showToast(currentLang === 'es' ? `Fusionados ${diff} productos duplicados con éxito!` : `Fusionats ${diff} productes duplicats amb èxit!`, "fa-wand-magic-sparkles");
       } else {
-        showToast("Llista revisada. No s'han trobat més duplicats", "fa-check");
+        showToast(currentLang === 'es' ? "Lista revisada. No se han encontrado más duplicados" : "Llista revisada. No s'han trobat més duplicats", "fa-check");
       }
 
       // Si el catàleg és obert, refrescar-lo
@@ -9319,7 +9375,7 @@
       const query = (searchInput?.value || "").toLowerCase().trim();
       const normQuery = normalizeProductName(query);
 
-      return items.filter(it => {
+      const filtered = items.filter(it => {
         if (catFilter !== "all" && getCategoryCanonicalKey(it.category || 'General') !== getCategoryCanonicalKey(catFilter)) return false;
         if (statusFilter === "pending" && it.crossed_off) return false;
         if (statusFilter === "completed" && !it.crossed_off) return false;
@@ -9333,6 +9389,30 @@
         }
         return true;
       });
+
+      // Deduplicació per a la vista del catàleg: unificar entrades redundants amb el mateix nom
+      const seen = new Map();
+      filtered.forEach(it => {
+        const canon = getCanonicalProductKey(it.name);
+        if (!canon) {
+          seen.set(it.id, it);
+          return;
+        }
+        const existing = seen.get(canon);
+        if (!existing) {
+          seen.set(canon, it);
+        } else {
+          // Prioritzar el que estigui pendent a la botiga activa, o el que tingui preu
+          const isCurrentPending = (currentStoreFilter !== 'all' && it.store === currentStoreFilter && !it.crossed_off);
+          if (isCurrentPending) {
+            seen.set(canon, it);
+          } else if ((!existing.price || existing.price === 0) && it.price && it.price > 0) {
+            seen.set(canon, it);
+          }
+        }
+      });
+
+      return Array.from(seen.values());
     }
 
     function toggleSelectAllCatalogItems() {
@@ -9642,11 +9722,12 @@
       const menuBadge = document.getElementById("menu-catalog-badge");
       const bannerEl = document.getElementById("catalog-target-store-banner");
 
-      if (menuBadge) menuBadge.textContent = items.length;
+      const uniqueCatalogCount = new Set(items.map(it => getCanonicalProductKey(it.name || '')).filter(Boolean)).size;
+      if (menuBadge) menuBadge.textContent = uniqueCatalogCount;
       if (subtitleCount) {
         subtitleCount.textContent = currentLang === 'es'
-          ? `${items.length} artículos en catálogo • Arrastra entre categorías o clica para gestionar`
-          : `${items.length} articles al catàleg • Arrossega entre categories o clica per gestionar`;
+          ? `${uniqueCatalogCount} artículos únicos en catálogo • Arrastra entre categorías o clica para gestionar`
+          : `${uniqueCatalogCount} articles únics al catàleg • Arrossega entre categories o clica per gestionar`;
       }
 
       if (bannerEl) {
