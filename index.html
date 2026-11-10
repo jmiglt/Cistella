@@ -668,7 +668,7 @@
               <i class="fa-solid fa-camera text-emerald-600"></i> <span data-i18n="btnCamera">Càmera</span>
             </button>
             <!-- Botó per cerca d'imatges de supermercat -->
-            <button type="button" onclick="openImagePickerModal()"
+            <button type="button" onclick="setPhotoViaWebSearch()"
               class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded hover:bg-emerald-100 flex items-center gap-1.5 font-medium transition active:scale-95">
               <i class="fa-solid fa-images text-emerald-600"></i> <span data-i18n="btnWebSearch">Cerca web</span>
             </button>
@@ -993,13 +993,12 @@
       class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between border-b pb-2.5">
         <div class="flex items-center space-x-2.5">
-          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-sm">
-            <i class="fa-solid fa-sparkles"></i>
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm shadow-2xs">
+            <i class="fa-solid fa-cart-plus"></i>
           </div>
           <div>
             <h3 class="text-sm font-bold text-gray-900" id="new-prod-modal-title">Nou producte</h3>
-            <p id="new-prod-modal-subtitle" class="text-[11px] text-gray-500">Aquest article no existeix. Comprova la
-              categoria:</p>
+            <p id="new-prod-modal-subtitle" class="text-[11px] text-gray-500">Aquest article no existeix. Comprova les dades:</p>
           </div>
         </div>
         <button onclick="closeConfirmNewProductModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
@@ -1008,16 +1007,52 @@
       </div>
 
       <div class="space-y-2.5 flex-1 overflow-y-auto pr-1 text-xs">
+        <!-- FOTO DEL PRODUCTE I CERCA WEB -->
+        <div class="flex items-center space-x-2.5 bg-gray-50 p-2 rounded-xl border border-gray-200">
+          <div class="relative w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs">
+            <img id="new-prod-image-preview" src="" alt="" class="w-full h-full object-cover hidden">
+            <div id="new-prod-image-placeholder" class="text-lg text-gray-300">
+              <i class="fa-solid fa-image"></i>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0 space-y-1">
+            <div class="flex gap-1.5 flex-wrap">
+              <button type="button" onclick="openImagePickerForNewProduct()"
+                class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-md hover:bg-emerald-100 flex items-center gap-1 font-medium transition active:scale-95 text-xs">
+                <i class="fa-solid fa-images text-emerald-600 text-[11px]"></i>
+                <span data-i18n="btnWebSearch">Cerca web</span>
+              </button>
+              <button type="button" onclick="document.getElementById('new-prod-camera-input').click()"
+                class="bg-white border border-gray-300 text-gray-700 px-2 py-0.5 rounded-md hover:bg-gray-100 flex items-center gap-1 font-medium text-xs">
+                <i class="fa-solid fa-camera text-emerald-600 text-[11px]"></i>
+                <span data-i18n="btnCamera">Càmera</span>
+              </button>
+              <button type="button" onclick="removeNewProdPhoto()"
+                class="text-rose-600 border border-rose-200 bg-white px-1.5 py-0.5 rounded-md hover:bg-rose-50 text-xs"
+                title="Eliminar imatge">
+                <i class="fa-solid fa-trash text-[10px]"></i>
+              </button>
+            </div>
+            <input type="file" id="new-prod-camera-input" accept="image/*" capture="environment" class="hidden"
+              onchange="handleNewProdCameraCapture(event)">
+            <input type="text" id="new-prod-photo-url" placeholder="O enllaç d'imatge..."
+              class="w-full text-[11px] border border-gray-200 rounded px-2 py-0.5 bg-white"
+              onchange="updateNewProdPhotoPreview(this.value)">
+          </div>
+        </div>
+
         <div>
           <label class="block font-semibold text-gray-600 mb-1">Nom del producte</label>
           <input type="text" id="new-prod-name"
+            onkeydown="if(event.key === 'Enter'){event.preventDefault(); executeConfirmNewProduct();}"
             class="w-full h-8 px-2.5 border border-gray-300 rounded-lg bg-white font-bold text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500">
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-3 gap-2">
           <div>
             <label class="block font-semibold text-gray-600 mb-1">Quantitat</label>
             <input type="number" step="any" min="0.1" id="new-prod-qty" value="1"
+              onkeydown="if(event.key === 'Enter'){event.preventDefault(); executeConfirmNewProduct();}"
               class="w-full h-8 px-2 border border-gray-300 rounded-lg text-center font-bold">
           </div>
           <div>
@@ -1033,6 +1068,15 @@
               <option value="llauna">llauna</option>
               <option value="bossa">bossa</option>
             </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-600 mb-1">Preu (€)</label>
+            <div class="relative">
+              <input type="number" step="0.01" min="0" id="new-prod-price" placeholder="0.00"
+                onkeydown="if(event.key === 'Enter'){event.preventDefault(); executeConfirmNewProduct();}"
+                class="w-full h-8 text-xs border border-gray-300 rounded-lg pl-2 pr-5 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500">
+              <span class="absolute right-1.5 top-2 text-[11px] font-bold text-gray-400">€</span>
+            </div>
           </div>
         </div>
 
@@ -1055,6 +1099,7 @@
         <div>
           <label class="block font-semibold text-gray-600 mb-1">Notes o detalls (opcional)</label>
           <input type="text" id="new-prod-note" placeholder="Ex: ampolla petita, marca..."
+            onkeydown="if(event.key === 'Enter'){event.preventDefault(); executeConfirmNewProduct();}"
             class="w-full h-8 px-2.5 border border-gray-300 rounded-lg bg-white text-gray-700">
         </div>
       </div>
@@ -1067,7 +1112,7 @@
         <button onclick="executeConfirmNewProduct()"
           class="py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-xs">
           <i class="fa-solid fa-plus"></i>
-          <span>Afegir a la llista</span>
+          <span data-i18n="btnAddToList">Afegir a la llista</span>
         </button>
       </div>
     </div>
@@ -2606,7 +2651,9 @@
 
         menuSelectMove: "Seleccionar / Moure o canviar categoria",
         btnSelect: "Seleccionar",
+        btnCancel: "Cancel·lar",
         btnCancelSelect: "Cancel·lar",
+        btnAddToList: "Afegir a la llista",
         btnSelectAll: "Tots",
         btnDeselectAll: "Cap",
         btnMoveSelected: "Canviar de llista",
@@ -2759,7 +2806,9 @@
 
         menuSelectMove: "Seleccionar / Mover o cambiar categoría",
         btnSelect: "Seleccionar",
+        btnCancel: "Cancelar",
         btnCancelSelect: "Cancelar",
+        btnAddToList: "Añadir a la lista",
         btnSelectAll: "Todos",
         btnDeselectAll: "Ninguno",
         btnMoveSelected: "Cambiar de lista",
@@ -3712,6 +3761,7 @@
 
         if (existingItem.crossed_off) {
           existingItem.crossed_off = false;
+          delete existingItem.crossedAt;
           existingItem.updatedAt = Date.now();
           if (parsed.qty && parsed.qty !== "1") {
             existingItem.qty = parsed.qty;
@@ -3725,7 +3775,9 @@
           if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
           renderLists();
           renderStoreTabs();
-          showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
+          const storeObj = STORES.find(s => s.id === targetStore);
+          const storeDisp = storeObj ? getStoreDisplayName(storeObj, currentLang) : targetStore;
+          showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeDisp}: ${existingItem.name}`, "fa-plus");
           return;
         } else {
           // L'article ja és a la llista pendent: SUMAR UNITATS (x2, x3...)
@@ -5477,12 +5529,82 @@
     // GESTOR DE NOU PRODUCTE NO REGISTRAT
     // ==========================================
     let pendingNewProductData = null;
+    let imagePickerContext = 'edit'; // 'edit' o 'new-product'
+
+    function updateNewProdPhotoPreview(url) {
+      const img = document.getElementById("new-prod-image-preview");
+      const placeholder = document.getElementById("new-prod-image-placeholder");
+      if (url && url.trim() !== "") {
+        if (img) { img.src = url; img.classList.remove("hidden"); }
+        if (placeholder) placeholder.classList.add("hidden");
+      } else {
+        if (img) { img.src = ""; img.classList.add("hidden"); }
+        if (placeholder) placeholder.classList.remove("hidden");
+      }
+    }
+
+    function removeNewProdPhoto() {
+      const photoInput = document.getElementById("new-prod-photo-url");
+      if (photoInput) photoInput.value = "";
+      updateNewProdPhotoPreview("");
+    }
+
+    function openImagePickerForNewProduct() {
+      const nameInput = document.getElementById("new-prod-name");
+      const query = nameInput ? nameInput.value.trim() : "";
+      imagePickerContext = "new-product";
+      if (typeof openImagePickerModal === 'function') {
+        openImagePickerModal(query);
+      }
+    }
+
+    function handleNewProdCameraCapture(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const tempImg = new Image();
+        tempImg.onload = () => {
+          const maxDim = 200;
+          let width = tempImg.width;
+          let height = tempImg.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(tempImg, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+
+          const photoInput = document.getElementById("new-prod-photo-url");
+          if (photoInput) photoInput.value = dataUrl;
+          updateNewProdPhotoPreview(dataUrl);
+        };
+        tempImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
     function openConfirmNewProductModal(parsed, targetStore) {
       pendingNewProductData = {
         name: parsed.name,
         qty: parsed.qty || "1",
         unit: parsed.unit || "ud",
+        price: parsed.price || 0.0,
+        photo: parsed.photo || "",
         targetStore: targetStore || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona"),
         note: parsed.note || "",
         category: parsed.category || "General"
@@ -5494,11 +5616,18 @@
       const nameInput = document.getElementById("new-prod-name");
       const qtyInput = document.getElementById("new-prod-qty");
       const unitSelect = document.getElementById("new-prod-unit");
+      const priceInput = document.getElementById("new-prod-price");
+      const photoInput = document.getElementById("new-prod-photo-url");
+      const noteInput = document.getElementById("new-prod-note");
       const storeSelect = document.getElementById("new-prod-store");
 
       if (nameInput) nameInput.value = pendingNewProductData.name;
       if (qtyInput) qtyInput.value = pendingNewProductData.qty;
       if (unitSelect) unitSelect.value = pendingNewProductData.unit;
+      if (priceInput) priceInput.value = (pendingNewProductData.price && Number(pendingNewProductData.price) > 0) ? Number(pendingNewProductData.price).toFixed(2) : "";
+      if (noteInput) noteInput.value = pendingNewProductData.note || "";
+      if (photoInput) photoInput.value = pendingNewProductData.photo || "";
+      updateNewProdPhotoPreview(pendingNewProductData.photo || "");
 
       if (storeSelect) {
         storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s =>
@@ -5570,6 +5699,8 @@
       const nameInput = document.getElementById("new-prod-name");
       const qtyInput = document.getElementById("new-prod-qty");
       const unitSelect = document.getElementById("new-prod-unit");
+      const priceInput = document.getElementById("new-prod-price");
+      const photoInput = document.getElementById("new-prod-photo-url");
       const storeSelect = document.getElementById("new-prod-store");
       const catSelect = document.getElementById("new-prod-category");
       const noteInput = document.getElementById("new-prod-note");
@@ -5582,6 +5713,8 @@
 
       const finalQty = (qtyInput?.value || "1").trim();
       const finalUnit = unitSelect?.value || "ud";
+      const finalPrice = parseFloat(priceInput?.value) || 0.0;
+      const finalPhoto = (photoInput?.value || "").trim();
       const finalStore = storeSelect?.value || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
       const finalCategory = catSelect?.value || "General";
       const finalNote = (noteInput?.value || "").trim();
@@ -5593,9 +5726,9 @@
         category: finalCategory,
         qty: finalQty,
         unit: finalUnit,
-        price: 0.0,
+        price: finalPrice,
         note: finalNote,
-        photo: "",
+        photo: finalPhoto,
         crossed_off: false,
         updatedAt: Date.now()
       };
@@ -5773,8 +5906,8 @@
           statusBadge = `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">${currentLang === 'es' ? 'En lista' : 'A la llista'} (x${m.qty || 1})</span>`;
           actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>+1</span>`;
         } else if (m.crossed_off && isCurrentStore) {
-          statusBadge = `<span class="text-[9px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-500">${currentLang === 'es' ? 'Historial' : 'Històric'}</span>`;
-          actionBtnText = `<span class="text-[9.5px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-arrow-up text-[8px]"></i>${currentLang === 'es' ? 'Recuperar' : 'Recuperar'}</span>`;
+          statusBadge = `<span class="text-[9px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-500">${currentLang === 'es' ? 'Tachado' : 'Ratllat'}</span>`;
+          actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
         } else {
           statusBadge = `<span class="text-[9px] font-semibold px-1.5 py-0.2 rounded ${sObj.badgeBg || 'bg-gray-100'} ${sObj.badgeText || 'text-gray-700'}">${localizedStore}</span>`;
           actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
@@ -5784,7 +5917,7 @@
             <div onclick="selectAutocompleteProduct('${m.id}')"
                  class="px-2.5 py-1.5 rounded-xl bg-gray-50/90 hover:bg-emerald-50 active:bg-emerald-100 flex items-center justify-between cursor-pointer transition border border-gray-100 group">
               <div class="flex items-center gap-2 truncate min-w-0 mr-2">
-                <i class="fa-solid ${isPending ? 'fa-cart-shopping text-emerald-600' : (m.crossed_off && isCurrentStore ? 'fa-clock-rotate-left text-gray-400' : 'fa-plus text-emerald-600')} text-xs flex-shrink-0"></i>
+                <i class="fa-solid ${isPending ? 'fa-cart-shopping text-emerald-600' : 'fa-plus text-emerald-600'} text-xs flex-shrink-0"></i>
                 <span class="font-bold text-xs text-gray-800 group-hover:text-emerald-900 truncate">${escapeHtml(m.name)}</span>
                 ${statusBadge}
                 ${localizedCat ? `<span class="text-[9px] text-gray-400 truncate hidden sm:inline">• ${localizedCat}</span>` : ''}
@@ -5800,8 +5933,8 @@
       // Afegir opció inferior per afegir com a nou si no coincideix
       matchesHtml += `
         <div onclick="handleQuickAdd()" class="px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-gray-500 hover:text-emerald-800 cursor-pointer flex items-center justify-between text-[11px] border-t border-gray-100 transition mt-1">
-          <span class="truncate mr-2"><i class="fa-solid fa-sparkles text-[10px] text-amber-500 mr-1.5"></i>${currentLang === 'es' ? 'Crear' : 'Crear'} "<strong>${escapeHtml(searchName)}</strong>" ${currentLang === 'es' ? 'como nuevo' : 'com a nou'}...</span>
-          <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex-shrink-0">${currentLang === 'es' ? 'Categorizar' : 'Categoritzar'}</span>
+          <span class="truncate mr-2"><i class="fa-solid fa-cart-plus text-[10px] text-emerald-600 mr-1.5"></i>${currentLang === 'es' ? 'Crear' : 'Crear'} "<strong>${escapeHtml(searchName)}</strong>" ${currentLang === 'es' ? 'como nuevo' : 'com a nou'}...</span>
+          <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex-shrink-0">${currentLang === 'es' ? 'Nuevo' : 'Nou'}</span>
         </div>
       `;
 
@@ -5840,6 +5973,7 @@
       if (existingInTarget) {
         if (existingInTarget.crossed_off) {
           existingInTarget.crossed_off = false;
+          delete existingInTarget.crossedAt;
           existingInTarget.updatedAt = Date.now();
           const idx = items.indexOf(existingInTarget);
           if (idx > -1) {
@@ -5850,7 +5984,7 @@
           if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
           renderLists();
           renderStoreTabs();
-          showToast(`${currentLang === 'es' ? 'Recuperado a' : 'Recuperat a'} ${storeName}: ${existingInTarget.name}`, "fa-arrow-up");
+          showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeName}: ${existingInTarget.name}`, "fa-plus");
         } else {
           const curQ = parseFloat(existingInTarget.qty) || 1;
           existingInTarget.qty = String(curQ + 1);
@@ -6876,6 +7010,14 @@
 
     function selectPickedImage(url) {
       if (!url) return;
+      if (imagePickerContext === "new-product") {
+        const photoInput = document.getElementById("new-prod-photo-url");
+        if (photoInput) photoInput.value = url;
+        if (typeof updateNewProdPhotoPreview === 'function') updateNewProdPhotoPreview(url);
+        closeImagePickerModal();
+        showToast(currentLang === 'es' ? "¡Imagen seleccionada!" : "Imatge seleccionada!", "fa-image");
+        return;
+      }
       const photoInput = document.getElementById("edit-photo-url");
       if (photoInput) photoInput.value = url;
       if (typeof updatePhotoPreview === 'function') updatePhotoPreview(url);
@@ -6884,11 +7026,16 @@
     }
 
     function removePhotoFromPicker() {
-      removePhoto();
+      if (imagePickerContext === "new-product") {
+        if (typeof removeNewProdPhoto === 'function') removeNewProdPhoto();
+      } else {
+        removePhoto();
+      }
       closeImagePickerModal();
     }
 
     function setPhotoViaWebSearch() {
+      imagePickerContext = "edit";
       openImagePickerModal();
     }
 
@@ -10280,8 +10427,14 @@
       if (existingInTarget) {
         if (existingInTarget.crossed_off) {
           existingInTarget.crossed_off = false;
+          delete existingInTarget.crossedAt;
           existingInTarget.updatedAt = Date.now();
-          showToast(`${currentLang === 'es' ? 'Recuperado a' : 'Recuperat a'} ${storeName}: ${existingInTarget.name}`, "fa-cart-plus");
+          const idx = items.indexOf(existingInTarget);
+          if (idx > -1) {
+            items.splice(idx, 1);
+            items.unshift(existingInTarget);
+          }
+          showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeName}: ${existingInTarget.name}`, "fa-plus");
         } else {
           const curQ = parseFloat(existingInTarget.qty) || 1;
           existingInTarget.qty = String(curQ + 1);
@@ -10591,6 +10744,10 @@
     window.closeConfirmNewProductModal = closeConfirmNewProductModal;
     window.updateNewProdCategoryHint = updateNewProdCategoryHint;
     window.executeConfirmNewProduct = executeConfirmNewProduct;
+    window.openImagePickerForNewProduct = openImagePickerForNewProduct;
+    window.removeNewProdPhoto = removeNewProdPhoto;
+    window.handleNewProdCameraCapture = handleNewProdCameraCapture;
+    window.updateNewProdPhotoPreview = updateNewProdPhotoPreview;
     window.hideAutocompleteSuggestions = hideAutocompleteSuggestions;
     window.handleQuickInputSearch = handleQuickInputSearch;
     window.selectAutocompleteProduct = selectAutocompleteProduct;
