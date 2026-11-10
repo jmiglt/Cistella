@@ -2326,8 +2326,67 @@
         ]
       },
       {
+        id: "roba_textil",
+        name: { ca: "9. Roba i Tèxtil", es: "9. Ropa y Textil" },
+        icon: "fa-shirt",
+        subcategories: [
+          {
+            id: "Roba Interior i Mitjons",
+            name: { ca: "Roba Interior i Mitjons", es: "Ropa Interior y Calcetines" },
+            icon: "fa-socks",
+            examples: {
+              ca: "Calces, calçotets, mitjons, mitges",
+              es: "Bragas, calzoncillos, calcetines, medias"
+            }
+          },
+          {
+            id: "Roba de Llar",
+            name: { ca: "Roba de Llar", es: "Ropa de Hogar y Básica" },
+            icon: "fa-shirt",
+            examples: {
+              ca: "Pijames, samarretes bàsiques, sabatilles de casa",
+              es: "Pijamas, camisetas básicas, zapatillas de casa"
+            }
+          },
+          {
+            id: "Tèxtil Llar",
+            name: { ca: "Tèxtil Llar", es: "Textil Hogar" },
+            icon: "fa-bed",
+            examples: {
+              ca: "Tovalloles, draps de cuina, llençols, fundes de coixí",
+              es: "Toallas, trapos de cocina, sábanas, fundas de almohada"
+            }
+          }
+        ]
+      },
+      {
+        id: "bazar_papereria",
+        name: { ca: "10. Bazar i Papereria", es: "10. Bazar y Papelería" },
+        icon: "fa-shapes",
+        subcategories: [
+          {
+            id: "Material d'Oficina i Escolar",
+            name: { ca: "Material d'Oficina i Escolar", es: "Material de Oficina y Escolar" },
+            icon: "fa-pen-ruler",
+            examples: {
+              ca: "Folis, bolígrafs, llibretes, motxilles, marcs, arxivadors",
+              es: "Folios, bolígrafos, libretas, mochilas, marcos, archivadores"
+            }
+          },
+          {
+            id: "Bricolatge i Piles",
+            name: { ca: "Bricolatge i Piles", es: "Bricolaje y Pilas" },
+            icon: "fa-wrench",
+            examples: {
+              ca: "Piles, bombetes, eines bàsiques, cinta adhesiva, cargols, cola",
+              es: "Pilas, bombillas, herramientas básicas, cinta adhesiva, tornillos, pegamento"
+            }
+          }
+        ]
+      },
+      {
         id: "salut_cabina",
-        name: { ca: "9. Salut, Cabina i Benestar", es: "9. Salud, Cabina y Bienestar" },
+        name: { ca: "11. Salut, Cabina i Benestar", es: "11. Salud, Cabina y Bienestar" },
         icon: "fa-heart-pulse",
         subcategories: [
           {
@@ -2344,7 +2403,7 @@
             name: { ca: "Farmàcia i Salut", es: "Farmacia y Salud" },
             icon: "fa-pills",
             examples: {
-              ca: "Medicaments, Farmaciola, Gases, Alcohol, Tiritas",
+              ca: "Medicaments, Farmaciola, Gases, Alcohol, Tiretes",
               es: "Medicamentos, Botiquín, Gasas, Alcohol, Tiritas"
             }
           },
@@ -2360,28 +2419,10 @@
         ]
       },
       {
-        id: "bricolatge_altres",
-        name: { ca: "10. Bricolatge i Altres", es: "10. Bricolaje y Otros" },
-        icon: "fa-toolbox",
+        id: "general_altres",
+        name: { ca: "12. Altres", es: "12. Otros" },
+        icon: "fa-basket-shopping",
         subcategories: [
-          {
-            id: "Bricolatge i Eines",
-            name: { ca: "Bricolatge i Eines", es: "Bricolaje y Herramientas" },
-            icon: "fa-wrench",
-            examples: {
-              ca: "Piles, Bombetes, Eines, Cargols, Ferralleria",
-              es: "Pilas, Bombillas, Herramientas, Tornillos, Ferretería"
-            }
-          },
-          {
-            id: "Papereria i Basar",
-            name: { ca: "Papereria i Basar", es: "Papelería y Bazar" },
-            icon: "fa-pen-ruler",
-            examples: {
-              ca: "Llibretes, Bolígrafs, Adhesius, Articles de basar",
-              es: "Libretas, Bolígrafos, Adhesivos, Artículos de bazar"
-            }
-          },
           {
             id: "General",
             name: { ca: "General", es: "General" },
@@ -2415,7 +2456,12 @@
       "Farmaciola i Salut": "Farmàcia i Salut",
       "Medicaments": "Farmàcia i Salut",
       "Suplements": "Suplements i Dietètica",
-      "Electricitat": "Bricolatge i Eines",
+      "Electricitat": "Bricolatge i Piles",
+      "Bricolatge i Eines": "Bricolatge i Piles",
+      "Bricolaje y Herramientas": "Bricolatge i Piles",
+      "Papereria i Basar": "Material d'Oficina i Escolar",
+      "Papelería y Bazar": "Material d'Oficina i Escolar",
+      "Bazar": "Material d'Oficina i Escolar",
       "Llar": "Utillatge de Llar",
       "Bebè": "Nadons",
       "Aperitius": "Conserves",
@@ -3352,14 +3398,19 @@
       if (/bolquer|pañal|tovallolet.*beb[eè]|toallit.*beb[eé]|potet|potito|llet infantil|farinetes|papilla|xumet|chupete|biber[oó]/i.test(n)) return "Nadons";
       if (/gos\b|perro|gat\b|gato|pinso|pienso|sorra de gat|arena gato|purina|whiskas|snack per a mascotes/i.test(n)) return "Mascotes";
 
-      // 9. Salut, Cabina i Benestar
+      // 9. Roba i Tèxtil
+      if (/calces|cal[çc]otets|bragas|calzoncillos|mitjons|calcetines|mitges|medias|braguitas|slip|sujetador|sostenidor/i.test(n)) return "Roba Interior i Mitjons";
+      if (/pijama|sabatilles.*casa|zapatillas.*casa|samarreta|camiset|chandal|xandall|ba[ñn]ador|banyador|pantalon.*curt/i.test(n)) return "Roba de Llar";
+      if (/tovallol|toalla|drap.*cuina|trapo.*cuina|llen[çc]ol|s[aá]bana|funda n[oó]rdica|funda plancha|protector colch[oó]n|coix[ií]|almohada|manta/i.test(n)) return "Tèxtil Llar";
+
+      // 10. Bazar i Papereria
+      if (/foli|folio|llibreta|cuaderno|bol[ií]graf|boli\b|llapis|l[aá]piz|motxilla|mochila|carpeta|arxivador|archivador|estuche|estoig|regla|basar|bazar/i.test(n)) return "Material d'Oficina i Escolar";
+      if (/bombeta|bombilla|pila\b|piles|bateria|tornillo|cargol|clau\b|eina|herramienta|endoll|enchufe|cable|lladre|ladron|adhesiu|pegamento|cinta adhesiva|cola pared|super glue|broca/i.test(n)) return "Bricolatge i Piles";
+
+      // 11. Salut, Cabina i Benestar
       if (/cabina|est[eè]tica professional|tractament cabina/i.test(n)) return "Productes Cabina";
       if (/paracetamol|ibuprof|aspirina|xarop|jarabe|tiret|tirita|cot[oó]|alcohol 96|term[oò]metre|gasa|farmaciola|botiqu[ií]n|medicament/i.test(n)) return "Farmàcia i Salut";
       if (/prote[ií]na|creatina|vitamina|magnesi|col[aà]gen|omega 3|melatonina|suplement/i.test(n)) return "Suplements i Dietètica";
-
-      // 10. Bricolatge i Altres
-      if (/bombeta|bombilla|pila\b|piles|bateria|tornillo|cargol|clau\b|eina|herramienta|endoll|enchufe|cable|lladre|ladron/i.test(n)) return "Bricolatge i Eines";
-      if (/llibreta|cuaderno|bol[ií]graf|boli\b|llapis|l[aá]piz|adhesiu|pegamento|cinta adhesiva|basar|bazar/i.test(n)) return "Papereria i Basar";
 
       return "General";
     }
