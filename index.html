@@ -4015,7 +4015,7 @@
             <span>${displayName}</span>
             ${iconHtml}
             ${pendingCount > 0
-            ? `<span class="px-1.5 py-0.2 text-[10px] rounded-full ${isActive ? 'bg-emerald-700 text-white' : 'bg-emerald-900 text-emerald-200'}">${pendingCount}</span>`
+            ? `<span class="px-2 py-0.5 text-[10.5px] font-black rounded-full ${isActive ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-emerald-500 text-white shadow-xs ring-1 ring-white/30'} min-w-[20px] text-center leading-none">${pendingCount}</span>`
             : ''}
           </button>
         `;
@@ -5203,7 +5203,12 @@
                   </div>
                 </div>
               </div>
-              <div class="flex items-center gap-1 flex-shrink-0">
+              <div class="flex items-center gap-2 flex-shrink-0">
+                ${sd.pendingCount > 0 ? `
+                  <span class="min-w-[28px] h-7 px-2.5 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
+                    ${sd.pendingCount}
+                  </span>
+                ` : ''}
                 <span class="w-7 h-7 rounded-full bg-gray-50 group-hover:bg-emerald-100 text-gray-400 group-hover:text-emerald-700 flex items-center justify-center text-xs transition">
                   <i class="fa-solid fa-chevron-right text-[11px]"></i>
                 </span>
@@ -6602,8 +6607,11 @@
                 </div>
               ` : ''}
               <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${store.badgeBg || 'bg-emerald-100'} ${store.badgeText || 'text-emerald-800'}"></span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-gray-800 truncate">${store.name}</p>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <p class="text-xs font-bold text-gray-800 truncate">${store.name}</p>
+                  ${pendingCount > 0 ? `<span class="px-2 py-0.2 min-w-[20px] text-center text-[10px] font-black rounded-full bg-emerald-600 text-white shadow-2xs">${pendingCount}</span>` : ''}
+                </div>
                 <p class="text-[10px] text-gray-400">${pendingCount} pendents (${totalCount} en total)</p>
               </div>
             </div>
