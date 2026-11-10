@@ -598,11 +598,11 @@
 
   <!-- BARRA INFERIOR D'ENTRADA RÀPIDA PER TECLAT -->
   <footer
-    class="bg-white border-t border-gray-200 px-3 py-2 fixed bottom-0 left-0 right-0 z-30 flex items-center gap-2 shadow-lg safe-bottom">
+    class="bg-white border-t border-gray-200 px-3 py-2 fixed bottom-0 left-0 right-0 z-40 flex items-center gap-2 shadow-lg safe-bottom">
     <div class="relative flex-1">
       <!-- SUGGERIMENTS D'AUTOCOMPLETAT I COINCIDÈNCIES DE PRODUCTES (A SOBRE DEL QUADRE DE TEXT) -->
       <div id="autocomplete-suggestions"
-        class="hidden absolute bottom-full mb-2 left-0 right-0 z-40 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-500/40 p-2 max-h-64 overflow-y-auto space-y-1 text-xs animate-fade-in">
+        class="hidden absolute bottom-full mb-2.5 left-0 right-0 z-50 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-500/40 p-2 max-h-72 overflow-y-auto space-y-1 text-xs animate-fade-in">
         <div
           class="text-[10px] uppercase font-bold text-gray-500 px-1 pb-1 flex justify-between items-center border-b border-gray-100">
           <span id="autocomplete-header-title"><i class="fa-solid fa-magnifying-glass text-emerald-600 mr-1"></i>
@@ -667,10 +667,10 @@
               class="bg-white border border-gray-300 text-gray-700 px-2.5 py-1 rounded hover:bg-gray-100 flex items-center gap-1 font-medium">
               <i class="fa-solid fa-camera text-emerald-600"></i> <span data-i18n="btnCamera">Càmera</span>
             </button>
-            <!-- Botó per cerca simulada Unsplash -->
-            <button type="button" onclick="setPhotoViaWebSearch()"
-              class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-1 rounded hover:bg-emerald-100 flex items-center gap-1 font-medium">
-              <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="btnWebSearch">Cerca web</span>
+            <!-- Botó per cerca d'imatges de supermercat -->
+            <button type="button" onclick="openImagePickerModal()"
+              class="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded hover:bg-emerald-100 flex items-center gap-1.5 font-medium transition active:scale-95">
+              <i class="fa-solid fa-images text-emerald-600"></i> <span data-i18n="btnWebSearch">Cerca web</span>
             </button>
             <button type="button" onclick="removePhoto()"
               class="text-rose-600 border border-rose-200 bg-white px-2 py-1 rounded hover:bg-rose-50"
@@ -1068,6 +1068,68 @@
           class="py-2 px-4 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition shadow-xs">
           <i class="fa-solid fa-plus"></i>
           <span>Afegir a la llista</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE SELECCIÓ D'IMATGES WEB DE SUPERMERCAT -->
+  <div id="image-picker-modal"
+    class="hidden fixed inset-0 z-[95] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-fade-in"
+    onclick="closeImagePickerModal()">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-5 space-y-3 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col"
+      onclick="event.stopPropagation()">
+      <!-- CAPÇALERA -->
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm flex-shrink-0">
+            <i class="fa-solid fa-images"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-sm font-bold text-gray-900 truncate" id="image-picker-modal-title">Imatges de supermercat</h3>
+            <p class="text-[11px] text-gray-500 truncate" id="image-picker-modal-subtitle">Tria la foto més adient per a l'article</p>
+          </div>
+        </div>
+        <button onclick="closeImagePickerModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition" title="Tancar">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- BARRA DE CERCA DINS EL MODAL -->
+      <div class="flex gap-2">
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+          <input type="text" id="image-picker-search-input" placeholder="Cercar imatge..."
+            class="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white font-medium"
+            onkeydown="if(event.key === 'Enter') executeImagePickerSearch()">
+        </div>
+        <button onclick="executeImagePickerSearch()"
+          class="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition">
+          <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
+          <span>Cercar</span>
+        </button>
+      </div>
+
+      <!-- SUGGERIMENTS RÀPIDS DE PARAULES CLAU -->
+      <div id="image-picker-pills" class="flex gap-1.5 flex-wrap text-[10px]">
+        <!-- Injectat dinàmicament -->
+      </div>
+
+      <!-- CONTINGUT / GRAELLA D'IMATGES -->
+      <div id="image-picker-body" class="flex-1 overflow-y-auto min-h-[220px] max-h-[52vh] pr-0.5">
+        <!-- Graella o indicador de càrrega -->
+      </div>
+
+      <!-- PEU DE PÀGINA -->
+      <div class="pt-2.5 border-t flex items-center justify-between gap-2">
+        <button onclick="removePhotoFromPicker()"
+          class="py-1.5 px-3 border border-rose-200 text-rose-600 hover:bg-rose-50 font-semibold rounded-xl text-xs transition flex items-center gap-1">
+          <i class="fa-solid fa-trash-can text-[10px]"></i>
+          <span>Treure foto</span>
+        </button>
+        <button onclick="closeImagePickerModal()"
+          class="py-1.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition">
+          <span>Tancar</span>
         </button>
       </div>
     </div>
@@ -2723,6 +2785,16 @@
       if (typeof item === 'function') return item(...args);
       if (item !== undefined) return item;
       return key;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     const STORAGE_KEY_CATEGORIES = "cistella_custom_categories_v1";
@@ -5579,30 +5651,44 @@
       const itemsContainer = document.getElementById("autocomplete-items");
       if (!container || !itemsContainer) return;
 
-      // Si som a "Totes", avisar que cal seleccionar una botiga
+      const raw = (val || "").trim();
+      if (raw.length < 1) {
+        hideAutocompleteSuggestions();
+        return;
+      }
+
+      // Si som a "Totes", avisar que cal seleccionar una botiga amb botons ràpids per canviar-hi
       if (currentStoreFilter === "all") {
+        const storeBtns = (STORES || []).filter(s => s.id !== 'all').map(s => `
+          <button type="button" onclick="setStoreFilter('${s.id}'); const qi = document.getElementById('quick-input'); if(qi){ qi.focus(); handleQuickInputSearch(qi.value); }"
+            class="px-2.5 py-1 rounded-lg text-[10.5px] font-bold ${s.badgeBg || 'bg-emerald-100'} ${s.badgeText || 'text-emerald-800'} hover:opacity-80 transition shadow-2xs">
+            ${getStoreDisplayName(s, currentLang)}
+          </button>
+        `).join('');
+
         itemsContainer.innerHTML = `
-            <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-center space-y-1">
-              <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
-              <p class="font-bold text-xs">${currentLang === 'es' ? 'Estás en la vista "Todas"' : 'Estàs a la vista "Totes"'}</p>
-              <p class="text-[11px] text-amber-700 leading-tight">${currentLang === 'es' ? 'Selecciona una tienda en las pestañas superiores para poder añadir productos.' : 'Selecciona una botiga a les pestanyes superiors per poder afegir productes.'}</p>
+            <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-center space-y-1.5">
+              <div class="flex items-center justify-center gap-1.5 font-bold text-xs text-amber-800">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                <span>${currentLang === 'es' ? 'Estás en "Todas las tiendas"' : 'Estàs a "Totes les botigues"'}</span>
+              </div>
+              <p class="text-[11px] text-amber-700 leading-tight">
+                ${currentLang === 'es' ? 'Elige una tienda específica para poder añadir artículos:' : 'Tria una botiga específica per poder afegir articles:'}
+              </p>
+              <div class="flex flex-wrap gap-1.5 justify-center pt-1">
+                ${storeBtns}
+              </div>
             </div>
           `;
         container.classList.remove("hidden");
         return;
       }
 
-      const raw = (val || "").trim();
-      if (raw.length < 1) {
-        container.classList.add("hidden");
-        return;
-      }
-
-      const parsed = parseQuickAddText(raw);
-      const searchName = parsed.name || raw;
-      const qNorm = normalizeProductName(searchName);
+      const parsed = (typeof parseProductInput === 'function') ? parseProductInput(raw) : { name: raw };
+      const searchName = (parsed && parsed.name) ? parsed.name : raw;
+      const qNorm = (typeof normalizeProductName === 'function') ? normalizeProductName(searchName) : searchName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (qNorm.length < 1) {
-        container.classList.add("hidden");
+        hideAutocompleteSuggestions();
         return;
       }
 
@@ -5615,38 +5701,54 @@
         if (!itNorm) return;
 
         let score = 0;
-        if (itNorm === qNorm) score = 100;
-        else if (itNorm.startsWith(qNorm)) score = 80;
-        else if (itNorm.includes(qNorm)) score = 60;
-        else if (areProductNamesSimilar(it.name, searchName)) score = 50;
+        if (itNorm === qNorm) {
+          score = 100;
+        } else if (itNorm.startsWith(qNorm)) {
+          score = 85;
+        } else {
+          const words = itNorm.split(/\s+/);
+          if (words.some(w => w.startsWith(qNorm))) {
+            score = 75;
+          } else if (itNorm.includes(qNorm)) {
+            score = 60;
+          } else if (areProductNamesSimilar(it.name, searchName)) {
+            score = 50;
+          }
+        }
 
         if (score > 0) {
           const canon = getCanonicalProductKey(it.name);
           const existingMatch = matchedProducts.find(m => m.canon === canon);
+          const isThisStore = (activeStore && it.store === activeStore);
+          const isPending = isThisStore && !it.crossed_off;
+          const finalScore = score + (isThisStore ? 25 : 0) + (isPending ? 15 : 0);
+
           if (existingMatch) {
-            if (activeStore && it.store === activeStore && existingMatch.item.store !== activeStore) {
+            if (isThisStore && existingMatch.item.store !== activeStore) {
               existingMatch.item = it;
-              existingMatch.score = score + 20;
+              existingMatch.score = finalScore;
+            } else if (finalScore > existingMatch.score) {
+              existingMatch.score = finalScore;
             }
           } else {
             matchedProducts.push({
               item: it,
               canon: canon,
-              score: score + (activeStore && it.store === activeStore ? 20 : 0) + (!it.crossed_off ? 10 : 0)
+              score: finalScore
             });
           }
         }
       });
 
       matchedProducts.sort((a, b) => b.score - a.score);
-      const topMatches = matchedProducts.slice(0, 7).map(m => m.item);
+      const topMatches = matchedProducts.slice(0, 6).map(m => m.item);
 
       if (topMatches.length === 0) {
         itemsContainer.innerHTML = `
             <div onclick="handleQuickAdd()" class="px-2.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 cursor-pointer flex items-center justify-between transition">
               <div class="flex items-center gap-2 truncate">
                 <i class="fa-solid fa-sparkles text-amber-600 text-xs"></i>
-                <span class="text-xs font-semibold truncate">${currentLang === 'es' ? 'Crear como nuevo:' : 'Crear com a nou:'} <strong>${searchName}</strong></span>
+                <span class="text-xs font-semibold truncate">${currentLang === 'es' ? 'Crear como nuevo:' : 'Crear com a nou:'} <strong>${escapeHtml(searchName)}</strong></span>
               </div>
               <span class="text-[10px] font-bold text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded-md flex-shrink-0">
                 <i class="fa-solid fa-plus text-[9px] mr-1"></i>${currentLang === 'es' ? 'Categorizar' : 'Categoritzar'}
@@ -5657,7 +5759,7 @@
         return;
       }
 
-      itemsContainer.innerHTML = topMatches.map(m => {
+      let matchesHtml = topMatches.map(m => {
         const sObj = STORES.find(s => s.id === m.store) || { name: m.store, badgeBg: "bg-gray-100", badgeText: "text-gray-700" };
         const localizedStore = getStoreDisplayName(sObj, currentLang);
         const canonicalCat = getCategoryCanonicalKey(m.category || 'General');
@@ -5672,7 +5774,7 @@
           actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>+1</span>`;
         } else if (m.crossed_off && isCurrentStore) {
           statusBadge = `<span class="text-[9px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-500">${currentLang === 'es' ? 'Historial' : 'Històric'}</span>`;
-          actionBtnText = `<span class="text-[9.5px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-arrow-up text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
+          actionBtnText = `<span class="text-[9.5px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-arrow-up text-[8px]"></i>${currentLang === 'es' ? 'Recuperar' : 'Recuperar'}</span>`;
         } else {
           statusBadge = `<span class="text-[9px] font-semibold px-1.5 py-0.2 rounded ${sObj.badgeBg || 'bg-gray-100'} ${sObj.badgeText || 'text-gray-700'}">${localizedStore}</span>`;
           actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
@@ -5682,8 +5784,8 @@
             <div onclick="selectAutocompleteProduct('${m.id}')"
                  class="px-2.5 py-1.5 rounded-xl bg-gray-50/90 hover:bg-emerald-50 active:bg-emerald-100 flex items-center justify-between cursor-pointer transition border border-gray-100 group">
               <div class="flex items-center gap-2 truncate min-w-0 mr-2">
-                <i class="fa-solid ${isPending ? 'fa-cart-shopping text-emerald-600' : 'fa-magnifying-glass text-gray-400'} text-xs flex-shrink-0"></i>
-                <span class="font-bold text-xs text-gray-800 group-hover:text-emerald-900 truncate">${m.name}</span>
+                <i class="fa-solid ${isPending ? 'fa-cart-shopping text-emerald-600' : (m.crossed_off && isCurrentStore ? 'fa-clock-rotate-left text-gray-400' : 'fa-plus text-emerald-600')} text-xs flex-shrink-0"></i>
+                <span class="font-bold text-xs text-gray-800 group-hover:text-emerald-900 truncate">${escapeHtml(m.name)}</span>
                 ${statusBadge}
                 ${localizedCat ? `<span class="text-[9px] text-gray-400 truncate hidden sm:inline">• ${localizedCat}</span>` : ''}
               </div>
@@ -5695,6 +5797,15 @@
           `;
       }).join("");
 
+      // Afegir opció inferior per afegir com a nou si no coincideix
+      matchesHtml += `
+        <div onclick="handleQuickAdd()" class="px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-gray-500 hover:text-emerald-800 cursor-pointer flex items-center justify-between text-[11px] border-t border-gray-100 transition mt-1">
+          <span class="truncate mr-2"><i class="fa-solid fa-sparkles text-[10px] text-amber-500 mr-1.5"></i>${currentLang === 'es' ? 'Crear' : 'Crear'} "<strong>${escapeHtml(searchName)}</strong>" ${currentLang === 'es' ? 'como nuevo' : 'com a nou'}...</span>
+          <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex-shrink-0">${currentLang === 'es' ? 'Categorizar' : 'Categoritzar'}</span>
+        </div>
+      `;
+
+      itemsContainer.innerHTML = matchesHtml;
       container.classList.remove("hidden");
     }
 
@@ -6492,112 +6603,293 @@
       reader.readAsDataURL(file);
     }
 
-    async function setPhotoViaWebSearch() {
+    // ==========================================
+    // RECERCA I SELECCIÓ D'IMATGES DE SUPERMERCAT (IMAGE PICKER)
+    // ==========================================
+    let isFetchingSupermarketImages = false;
+
+    function openImagePickerModal(customQuery) {
+      const modal = document.getElementById("image-picker-modal");
+      if (!modal) return;
+
+      const isEs = currentLang === 'es';
       const nameInput = document.getElementById("edit-name");
-      const productName = (nameInput ? nameInput.value : "").trim();
-      if (!productName) {
-        showToast(currentLang === 'es' ? "Escribe primero el nombre del producto" : "Escriu primer el nom del producte", "fa-circle-exclamation");
+      const defaultName = (nameInput ? nameInput.value : "").trim();
+      const initialTerm = customQuery || defaultName;
+
+      // Actualitzar textos
+      const titleEl = document.getElementById("image-picker-modal-title");
+      if (titleEl) titleEl.textContent = isEs ? "Imágenes de supermercado" : "Imatges de supermercat";
+      const subEl = document.getElementById("image-picker-modal-subtitle");
+      if (subEl) subEl.textContent = isEs ? "Elige la foto más adecuada para el producto" : "Tria la foto més adient per a l'article";
+
+      const searchInput = document.getElementById("image-picker-search-input");
+      if (searchInput) {
+        searchInput.value = initialTerm;
+        searchInput.placeholder = isEs ? "Buscar imagen (ej: leche, champú, galletas)..." : "Cercar imatge (ex: llet, xampú, galetes)...";
+      }
+
+      modal.classList.remove("hidden");
+      renderImagePickerPills(initialTerm);
+      executeImagePickerSearch();
+    }
+
+    function closeImagePickerModal() {
+      const modal = document.getElementById("image-picker-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function renderImagePickerPills(term) {
+      const pillsContainer = document.getElementById("image-picker-pills");
+      if (!pillsContainer) return;
+      if (!term || !term.trim()) {
+        pillsContainer.innerHTML = "";
         return;
       }
 
-      showToast(currentLang === 'es' ? `Buscando imagen para "${productName}"...` : `Cercant imatge per a "${productName}"...`, "fa-magnifying-glass");
+      const clean = cleanName(term);
+      const words = clean.split(/\s+/).filter(w => w.length > 2);
+      const suggestions = new Set([clean]);
+      if (words.length > 1) {
+        suggestions.add(words.slice(0, 2).join(' '));
+        suggestions.add(words[0]);
+      }
 
-      const clean = cleanName(productName);
-      const queryVariants = [clean];
+      // Equivalències comunes català/castellà orientades a supermercat
+      const dict = {
+        'llet': 'leche', 'leche': 'llet',
+        'formatge': 'queso', 'queso': 'formatge',
+        'platan': 'platano', 'plàtan': 'platano',
+        'poma': 'manzana', 'manzana': 'poma',
+        'sabo': 'jabon', 'sabó': 'jabon', 'jabon': 'sabó',
+        'xampu': 'champu', 'xampú': 'champu', 'champu': 'xampú',
+        'oli': 'aceite', 'aceite': 'oli',
+        'galetes': 'galletas', 'galletas': 'galetes',
+        'pa': 'pan', 'pan': 'pa',
+        'ous': 'huevos', 'huevos': 'ous',
+        'arros': 'arroz', 'arròs': 'arroz', 'arroz': 'arròs',
+        'iogurt': 'yogur', 'yogur': 'iogurt',
+        'raspall': 'cepillo de dientes', 'cepillo': 'cepillo de dientes'
+      };
+      words.forEach(w => {
+        const norm = w.toLowerCase();
+        if (dict[norm]) suggestions.add(dict[norm]);
+      });
+
+      pillsContainer.innerHTML = Array.from(suggestions).slice(0, 5).map(s => `
+        <button type="button" onclick="document.getElementById('image-picker-search-input').value='${escapeHtml(s)}'; executeImagePickerSearch();"
+          class="px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition text-[10.5px] font-semibold flex items-center gap-1">
+          <i class="fa-solid fa-magnifying-glass text-[9px] text-emerald-600"></i> ${escapeHtml(s)}
+        </button>
+      `).join('');
+    }
+
+    async function executeImagePickerSearch() {
+      if (isFetchingSupermarketImages) return;
+      const searchInput = document.getElementById("image-picker-search-input");
+      const query = (searchInput ? searchInput.value : "").trim();
+      const bodyContainer = document.getElementById("image-picker-body");
+      if (!bodyContainer) return;
+
+      const isEs = currentLang === 'es';
+      if (!query) {
+        bodyContainer.innerHTML = `
+          <div class="py-8 text-center text-gray-400 space-y-2">
+            <i class="fa-solid fa-basket-shopping text-3xl text-gray-300"></i>
+            <p class="text-xs">${isEs ? 'Escribe el nombre de un producto para buscar imágenes' : 'Escriu el nom d\'un producte per cercar imatges'}</p>
+          </div>
+        `;
+        return;
+      }
+
+      isFetchingSupermarketImages = true;
+      bodyContainer.innerHTML = `
+        <div class="py-10 text-center space-y-3">
+          <div class="inline-block animate-spin text-emerald-600 text-2xl">
+            <i class="fa-solid fa-circle-notch"></i>
+          </div>
+          <p class="text-xs font-semibold text-gray-600">${isEs ? `Buscando opciones de supermercado para "${escapeHtml(query)}"...` : `Cercant opcions de supermercat per a "${escapeHtml(query)}"...`}</p>
+        </div>
+      `;
+
+      try {
+        const images = await fetchSupermarketImageCandidates(query);
+
+        if (!images || images.length === 0) {
+          bodyContainer.innerHTML = `
+            <div class="py-8 text-center space-y-3 px-2">
+              <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <p class="text-xs font-bold text-gray-800">${isEs ? 'No se han encontrado fotos para este término' : 'No s\'han trobat fotos per a aquest terme'}</p>
+              <p class="text-[11px] text-gray-500 max-w-xs mx-auto">${isEs ? 'Prueba con una palabra más sencilla arriba (ej. "leche", "detergente", "manzanas").' : 'Prova amb una paraula més senzilla a dalt (ex. "llet", "detergent", "pomes").'}</p>
+            </div>
+          `;
+          return;
+        }
+
+        bodyContainer.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-1">
+            ${images.map(img => `
+              <div onclick="selectPickedImage('${escapeHtml(img.url)}')"
+                class="group relative bg-white border border-gray-200 hover:border-emerald-500 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col">
+                <div class="w-full h-24 sm:h-28 bg-gray-50 overflow-hidden relative">
+                  <img src="${img.thumb || img.url}" alt="${escapeHtml(img.title || '')}" loading="lazy"
+                    class="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-200"
+                    onerror="this.parentElement.parentElement.style.display='none'">
+                  <div class="absolute inset-0 bg-emerald-700/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition">
+                    <span class="bg-black/60 px-2 py-1 rounded-md flex items-center gap-1 shadow"><i class="fa-solid fa-check"></i> ${isEs ? 'Elegir' : 'Triar'}</span>
+                  </div>
+                </div>
+                <div class="p-1.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between text-[9.5px] text-gray-500">
+                  <span class="truncate max-w-[110px] font-medium text-gray-700" title="${escapeHtml(img.title || '')}">${escapeHtml(img.title || 'Producte')}</span>
+                  <span class="text-[8.5px] uppercase font-bold text-emerald-700 bg-emerald-100/80 px-1 py-0.2 rounded">${escapeHtml(img.source || 'Web')}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+      } catch (err) {
+        console.error("Error cercant imatges:", err);
+        bodyContainer.innerHTML = `
+          <div class="py-8 text-center text-rose-500 text-xs">
+            <i class="fa-solid fa-circle-exclamation text-lg mb-1"></i>
+            <p>${isEs ? 'Ha ocurrido un error al buscar imágenes.' : 'Hi ha hagut un error en cercar imatges.'}</p>
+          </div>
+        `;
+      } finally {
+        isFetchingSupermarketImages = false;
+      }
+    }
+
+    async function fetchSupermarketImageCandidates(searchTerm) {
+      const clean = cleanName(searchTerm);
+      const results = [];
+      const seenUrls = new Set();
+
+      function addCandidate(url, thumb, title, source) {
+        if (!url || seenUrls.has(url)) return;
+        const low = url.toLowerCase();
+        if (low.endsWith('.svg') || low.includes('.pdf') || low.includes('.ocr') || low.includes('.ogg')) return;
+        // Filtrar resultats que evidentment no siguin queviures o productes
+        const tLow = (title || "").toLowerCase();
+        if (tLow.includes('aeropuerto') || tLow.includes('airport') || tLow.includes('elecciones') ||
+            tLow.includes('alcalde') || tLow.includes('partido') || tLow.includes('kobus leche') ||
+            tLow.includes('dante fachin') || tLow.includes('estadio') || tLow.includes('estación')) {
+          return;
+        }
+        seenUrls.add(url);
+        results.push({
+          url: url,
+          thumb: thumb || url,
+          title: title || clean,
+          source: source || 'Web'
+        });
+      }
+
+      // Preparar variants de cerca
+      const queries = [clean];
       const words = clean.split(/\s+/).filter(w => w.length > 2);
       if (words.length > 1) {
-        queryVariants.push(words.slice(0, 2).join(' '));
-        queryVariants.push(words[0]);
+        queries.push(words.slice(0, 2).join(' '));
+        queries.push(words[0]);
       }
 
-      let foundImg = null;
+      // Equivalències català/castellà
+      const dict = {
+        'llet': 'leche',
+        'formatge': 'queso',
+        'platan': 'platano', 'plàtan': 'platano',
+        'poma': 'manzana',
+        'sabo': 'jabon', 'sabó': 'jabon',
+        'xampu': 'champu', 'xampú': 'champu',
+        'oli': 'aceite',
+        'galetes': 'galletas',
+        'pa': 'pan',
+        'ous': 'huevos',
+        'arros': 'arroz', 'arròs': 'arroz',
+        'iogurt': 'yogur',
+        'raspall': 'cepillo de dientes'
+      };
+      words.forEach(w => {
+        const norm = w.toLowerCase();
+        if (dict[norm] && !queries.includes(dict[norm])) queries.push(dict[norm]);
+      });
 
-      for (const q of queryVariants) {
-        if (foundImg) break;
+      // 1. Cercar a Wikipedia (castellà i català) - imatges enciclopèdiques i comercials de màxima qualitat
+      for (const q of queries.slice(0, 2)) {
+        for (const lang of ['es', 'ca']) {
+          try {
+            const url = `https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=5&prop=pageimages&pithumbsize=300&format=json&origin=*`;
+            const res = await fetch(url);
+            if (res.ok) {
+              const data = await res.json();
+              const pages = Object.values(data.query?.pages || {});
+              for (const p of pages) {
+                if (p.thumbnail?.source) {
+                  addCandidate(p.thumbnail.source, p.thumbnail.source, p.title, `Wiki ${lang.toUpperCase()}`);
+                }
+              }
+            }
+          } catch(e) {}
+        }
+      }
 
-        // 1. Cercar a Openverse (Creative Commons, imatges reals de productes i objectes)
+      // 2. Cercar a Wikimedia Commons (fitxers reals de productes i supermercat)
+      for (const q of queries.slice(0, 2)) {
         try {
-          const res = await fetch(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=3`);
+          const commonsUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q + ' product')}&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=300&format=json&origin=*`;
+          const res = await fetch(commonsUrl);
           if (res.ok) {
             const data = await res.json();
-            if (data.results && data.results.length > 0) {
-              const item = data.results.find(r => r.thumbnail || r.url) || data.results[0];
-              foundImg = item.thumbnail || item.url;
-              if (foundImg) break;
+            const pages = Object.values(data.query?.pages || {});
+            for (const p of pages) {
+              const info = p.imageinfo?.[0];
+              const thumb = info?.thumburl || info?.url;
+              if (thumb) {
+                const cleanTitle = p.title.replace(/^File:/i, '').replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+                addCandidate(info?.url || thumb, thumb, cleanTitle, 'Wikimedia');
+              }
             }
           }
-        } catch (e) {}
+        } catch(e) {}
+      }
 
-        // 2. Cercar a Wikipedia (espanyol i català)
-        if (!foundImg) {
-          for (const lang of ['es', 'ca']) {
-            try {
-              const url = `https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=2&prop=pageimages&pithumbsize=300&format=json&origin=*`;
-              const res = await fetch(url);
-              if (res.ok) {
-                const data = await res.json();
-                const pages = data.query ? Object.values(data.query.pages) : [];
-                for (const p of pages) {
-                  if (p.thumbnail && p.thumbnail.source && !p.thumbnail.source.endsWith('.svg')) {
-                    foundImg = p.thumbnail.source;
-                    break;
-                  }
-                }
-                if (foundImg) break;
-              }
-            } catch (e) {}
+      // 3. Cercar a Openverse
+      for (const q of queries.slice(0, 1)) {
+        try {
+          const ovUrl = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=8`;
+          const res = await fetch(ovUrl);
+          if (res.ok) {
+            const data = await res.json();
+            for (const r of (data.results || [])) {
+              const thumb = r.thumbnail || r.url;
+              if (thumb) addCandidate(r.url || thumb, thumb, r.title, 'Openverse');
+            }
           }
-        }
-
-        // 3. Cercar a Wikimedia Commons (arxius i fotografies reals de productes)
-        if (!foundImg) {
-          try {
-            const commonsUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(q)}&gsrlimit=3&prop=imageinfo&iiprop=url&iiurlwidth=300&format=json&origin=*`;
-            const res = await fetch(commonsUrl);
-            if (res.ok) {
-              const data = await res.json();
-              const pages = data.query ? Object.values(data.query.pages) : [];
-              for (const p of pages) {
-                const info = p.imageinfo?.[0];
-                const thumb = info?.thumburl || info?.url;
-                if (thumb && !thumb.endsWith('.svg')) {
-                  foundImg = thumb;
-                  break;
-                }
-              }
-            }
-          } catch (e) {}
-        }
-
-        // 4. Cercar a Open Food Facts
-        if (!foundImg) {
-          try {
-            const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=1`;
-            const res = await fetch(offUrl);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.products && data.products[0]) {
-                const pImg = data.products[0].image_front_small_url || data.products[0].image_small_url || data.products[0].image_url;
-                if (pImg) {
-                  foundImg = pImg;
-                  break;
-                }
-              }
-            }
-          } catch (e) {}
-        }
+        } catch(e) {}
       }
 
-      if (foundImg) {
-        document.getElementById("edit-photo-url").value = foundImg;
-        updatePhotoPreview(foundImg);
-        showToast(currentLang === 'es' ? `Imagen asignada para ${productName}` : `Imatge assignada per a ${productName}`, "fa-image");
-      } else {
-        const fallback = "https://images.unsplash.com/photo-1546470427-e26264be0b11?w=100&auto=format&fit=crop&q=60";
-        document.getElementById("edit-photo-url").value = fallback;
-        updatePhotoPreview(fallback);
-        showToast(currentLang === 'es' ? "No se ha encontrado imagen exacta, asignada imagen genérica" : "No s'ha trobat imatge exacta, assignada imatge genèrica", "fa-triangle-exclamation");
-      }
+      return results.slice(0, 12);
+    }
+
+    function selectPickedImage(url) {
+      if (!url) return;
+      const photoInput = document.getElementById("edit-photo-url");
+      if (photoInput) photoInput.value = url;
+      if (typeof updatePhotoPreview === 'function') updatePhotoPreview(url);
+      closeImagePickerModal();
+      showToast(currentLang === 'es' ? "¡Imagen seleccionada!" : "Imatge seleccionada!", "fa-image");
+    }
+
+    function removePhotoFromPicker() {
+      removePhoto();
+      closeImagePickerModal();
+    }
+
+    function setPhotoViaWebSearch() {
+      openImagePickerModal();
     }
 
     function removePhoto() {
@@ -9564,6 +9856,12 @@
     window.removeRemoteDevice = removeRemoteDevice;
     window.closeVoiceClarifyModal = closeVoiceClarifyModal;
     window.handleSelectClarifiedOption = handleSelectClarifiedOption;
+
+    window.openImagePickerModal = openImagePickerModal;
+    window.closeImagePickerModal = closeImagePickerModal;
+    window.executeImagePickerSearch = executeImagePickerSearch;
+    window.selectPickedImage = selectPickedImage;
+    window.removePhotoFromPicker = removePhotoFromPicker;
 
     // =========================================================================
     // CONTROLADOR DEL CATÀLEG COMPLET D'ARTICLES (BASE DE DADES)
