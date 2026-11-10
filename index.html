@@ -3588,84 +3588,102 @@
         return;
       }
 
-      // CAS 3: Cap semblant clar -> Crear com a producte nou directament
-      createNewVoiceItem(parsed);
+      // CAS 3: Cap semblant clar -> Demanar confirmació i crear com a producte nou
+      openConfirmNewProductModal(parsed, targetStore);
     }
 
     function applyVoiceItemSelection(existingItem, parsed) {
       if (!existingItem) return;
 
-      // Assignar botiga si s'ha especificat per veu
-      if (parsed.store && parsed.store !== "all" && existingItem.store !== parsed.store) {
-        existingItem.store = parsed.store;
+      const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      const storeObj = STORES.find(s => s.id === targetStore);
+      const storeDisp = storeObj ? getStoreDisplayName(storeObj, currentLang) : targetStore;
+
+      // Si l'element trobat és d'una altra botiga, comprovem si ja en tenim un a la botiga destí
+      let targetItem = existingItem;
+      if (existingItem.store !== targetStore) {
+        const canonKey = getCanonicalProductKey(existingItem.name);
+        const inTarget = items.find(it => it.store === targetStore && (getCanonicalProductKey(it.name) === canonKey || areProductNamesSimilar(it.name, existingItem.name)));
+        if (inTarget) {
+          targetItem = inTarget;
+        } else {
+          // Crear nova instància a la botiga activa amb dades conegudes
+          const newItem = {
+            id: "p_" + Date.now(),
+            name: existingItem.name,
+            store: targetStore,
+            category: existingItem.category || parsed.category || "General",
+            qty: parsed.qty || "1",
+            unit: parsed.unit || existingItem.unit || "ud",
+            price: existingItem.price || 0.0,
+            note: parsed.note || "",
+            photo: existingItem.photo || "",
+            crossed_off: false,
+            updatedAt: Date.now()
+          };
+          items.unshift(newItem);
+          saveToLocalStorage();
+          if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+          renderLists();
+          renderStoreTabs();
+          showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeDisp}: ${newItem.name}`, "fa-plus");
+          return;
+        }
       }
 
-      existingItem.updatedAt = Date.now();
+      targetItem.updatedAt = Date.now();
 
-      if (existingItem.crossed_off) {
+      if (targetItem.crossed_off) {
         // Recuperar a pendents dalt de tot
-        existingItem.crossed_off = false;
+        targetItem.crossed_off = false;
+        delete targetItem.crossedAt;
         if (parsed.qty && parsed.qty !== "1") {
-          existingItem.qty = parsed.qty;
-          existingItem.unit = parsed.unit;
+          targetItem.qty = parsed.qty;
+          targetItem.unit = parsed.unit;
         }
-        const idx = items.indexOf(existingItem);
+        const idx = items.indexOf(targetItem);
         if (idx !== -1) {
           items.splice(idx, 1);
-          items.unshift(existingItem);
+          items.unshift(targetItem);
         }
-        saveToLocalStorage();
-        renderLists();
-        renderStoreTabs();
-        showToast(`Recuperat a pendents: ${existingItem.name}`, "fa-arrow-up");
-      } else {
-        // Ja era a pendents: sumar unitats (x2, x3...)
-        const curQ = parseFloat(existingItem.qty) || 1;
-        const addQ = parseFloat(parsed.qty) || 1;
-        existingItem.qty = String(curQ + addQ);
-        if (parsed.unit && parsed.unit !== "ud") existingItem.unit = parsed.unit;
         saveToLocalStorage();
         if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
         renderLists();
         renderStoreTabs();
-        showToast(`+${addQ} ${existingItem.name} (x${existingItem.qty})`, "fa-plus");
+        showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeDisp}: ${targetItem.name}`, "fa-plus");
+      } else {
+        // Ja era a pendents: sumar unitats (x2, x3...)
+        const curQ = parseFloat(targetItem.qty) || 1;
+        const addQ = parseFloat(parsed.qty) || 1;
+        targetItem.qty = String(curQ + addQ);
+        if (parsed.unit && parsed.unit !== "ud") targetItem.unit = parsed.unit;
+        saveToLocalStorage();
+        if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+        renderLists();
+        renderStoreTabs();
+        const toastMsg = currentLang === 'es'
+          ? `+${addQ} ${targetItem.name} (total: x${targetItem.qty})`
+          : `+${addQ} ${targetItem.name} (total: x${targetItem.qty})`;
+        showToast(toastMsg, "fa-plus");
       }
     }
 
     function createNewVoiceItem(parsed) {
-      const newItem = {
-        id: "p_" + Date.now(),
-        name: parsed.name,
-        store: parsed.store || "mercadona",
-        category: parsed.category,
-        qty: parsed.qty,
-        unit: parsed.unit,
-        price: 0.0,
-        note: "",
-        photo: "",
-        crossed_off: false,
-        updatedAt: Date.now()
-      };
-
-      items.unshift(newItem);
-      saveToLocalStorage();
-      renderLists();
-      renderStoreTabs();
-
-      const storeObj = STORES.find(s => s.id === newItem.store);
-      showToast(`Afegit: ${parsed.name} (${storeObj ? storeObj.name : newItem.store})`, "fa-microphone");
+      const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      openConfirmNewProductModal(parsed, targetStore);
     }
 
     function openVoiceClarifyModal(parsed, candidateList) {
       pendingVoiceParsed = parsed;
+      const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
       const detectedEl = document.getElementById("voice-clarify-detected-name");
       if (detectedEl) detectedEl.textContent = `"${parsed.name}"`;
 
       const createBtn = document.getElementById("voice-clarify-create-new-btn");
       if (createBtn) {
         createBtn.onclick = () => {
-          createNewVoiceItem(pendingVoiceParsed);
           closeVoiceClarifyModal();
+          openConfirmNewProductModal(pendingVoiceParsed, targetStore);
         };
       }
 
