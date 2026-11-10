@@ -9547,9 +9547,12 @@
       }
       loadDeletedIds();
       const topics = getMqttTopics(currentSyncCode);
-      const lightItems = items.map(it => {
+      const syncItems = items.map(it => {
         const copy = { ...it };
-        if (copy.photo) copy.photo = "";
+        // Preservar fotos (URLs d'imatges web o d'OurGroceries ocupen molt pocs bytes)
+        if (copy.photo && copy.photo.startsWith("data:") && copy.photo.length > 200000) {
+          copy.photo = "";
+        }
         return copy;
       });
       const customStoresOnly = Array.isArray(STORES)
@@ -9561,7 +9564,7 @@
         requesterId: syncDeviceId,
         requesterName: syncDeviceName,
         timestamp: Date.now(),
-        items: lightItems,
+        items: syncItems,
         deletedIds: deletedItemIdsMap || {},
         customStores: customStoresOnly
       };
@@ -9593,10 +9596,12 @@
     function broadcastCartState() {
       if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
 
-      // Netegem el camp foto per eficiència de xarxa (les fotos es mantenen a local)
-      const lightItems = items.map(it => {
+      // Preservar fotos (URLs d'imatges web o d'OurGroceries ocupen menys de 100 bytes)
+      const syncItems = items.map(it => {
         const copy = { ...it };
-        if (copy.photo) copy.photo = "";
+        if (copy.photo && copy.photo.startsWith("data:") && copy.photo.length > 200000) {
+          copy.photo = "";
+        }
         return copy;
       });
 
@@ -9610,7 +9615,7 @@
         senderDeviceId: syncDeviceId,
         senderDeviceName: syncDeviceName,
         timestamp: Date.now(),
-        items: lightItems,
+        items: syncItems,
         deletedIds: deletedItemIdsMap || {},
         customStores: customStoresOnly
       };
@@ -9700,9 +9705,11 @@
         } else {
           const lTime = lItem.updatedAt || 0;
           const rTime = rItem.updatedAt || 0;
+          const bestPhoto = rItem.photo || lItem.photo || "";
           if (rTime >= lTime) {
-            const photoBackup = lItem.photo || "";
-            map.set(rItem.id, { ...lItem, ...rItem, photo: rItem.photo || photoBackup });
+            map.set(rItem.id, { ...lItem, ...rItem, photo: bestPhoto });
+          } else {
+            lItem.photo = bestPhoto;
           }
         }
       });
@@ -10768,6 +10775,7 @@
 
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5 flex-wrap">
+                ${it.photo ? `<img src="${it.photo}" class="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-gray-200 cursor-pointer shadow-2xs hover:scale-105 transition" onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(it.photo)}', '${encodeURIComponent(it.name || '')}')" title="${currentLang === 'es' ? 'Ver foto ampliada' : 'Veure foto en gran'}">` : ''}
                 <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${existingPendingInTarget ? 'text-emerald-950' : 'text-gray-600'}">${it.name}</span>
                 <button type="button" onclick="openChangeCategoryForSingleItem('${it.id}', event)" title="${currentLang === 'es' ? 'Cambiar categoría' : 'Canviar categoria'}"
                         class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-teal-100 text-emerald-800 hover:text-teal-900 border border-emerald-200/80 transition flex items-center gap-1 cursor-pointer font-medium">
