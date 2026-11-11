@@ -1972,6 +1972,7 @@
     const STORAGE_KEY_GROUP_MODE = "cistella_group_mode";
     const STORAGE_KEY_COLLAPSED = "cistella_completed_collapsed";
     const STORAGE_KEY_CUSTOM_STORES = "cistella_custom_stores_v1";
+    const STORAGE_KEY_STORE_INCLUDE_ALL = "cistella_store_include_all_v1";
 
     let currentLang = "ca";
     try {
@@ -2063,6 +2064,57 @@
       sirena: { ca: "La Sirena", es: "La Sirena" },
       carnisseria: { ca: "Carnisseria", es: "Carnicería" }
     };
+
+    function isStoreFreezer(storeId) {
+      if (!storeId) return false;
+      if (typeof storeId === "object") return Boolean(storeId.isFreezer || (storeId.id && storeId.id.startsWith("congelador_")));
+      if (storeId.startsWith("congelador_")) return true;
+      const st = STORES.find(s => s.id === storeId);
+      return Boolean(st && st.isFreezer);
+    }
+
+    function isStoreIncludedInAll(storeId) {
+      if (!storeId || storeId === "all") return false;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_STORE_INCLUDE_ALL);
+        if (raw) {
+          const map = JSON.parse(raw);
+          if (typeof map[storeId] !== "undefined") return !!map[storeId];
+        }
+      } catch (e) { }
+
+      const st = STORES.find(s => s.id === storeId);
+      if (st && typeof st.includeInAll !== "undefined") return !!st.includeInAll;
+
+      // Per defecte: NO per al congelador, SÍ per a la resta de botigues
+      return !isStoreFreezer(storeId);
+    }
+
+    function toggleStoreIncludeInAll(storeId) {
+      const current = isStoreIncludedInAll(storeId);
+      const next = !current;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_STORE_INCLUDE_ALL);
+        const map = raw ? JSON.parse(raw) : {};
+        map[storeId] = next;
+        localStorage.setItem(STORAGE_KEY_STORE_INCLUDE_ALL, JSON.stringify(map));
+      } catch (e) { }
+
+      const st = STORES.find(s => s.id === storeId);
+      if (st) st.includeInAll = next;
+
+      renderManageStoresList();
+      renderStoreTabs();
+      renderLists();
+
+      const sName = st ? getStoreDisplayName(st, currentLang) : storeId;
+      showToast(
+        next
+          ? (currentLang === 'es' ? `"${sName}" incluida en compras generales` : `"${sName}" inclosa a compres generals`)
+          : (currentLang === 'es' ? `"${sName}" excluida de compras generales` : `"${sName}" exclosa de compres generals`),
+        next ? "fa-cart-shopping" : "fa-eye-slash"
+      );
+    }
 
     function getStoreDisplayName(storeOrId, lang = currentLang) {
       const id = typeof storeOrId === 'string' ? storeOrId : (storeOrId?.id || "");
@@ -4244,10 +4296,10 @@
 
       let html = storesToRender.map(store => {
         const isActive = store.id === currentStoreFilter;
-        const pendingCount = items.filter(it => !it.crossed_off && (store.id === "all" || it.store === store.id)).length;
+        const pendingCount = items.filter(it => !it.crossed_off && (store.id === "all" ? isStoreIncludedInAll(it.store) : it.store === store.id)).length;
         const displayName = getStoreDisplayName(store, currentLang);
         const iconHtml = (store.id === "all" && isActive)
-          ? `<i class="fa-solid ${allStoresViewMode === 'stores' ? 'fa-list-ul' : 'fa-basket-shopping'} text-[9px] opacity-70"></i>`
+          ? `<i class="fa-solid ${allStoresViewMode === 'stores' ? 'fa-list-ul' : (allStoresViewMode === 'freezer' ? 'fa-snowflake' : 'fa-cart-shopping')} text-[9px] opacity-70"></i>`
           : '';
         const isFreezer = store.id.startsWith("congelador_") || store.isFreezer;
         const freezerIcon = isFreezer ? `<i class="fa-solid fa-snowflake text-[10px] ${isActive ? 'text-cyan-700' : 'text-cyan-300'}"></i>` : '';
@@ -4415,13 +4467,23 @@
     function setStoreFilter(storeId) {
       if (storeId === "all") {
         if (currentStoreFilter === "all") {
-          allStoresViewMode = allStoresViewMode === "stores" ? "products" : "stores";
-          showToast(
-            allStoresViewMode === "stores"
-              ? (currentLang === "es" ? "Vista: Listas de tiendas" : "Vista: Llistes de botigues")
-              : (currentLang === "es" ? "Vista: Todos los productos" : "Vista: Tots els productes"),
-            allStoresViewMode === "stores" ? "fa-list-ul" : "fa-basket-shopping"
-          );
+          if (allStoresViewMode === "stores") allStoresViewMode = "products";
+          else if (allStoresViewMode === "products") allStoresViewMode = "freezer";
+          else allStoresViewMode = "stores";
+
+          let toastMsg = "";
+          let toastIcon = "";
+          if (allStoresViewMode === "stores") {
+            toastMsg = currentLang === "es" ? "Vista: Listas de tiendas" : "Vista: Llistes de botigues";
+            toastIcon = "fa-list-ul";
+          } else if (allStoresViewMode === "products") {
+            toastMsg = currentLang === "es" ? "Vista: Compras pendientes" : "Vista: Compres pendents";
+            toastIcon = "fa-cart-shopping";
+          } else {
+            toastMsg = currentLang === "es" ? "Vista: Todo el Congelador" : "Vista: Tot el Congelador";
+            toastIcon = "fa-snowflake";
+          }
+          showToast(toastMsg, toastIcon);
         } else {
           currentStoreFilter = "all";
           allStoresViewMode = "stores";
@@ -5501,13 +5563,25 @@
       const pendingContainer = document.getElementById("pending-list");
       const completedContainer = document.getElementById("completed-list");
 
-      // Filtrar per botiga activa
-      let filtered = items.filter(it => currentStoreFilter === "all" || it.store === currentStoreFilter);
+      // Filtrar per botiga activa o mode a "Totes"
+      let filtered;
+      if (currentStoreFilter === "all") {
+        if (allStoresViewMode === "freezer") {
+          filtered = items.filter(it => isStoreFreezer(it.store));
+        } else {
+          // A 'stores' i 'products' (compres pendents): només botigues que s'inclouen a compres generals
+          filtered = items.filter(it => isStoreIncludedInAll(it.store));
+        }
+      } else {
+        filtered = items.filter(it => it.store === currentStoreFilter);
+      }
 
       // Filtrar per cerca de text (nom, notes, categoria, botiga)
       if (searchQuery) {
         const q = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        filtered = filtered.filter(it => {
+        // Si estem a Totes i cerquem, cerquem a tot arreu
+        const baseForSearch = (currentStoreFilter === "all" && allStoresViewMode !== "freezer") ? items : filtered;
+        filtered = baseForSearch.filter(it => {
           const n = (it.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           const note = (it.note || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           const cat = (it.category || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -5526,27 +5600,51 @@
       const completedCost = completed.reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
       const totalCost = filtered.reduce((sum, it) => sum + (parseFloat(it.price) || 0) * (parseFloat(it.qty) || 1), 0);
 
-      document.getElementById("pending-counter").innerText = `${t('pendingSection')} (${pending.length})`;
-      document.getElementById("pending-cost-counter").innerText = pendingCost > 0 ? `${pendingCost.toFixed(2)} €` : "";
-      document.getElementById("completed-counter").innerText = `${t('completedSection')} (${completed.length})`;
-      document.getElementById("completed-cost-counter").innerText = completedCost > 0 ? `• ${completedCost.toFixed(2)} €` : "";
-      document.getElementById("total-summary-text").innerText = `${pending.length} ${currentLang === 'es' ? 'pendientes' : 'pendents'} (${completed.length} ${currentLang === 'es' ? 'comprados' : 'fets'}) • Total: ${totalCost.toFixed(2)} €`;
+      const isCurrentStoreFreezer = (currentStoreFilter !== "all" && isStoreFreezer(currentStoreFilter)) || (currentStoreFilter === "all" && allStoresViewMode === "freezer");
+
+      document.getElementById("pending-counter").innerText = isCurrentStoreFreezer
+        ? (currentLang === 'es' ? `En congelador (${pending.length})` : `Al congelador (${pending.length})`)
+        : `${t('pendingSection')} (${pending.length})`;
+
+      document.getElementById("pending-cost-counter").innerText = (!isCurrentStoreFreezer && pendingCost > 0)
+        ? `${pendingCost.toFixed(2)} €`
+        : "";
+
+      document.getElementById("completed-counter").innerText = isCurrentStoreFreezer
+        ? (currentLang === 'es' ? `Consumidos / Sacados (${completed.length})` : `Consumits / Trets (${completed.length})`)
+        : `${t('completedSection')} (${completed.length})`;
+
+      document.getElementById("completed-cost-counter").innerText = (!isCurrentStoreFreezer && completedCost > 0)
+        ? `• ${completedCost.toFixed(2)} €`
+        : "";
+
+      document.getElementById("total-summary-text").innerText = isCurrentStoreFreezer
+        ? `${pending.length} ${currentLang === 'es' ? 'en congelador' : 'al congelador'} • ${completed.length} ${currentLang === 'es' ? 'consumidos' : 'consumits'}`
+        : `${pending.length} ${currentLang === 'es' ? 'pendientes' : 'pendents'} (${completed.length} ${currentLang === 'es' ? 'comprados' : 'fets'}) • Total: ${totalCost.toFixed(2)} €`;
 
       const completedSection = document.getElementById("completed-section");
       const isAllView = currentStoreFilter === "all";
 
-      // Segmented switcher quan estem a "Totes" (per canviar entre llistes de botigues i tots els productes)
+      const shoppingPendingCount = items.filter(it => !it.crossed_off && isStoreIncludedInAll(it.store)).length;
+      const freezerTotalCount = items.filter(it => !it.crossed_off && isStoreFreezer(it.store)).length;
+
+      // Segmented switcher a "Totes": 3 pestanyes (Llistes de botigues, Compres pendents, Tot el congelador)
       const switcherHtml = isAllView ? `
-        <div class="flex items-center justify-center p-1 bg-gray-100 rounded-xl mb-2.5 border border-gray-200/80 shadow-2xs">
-          <button onclick="setAllStoresViewMode('stores')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${allStoresViewMode === 'stores' ? 'bg-white text-emerald-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}">
+        <div class="flex items-center justify-center p-1 bg-gray-100 rounded-xl mb-2.5 border border-gray-200/80 shadow-2xs gap-1">
+          <button onclick="setAllStoresViewMode('stores')" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${allStoresViewMode === 'stores' ? 'bg-white text-emerald-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}">
             <i class="fa-solid fa-list-ul text-[11px]"></i>
-            <span>${currentLang === 'es' ? 'Listas de tiendas' : 'Llistes de botigues'}</span>
+            <span class="truncate">${currentLang === 'es' ? 'Listas' : 'Llistes'}</span>
             <span class="text-[10px] px-1.5 py-0.2 rounded-full ${allStoresViewMode === 'stores' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}">${STORES.filter(s => s.id !== 'all').length}</span>
           </button>
-          <button onclick="setAllStoresViewMode('products')" class="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${allStoresViewMode === 'products' ? 'bg-white text-emerald-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}">
-            <i class="fa-solid fa-basket-shopping text-[11px]"></i>
-            <span>${currentLang === 'es' ? 'Todos los productos' : 'Tots els productes'}</span>
-            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${allStoresViewMode === 'products' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}">${pending.length}</span>
+          <button onclick="setAllStoresViewMode('products')" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${allStoresViewMode === 'products' ? 'bg-white text-emerald-800 shadow-xs' : 'text-gray-500 hover:text-gray-800'}">
+            <i class="fa-solid fa-cart-shopping text-[11px]"></i>
+            <span class="truncate">${currentLang === 'es' ? 'Compras' : 'Compres'}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${allStoresViewMode === 'products' ? 'bg-emerald-100 text-emerald-800 font-black' : 'bg-gray-200 text-gray-600'}">${shoppingPendingCount}</span>
+          </button>
+          <button onclick="setAllStoresViewMode('freezer')" class="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${allStoresViewMode === 'freezer' ? 'bg-white text-cyan-800 shadow-xs font-black' : 'text-gray-500 hover:text-gray-800'}">
+            <i class="fa-solid fa-snowflake text-[11px] ${allStoresViewMode === 'freezer' ? 'text-cyan-600' : 'text-cyan-500'}"></i>
+            <span class="truncate">${currentLang === 'es' ? 'Congelador' : 'Congelador'}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${allStoresViewMode === 'freezer' ? 'bg-cyan-100 text-cyan-800 font-bold' : 'bg-gray-200 text-gray-600'}">${freezerTotalCount}</span>
           </button>
         </div>
       ` : "";
@@ -7059,15 +7157,25 @@
               ` : ''}
               <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${store.badgeBg || 'bg-emerald-100'} ${store.badgeText || 'text-emerald-800'}"></span>
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
                   <p class="text-xs font-bold ${pendingCount > 0 ? 'text-gray-900 font-extrabold' : 'text-gray-700'} truncate">${store.name}</p>
+                  ${!isStoreIncludedInAll(store.id) ? `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200/70 flex items-center gap-0.5"><i class="fa-solid fa-snowflake text-[8px]"></i> ${currentLang === 'es' ? 'Inventario' : 'Estoc'}</span>` : ''}
                 </div>
                 <p class="text-[10px] text-gray-400">${pendingCount} pendents (${totalCount} en total)</p>
               </div>
             </div>
 
             <div class="flex items-center space-x-1 flex-shrink-0">
-              ${pendingCount > 0 ? `<span class="px-2.5 py-0.5 rounded-full ${store.isFreezer || store.id.startsWith('congelador_') ? 'bg-cyan-600' : 'bg-green-600'} text-white font-black text-xs shadow-xs ring-1 ring-white/30 mr-1.5">${pendingCount}</span>` : ''}
+              ${pendingCount > 0 ? `<span class="px-2.5 py-0.5 rounded-full ${store.isFreezer || store.id.startsWith('congelador_') ? 'bg-cyan-600' : 'bg-green-600'} text-white font-black text-xs shadow-xs ring-1 ring-white/30 mr-1">${pendingCount}</span>` : ''}
+              <button type="button" onclick="toggleStoreIncludeInAll('${store.id}')"
+                      title="${isStoreIncludedInAll(store.id) 
+                        ? (currentLang === 'es' ? 'Incluida en compras generales de Todas (clic para ocultar)' : 'Inclosa a compres generals de Totes (clic per ocultar)') 
+                        : (currentLang === 'es' ? 'Oculta de compras generales (solo en su lista/congelador, clic para incluir)' : 'Oculta de compres generals (només a la seva llista/congelador, clic per incloure)')}"
+                      class="w-7 h-7 rounded-lg flex items-center justify-center transition border ${isStoreIncludedInAll(store.id) 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                        : 'bg-gray-100 text-gray-400 border-gray-200 hover:text-gray-600 hover:bg-gray-200/70'}">
+                <i class="fa-solid ${isStoreIncludedInAll(store.id) ? 'fa-cart-shopping' : 'fa-eye-slash'} text-[11px]"></i>
+              </button>
               ${isManual ? `
                 <button onclick="moveStoreOrder('${store.id}', -1)" title="Pujar" ${index === 0 ? 'disabled class="w-6 h-6 rounded text-gray-200 flex items-center justify-center text-[10px]"' : 'class="w-6 h-6 rounded text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center text-[10px] transition"'}>
                   <i class="fa-solid fa-chevron-up"></i>
