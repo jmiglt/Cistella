@@ -264,7 +264,7 @@
       </div>
       <span
         class="text-[10px] font-mono font-bold bg-white/20 text-white px-2 py-0.5 rounded-full border border-white/25 shadow-xs">
-        v4.2.2
+        v4.5.0
       </span>
     </div>
 
@@ -545,44 +545,50 @@
 
   </main>
 
-  <!-- BARRA D'ACCIÓ FLOTANT PER A SELECCIÓ MÚLTIPLE (CANVI DE LLISTA) -->
+  <!-- BARRA D'ACCIÓ FLOTANT PER A SELECCIÓ MÚLTIPLE (CANVI DE LLISTA / CONGELADOR) -->
   <div id="selection-action-bar"
-    class="hidden fixed bottom-14 left-3 right-3 z-40 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-500/30 p-2 sm:p-2.5 flex items-center justify-between gap-2 max-w-lg mx-auto animate-fade-in">
-    <div class="flex items-center gap-2">
+    class="hidden fixed bottom-14 left-2 right-2 sm:left-3 sm:right-3 z-40 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-emerald-500/30 p-1.5 sm:p-2 flex items-center justify-between gap-1.5 max-w-lg mx-auto animate-fade-in">
+    <div class="flex items-center gap-1.5 flex-shrink-0">
       <button onclick="toggleSelectAllVisibleItems()"
         class="text-xs font-bold text-gray-700 hover:text-emerald-700 px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-emerald-50 flex items-center gap-1.5 transition border border-gray-200/60 shadow-2xs">
         <i id="select-all-icon" class="fa-regular fa-square-check text-emerald-600"></i>
         <span id="select-all-btn-label">Tots</span>
       </button>
       <span id="selection-count-badge"
-        class="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">0
-        seleccionats</span>
+        class="min-w-[26px] h-7 px-2 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-xs">0</span>
     </div>
-    <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 justify-end min-w-0">
+      <!-- BOTÓ PER GUARDAR AL CONGELADOR (PROPOSTA A) -->
+      <button id="btn-freezer-selected-bar" onclick="openSendToFreezerModal()"
+        class="px-2.5 py-1.5 bg-cyan-700 hover:bg-cyan-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 transition flex-shrink-0"
+        title="Guardar al congelador">
+        <i class="fa-solid fa-snowflake text-[11px]"></i>
+        <span id="btn-freezer-selected-bar-label">Congelar</span>
+      </button>
       <button id="btn-uncheck-selected-bar" onclick="uncheckStoreCompleted()"
-        class="hidden px-2.5 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1 transition"
+        class="hidden px-2 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1 transition flex-shrink-0"
         title="Desratllar seleccionats">
         <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i>
         <span id="btn-uncheck-selected-bar-label">Desratllar</span>
       </button>
       <button id="btn-clean-selected-bar" onclick="clearCompleted()"
-        class="hidden px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1 transition"
+        class="hidden px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl shadow-2xs flex items-center gap-1 transition flex-shrink-0"
         title="Esborrar seleccionats">
         <i class="fa-solid fa-trash-can text-[10px]"></i>
         <span id="btn-clean-selected-bar-label">Netejar</span>
       </button>
-      <button onclick="openMoveItemsModal()"
-        class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 transition">
+      <button id="btn-move-selected" onclick="openMoveItemsModal()"
+        class="px-2 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 transition flex-shrink-0">
         <i class="fa-solid fa-arrow-right-arrow-left text-[10px]"></i>
-        <span id="btn-move-selected-label">Canviar llista</span>
+        <span id="btn-move-selected-label">Llista</span>
       </button>
-      <button onclick="openChangeCategoryModal()"
-        class="px-2.5 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 transition">
+      <button id="btn-change-cat-selected" onclick="openChangeCategoryModal()"
+        class="px-2 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1 transition flex-shrink-0">
         <i class="fa-solid fa-tags text-[10px]"></i>
-        <span id="btn-change-cat-selected-label">Categoria</span>
+        <span id="btn-change-cat-selected-label">Cat.</span>
       </button>
       <button onclick="exitSelectionMode()"
-        class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center text-xs transition"
+        class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center text-xs transition flex-shrink-0"
         title="Sortir">
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -689,7 +695,15 @@
       <!-- NOM -->
       <div>
         <label class="block font-semibold text-gray-600 mb-1" data-i18n="lblProductName">Nom de l'article</label>
-        <input type="text" id="edit-name" required
+        
+      <!-- FAVORIT -->
+      <label class="flex items-center gap-2 cursor-pointer bg-amber-50/70 border border-amber-200/80 p-2 rounded-xl text-amber-900 font-bold select-none hover:bg-amber-100/60 transition">
+        <input type="checkbox" id="edit-favorite" class="w-4 h-4 text-amber-500 rounded focus:ring-amber-400">
+        <i class="fa-solid fa-star text-amber-500 text-xs"></i>
+        <span>Producte Favorit ⭐</span>
+      </label>
+
+      <input type="text" id="edit-name" required
           class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
       </div>
 
@@ -936,6 +950,73 @@
         <button onclick="closeMoveItemsModal()"
           class="py-2 px-4 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs transition">
           <span data-i18n="btnClose">Tancar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE GUARDAR AL CONGELADOR (PROPOSTA A) -->
+  <div id="send-to-freezer-modal"
+    class="hidden fixed inset-0 z-[86] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div
+      class="bg-white rounded-2xl max-w-sm w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center text-base shadow-2xs">
+            <i class="fa-solid fa-snowflake"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900" id="freezer-modal-title">Guardar al congelador</h3>
+            <p id="freezer-modal-subtitle" class="text-[11px] text-gray-500">Tria a quin calaix vols posar els articles:</p>
+          </div>
+        </div>
+        <button onclick="closeSendToFreezerModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2 pt-1">
+        <button type="button" onclick="executeSendToFreezer('congelador_1')"
+          class="w-full p-3 rounded-2xl border-2 border-cyan-100 hover:border-cyan-500 bg-cyan-50/50 hover:bg-cyan-100/60 active:scale-98 transition flex items-center justify-between group shadow-2xs text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-cyan-700 text-white font-black text-sm flex items-center justify-center shadow-xs">1</span>
+            <div>
+              <p class="text-xs font-bold text-gray-900 group-hover:text-cyan-900">Calaix 1 (Superior)</p>
+              <p class="text-[10.5px] text-cyan-800/80 font-medium" id="freezer-drawer-count-1">Congelador #1</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-cyan-600 text-xs group-hover:translate-x-0.5 transition-transform"></i>
+        </button>
+
+        <button type="button" onclick="executeSendToFreezer('congelador_2')"
+          class="w-full p-3 rounded-2xl border-2 border-cyan-100 hover:border-cyan-500 bg-cyan-50/50 hover:bg-cyan-100/60 active:scale-98 transition flex items-center justify-between group shadow-2xs text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-cyan-700 text-white font-black text-sm flex items-center justify-center shadow-xs">2</span>
+            <div>
+              <p class="text-xs font-bold text-gray-900 group-hover:text-cyan-900">Calaix 2 (Central)</p>
+              <p class="text-[10.5px] text-cyan-800/80 font-medium" id="freezer-drawer-count-2">Congelador #2</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-cyan-600 text-xs group-hover:translate-x-0.5 transition-transform"></i>
+        </button>
+
+        <button type="button" onclick="executeSendToFreezer('congelador_3')"
+          class="w-full p-3 rounded-2xl border-2 border-cyan-100 hover:border-cyan-500 bg-cyan-50/50 hover:bg-cyan-100/60 active:scale-98 transition flex items-center justify-between group shadow-2xs text-left">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-cyan-700 text-white font-black text-sm flex items-center justify-center shadow-xs">3</span>
+            <div>
+              <p class="text-xs font-bold text-gray-900 group-hover:text-cyan-900">Calaix 3 (Inferior)</p>
+              <p class="text-[10.5px] text-cyan-800/80 font-medium" id="freezer-drawer-count-3">Congelador #3</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-cyan-600 text-xs group-hover:translate-x-0.5 transition-transform"></i>
+        </button>
+      </div>
+
+      <div class="pt-2 border-t flex justify-end">
+        <button type="button" onclick="closeSendToFreezerModal()"
+          class="py-2 px-3.5 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-xl text-xs transition">
+          <span data-i18n="btnCancel">Cancel·lar</span>
         </button>
       </div>
     </div>
@@ -1597,7 +1678,12 @@
 
         <!-- Botons d'agrupació i selecció múltiple al catàleg -->
         <div class="flex items-center justify-between gap-1.5 pt-1 border-t border-gray-200/60 flex-wrap">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button id="catalog-fav-filter-btn" onclick="toggleCatalogFavoritesFilter()"
+              class="px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 bg-white text-gray-700 border-gray-300 hover:border-amber-400" title="Filtrar per articles favorits">
+              <i id="catalog-fav-filter-icon" class="fa-regular fa-star text-amber-500 text-[10px]"></i>
+              <span id="catalog-fav-filter-label">Favorits</span>
+            </button>
             <button id="catalog-group-btn" onclick="toggleCatalogGrouping()"
               class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1.5 bg-white text-gray-700 border-gray-300 hover:border-emerald-400">
               <i class="fa-solid fa-layer-group text-emerald-600 text-[10px]"></i>
@@ -1949,13 +2035,19 @@
       { id: "bureau", name: "Bureau", online: false, color: "amber", badgeBg: "bg-amber-50", badgeText: "text-amber-800" },
       { id: "colet", name: "Colet", online: false, color: "purple", badgeBg: "bg-purple-50", badgeText: "text-purple-800" },
       { id: "sirena", name: "La Sirena", online: false, color: "sky", badgeBg: "bg-sky-50", badgeText: "text-sky-800" },
-      { id: "carnisseria", name: "Carnisseria", online: false, color: "red", badgeBg: "bg-red-50", badgeText: "text-red-800" }
+      { id: "carnisseria", name: "Carnisseria", online: false, color: "red", badgeBg: "bg-red-50", badgeText: "text-red-800" },
+      { id: "congelador_1", name: "Congelador #1", online: false, color: "cyan", badgeBg: "bg-cyan-100", badgeText: "text-cyan-800", isFreezer: true, drawer: 1 },
+      { id: "congelador_2", name: "Congelador #2", online: false, color: "cyan", badgeBg: "bg-cyan-100", badgeText: "text-cyan-800", isFreezer: true, drawer: 2 },
+      { id: "congelador_3", name: "Congelador #3", online: false, color: "cyan", badgeBg: "bg-cyan-100", badgeText: "text-cyan-800", isFreezer: true, drawer: 3 }
     ];
 
     let STORES = [...DEFAULT_STORES];
 
     const STORE_TRANSLATIONS = {
       all: { ca: "Totes", es: "Todas" },
+      congelador_1: { ca: "Congelador #1", es: "Congelador #1" },
+      congelador_2: { ca: "Congelador #2", es: "Congelador #2" },
+      congelador_3: { ca: "Congelador #3", es: "Congelador #3" },
       farmacia: { ca: "Farmàcia", es: "Farmacia" },
       ferreteria: { ca: "Ferreteria", es: "Ferretería" },
       bazar: { ca: "Bazar Xinès", es: "Bazar Chino" },
@@ -3107,9 +3199,15 @@
       if (active) {
         fabBtn.classList.add("voice-listening-pulse");
         listeningBar.classList.remove("hidden");
-        statusText.innerText = voiceLanguage === "ca-ES"
-          ? 'Escoltant... (ex: "comprar 2 kg de tomàquets a Mercadona")'
-          : 'Escuchando... (ej: "comprar 2 kg de tomates en Mercadona")';
+        if (isFreezerConversationActive && freezerVoiceDrawer) {
+          statusText.innerText = currentLang === "es"
+            ? `❄️ Cajón ${freezerVoiceDrawer}: Escuchando... (di un producto o "nada más")`
+            : `❄️ Calaix ${freezerVoiceDrawer}: Escoltant... (digues un producte o "prou")`;
+        } else {
+          statusText.innerText = voiceLanguage === "ca-ES"
+            ? 'Escoltant... (ex: "2 peus de porc", "congelador 1", "comprar tomàquets a Mercadona")'
+            : 'Escuchando... (ej: "2 pies de cerdo", "congelador 1", "comprar tomates en Mercadona")';
+        }
       } else {
         fabBtn.classList.remove("voice-listening-pulse");
         listeningBar.classList.add("hidden");
@@ -3277,24 +3375,73 @@
         unit = "ud";
         text = text.replace(/\b(un parell|un par)\s*(de|d')?\s*/i, "").trim();
       } else {
-        // Quantitats numèriques: "2 kg", "3 botelles", "500 g", "6 paquets", "2l", "1 pack"
-        const qtyRegex = /^(\d+(?:[.,]\d+)?)\s*(kg|kilos|quilos|g|gr|grams|gramos|l|litres|litros|ml|ampolles|botellas|brics|brik|paquets|paquetes|packs|pack|uds|ud|unitats|unidades|llaunes|latas|pots|botes)?\s*(de|d')?\s*/i;
-        const match = text.match(qtyRegex);
-        if (match) {
-          qty = match[1].replace(",", ".");
-          if (match[2]) {
-            const rawUnit = match[2].toLowerCase();
-            if (/^(kg|kilos|quilos)$/.test(rawUnit)) unit = "kg";
-            else if (/^(g|gr|grams|gramos)$/.test(rawUnit)) unit = "g";
-            else if (/^(l|litres|litros)$/.test(rawUnit)) unit = "l";
-            else if (/^(ampolles|botellas)$/.test(rawUnit)) unit = "ampolla";
-            else if (/^(brics|brik)$/.test(rawUnit)) unit = "bric";
-            else if (/^(paquets|paquetes|packs|pack)$/.test(rawUnit)) unit = "paq";
-            else if (/^(llaunes|latas)$/.test(rawUnit)) unit = "llauna";
-            else if (/^(pots|botes)$/.test(rawUnit)) unit = "pot";
-            else unit = "ud";
+        // Detecció de números en paraules a l'inici ("dues hamburgueses", "tres filets", etc.)
+        const wordNumberMap = [
+          { pattern: /^(dues|dos)\s+/i, val: "2" },
+          { pattern: /^(tres)\s+/i, val: "3" },
+          { pattern: /^(quatre|cuatro)\s+/i, val: "4" },
+          { pattern: /^(cinc|cinco)\s+/i, val: "5" },
+          { pattern: /^(sis|seis)\s+/i, val: "6" },
+          { pattern: /^(set|siete)\s+/i, val: "7" },
+          { pattern: /^(vuit|ocho)\s+/i, val: "8" },
+          { pattern: /^(nou|nueve)\s+/i, val: "9" },
+          { pattern: /^(deu|diez)\s+/i, val: "10" },
+          { pattern: /^(un|una|uno)\s+/i, val: "1" }
+        ];
+
+        let wordMatched = false;
+        for (const wn of wordNumberMap) {
+          if (wn.pattern.test(text)) {
+            const rest = text.replace(wn.pattern, "").trim();
+            const unitWordMatch = rest.match(/^(talls|tall|rodanxes|rodanxa|peces|peça|bosses|bossa|bolsas|bolsa|quilos|quilo|kilos|kilo|grams|gramos|litres|litros|paquets|paquet|paquetes|paquete|llaunes|llauna|latas|lata|pots|pot|botes|bote)\s*(de|d')?\s*/i);
+
+            qty = wn.val;
+            if (unitWordMatch && unitWordMatch[1]) {
+              const u = unitWordMatch[1].toLowerCase();
+              if (/^(quilos|quilo|kilos|kilo)$/.test(u)) unit = "kg";
+              else if (/^(grams|gramos)$/.test(u)) unit = "g";
+              else if (/^(litres|litros)$/.test(u)) unit = "l";
+              else if (/^(talls|tall)$/.test(u)) unit = "tall";
+              else if (/^(rodanxes|rodanxa)$/.test(u)) unit = "rodanxa";
+              else if (/^(peces|peça)$/.test(u)) unit = "ud";
+              else if (/^(bosses|bossa|bolsas|bolsa)$/.test(u)) unit = "bossa";
+              else if (/^(paquets|paquet|paquetes|paquete)$/.test(u)) unit = "paq";
+              else if (/^(llaunes|llauna|latas|lata)$/.test(u)) unit = "llauna";
+              else if (/^(pots|pot|botes|bote)$/.test(u)) unit = "pot";
+              else unit = "ud";
+              text = rest.replace(unitWordMatch[0], "").trim();
+            } else {
+              unit = "ud";
+              text = rest.replace(/^(de\s+|d')/i, "").trim();
+            }
+            wordMatched = true;
+            break;
           }
-          text = text.replace(qtyRegex, "").trim();
+        }
+
+        if (!wordMatched) {
+          // Quantitats numèriques: "2 kg", "3 botelles", "500 g", "6 paquets", "2l", "1 pack", "4 talls"
+          const qtyRegex = /^(\d+(?:[.,]\d+)?)\s*(kg|kilos|quilos|g|gr|grams|gramos|l|litres|litros|ml|ampolles|botellas|brics|brik|paquets|paquetes|packs|pack|uds|ud|unitats|unidades|llaunes|latas|pots|botes|talls|tall|rodanxes|rodanxa|bosses|bossa|bolsas|bolsa)?\s*(de|d')?\s*/i;
+          const match = text.match(qtyRegex);
+          if (match) {
+            qty = match[1].replace(",", ".");
+            if (match[2]) {
+              const rawUnit = match[2].toLowerCase();
+              if (/^(kg|kilos|quilos)$/.test(rawUnit)) unit = "kg";
+              else if (/^(g|gr|grams|gramos)$/.test(rawUnit)) unit = "g";
+              else if (/^(l|litres|litros)$/.test(rawUnit)) unit = "l";
+              else if (/^(ampolles|botellas)$/.test(rawUnit)) unit = "ampolla";
+              else if (/^(brics|brik)$/.test(rawUnit)) unit = "bric";
+              else if (/^(paquets|paquetes|packs|pack)$/.test(rawUnit)) unit = "paq";
+              else if (/^(llaunes|latas)$/.test(rawUnit)) unit = "llauna";
+              else if (/^(pots|botes)$/.test(rawUnit)) unit = "pot";
+              else if (/^(talls|tall)$/.test(rawUnit)) unit = "tall";
+              else if (/^(rodanxes|rodanxa)$/.test(rawUnit)) unit = "rodanxa";
+              else if (/^(bosses|bossa|bolsas|bolsa)$/.test(rawUnit)) unit = "bossa";
+              else unit = "ud";
+            }
+            text = text.replace(qtyRegex, "").trim();
+          }
         }
       }
 
@@ -3639,10 +3786,76 @@
     }
 
     let pendingVoiceParsed = null;
+    let isFreezerConversationActive = false;
+    let freezerVoiceDrawer = null;
+
+    function speakText(text, onEnd) {
+      if (!('speechSynthesis' in window)) {
+        if (onEnd) onEnd();
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = voiceLanguage || (currentLang === 'es' ? 'es-ES' : 'ca-ES');
+        utter.rate = 1.05;
+        if (onEnd) {
+          utter.onend = () => { onEnd(); };
+          utter.onerror = () => { onEnd(); };
+        }
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        console.warn("TTS error:", e);
+        if (onEnd) onEnd();
+      }
+    }
 
     function processVoiceSentence(sentence) {
+      const rawLower = (sentence || "").toLowerCase().trim();
+
+      // Detecció d'ordre per iniciar el mode conversacional del congelador: "congelador 1", "congelador 2", "calaix 1", etc.
+      const freezerMatch = rawLower.match(/^(congelador|calaix)\s*(#|número|numero)?\s*([123]|u|un|primer|primero|dos|segon|segundo|tres|tercer|tercero)\b/i);
+      if (freezerMatch) {
+        const rawNum = freezerMatch[3].toLowerCase();
+        let dNum = 1;
+        if (/^(2|dos|segon|segundo)$/.test(rawNum)) dNum = 2;
+        else if (/^(3|tres|tercer|tercero)$/.test(rawNum)) dNum = 3;
+
+        isFreezerConversationActive = true;
+        freezerVoiceDrawer = dNum;
+        const targetStore = `congelador_${dNum}`;
+        setStoreFilter(targetStore);
+
+        const promptText = currentLang === 'es'
+          ? `¿Qué ponemos en el cajón ${dNum} del congelador?`
+          : `Què posem al calaix ${dNum} del congelador?`;
+
+        speakText(promptText, () => {
+          startVoiceRecognition();
+        });
+        return;
+      }
+
+      // Si estem en mode conversa de congelador i l'usuari diu que no, que ja està o prou
+      if (isFreezerConversationActive) {
+        if (/^(no|res més|res mes|ja està|ja esta|prou|finalitzar|acabar|nada más|nada mas|listo|parar)\b/i.test(rawLower)) {
+          isFreezerConversationActive = false;
+          freezerVoiceDrawer = null;
+          const doneText = currentLang === 'es' ? '¡Perfecto! Todo guardado en el congelador.' : 'Molt bé! Tot desat al congelador.';
+          speakText(doneText);
+          showToast(doneText, "fa-snowflake");
+          stopVoiceRecognition();
+          return;
+        }
+      }
+
       const parsed = parseProductInput(sentence);
-      const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      let targetStore = parsed.store;
+      if (isFreezerConversationActive && freezerVoiceDrawer) {
+        targetStore = `congelador_${freezerVoiceDrawer}`;
+      } else if (!targetStore) {
+        targetStore = (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      }
       parsed.store = targetStore;
 
       const candidates = findProductCandidates(parsed.name, targetStore);
@@ -3667,9 +3880,27 @@
     function applyVoiceItemSelection(existingItem, parsed) {
       if (!existingItem) return;
 
-      const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      let targetStore = parsed.store;
+      if (isFreezerConversationActive && freezerVoiceDrawer) {
+        targetStore = `congelador_${freezerVoiceDrawer}`;
+      } else if (!targetStore) {
+        targetStore = (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+      }
+
       const storeObj = STORES.find(s => s.id === targetStore);
       const storeDisp = storeObj ? getStoreDisplayName(storeObj, currentLang) : targetStore;
+
+      // Si s'està afegint a una botiga normal (no congelador), alertar si ja en tenim al congelador
+      if (!targetStore.startsWith('congelador_')) {
+        const freezerInfo = getFreezerInfoForProduct(existingItem.name);
+        if (freezerInfo && freezerInfo.length > 0) {
+          const fzText = currentLang === 'es'
+            ? `Atención: tienes ${freezerInfo.map(f => `${f.qty} en Cajón ${f.drawer}`).join(', ')} del congelador.`
+            : `Atenció: en tens ${freezerInfo.map(f => `${f.qty} al Calaix ${f.drawer}`).join(', ')} del congelador.`;
+          speakText(fzText);
+          showToast(fzText, "fa-snowflake");
+        }
+      }
 
       // Si l'element trobat és d'una altra botiga, comprovem si ja en tenim un a la botiga destí
       let targetItem = existingItem;
@@ -3699,6 +3930,13 @@
           renderLists();
           renderStoreTabs();
           showToast(`${currentLang === 'es' ? 'Añadido a' : 'Afegit a'} ${storeDisp}: ${newItem.name}`, "fa-plus");
+
+          if (isFreezerConversationActive) {
+            const moreText = currentLang === 'es' ? '¿Más?' : 'Més?';
+            speakText(moreText, () => {
+              if (isFreezerConversationActive) startVoiceRecognition();
+            });
+          }
           return;
         }
       }
@@ -3737,6 +3975,13 @@
           ? `+${addQ} ${targetItem.name} (total: x${targetItem.qty})`
           : `+${addQ} ${targetItem.name} (total: x${targetItem.qty})`;
         showToast(toastMsg, "fa-plus");
+      }
+
+      if (isFreezerConversationActive) {
+        const moreText = currentLang === 'es' ? '¿Más?' : 'Més?';
+        speakText(moreText, () => {
+          if (isFreezerConversationActive) startVoiceRecognition();
+        });
       }
     }
 
@@ -4004,19 +4249,41 @@
         const iconHtml = (store.id === "all" && isActive)
           ? `<i class="fa-solid ${allStoresViewMode === 'stores' ? 'fa-list-ul' : 'fa-basket-shopping'} text-[9px] opacity-70"></i>`
           : '';
+        const isFreezer = store.id.startsWith("congelador_") || store.isFreezer;
+        const freezerIcon = isFreezer ? `<i class="fa-solid fa-snowflake text-[10px] ${isActive ? 'text-cyan-700' : 'text-cyan-300'}"></i>` : '';
+
+        // Estils segons si està activa o si té productes pendents
+        let tabClasses = "";
+        let badgeHtml = "";
+
+        if (isActive) {
+          tabClasses = isFreezer
+            ? "bg-cyan-50 text-cyan-900 shadow-sm font-bold ring-1 ring-cyan-400"
+            : "bg-white text-emerald-900 shadow-sm font-bold ring-1 ring-white/80";
+          if (pendingCount > 0) {
+            badgeHtml = `<span class="px-2 py-0.5 text-[10.5px] font-black rounded-full ${isFreezer ? 'bg-cyan-700 text-white' : 'bg-emerald-700 text-white'} min-w-[20px] text-center leading-none shadow-2xs">${pendingCount}</span>`;
+          }
+        } else if (pendingCount > 0) {
+          // Destacat visible amb xapa verda brillant estil OurGroceries
+          tabClasses = isFreezer
+            ? "bg-cyan-900/90 text-white font-bold hover:bg-cyan-800 border border-cyan-400/60 shadow-xs"
+            : "bg-emerald-800 text-white font-bold hover:bg-emerald-700 border border-emerald-400/60 shadow-xs";
+          badgeHtml = `<span class="px-2 py-0.5 text-[10.5px] font-black rounded-full ${isFreezer ? 'bg-cyan-500 text-white' : 'bg-green-500 text-white'} min-w-[20px] text-center leading-none shadow-xs ring-1 ring-white/40">${pendingCount}</span>`;
+        } else {
+          // Buida i inactiva: subtil i neta
+          tabClasses = isFreezer
+            ? "bg-cyan-950/60 text-cyan-300/80 hover:bg-cyan-900/80 border border-cyan-800/30"
+            : "bg-emerald-900/60 text-emerald-200/80 hover:bg-emerald-800 hover:text-emerald-100 border border-transparent";
+        }
 
         return `
           <button data-store-id="${store.id}" 
                   onclick="setStoreFilter('${store.id}')" 
-                  class="px-2.5 py-1 rounded-full font-medium transition flex items-center gap-1.5 flex-shrink-0 ${isActive
-            ? 'bg-white text-emerald-800 shadow-sm font-bold'
-            : 'bg-emerald-800/80 text-emerald-100 hover:bg-emerald-600'
-          }">
+                  class="px-2.5 py-1 rounded-full font-medium transition flex items-center gap-1.5 flex-shrink-0 ${tabClasses}">
+            ${freezerIcon}
             <span>${displayName}</span>
             ${iconHtml}
-            ${pendingCount > 0
-            ? `<span class="px-2 py-0.5 text-[10.5px] font-black rounded-full ${isActive ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-emerald-500 text-white shadow-xs ring-1 ring-white/30'} min-w-[20px] text-center leading-none">${pendingCount}</span>`
-            : ''}
+            ${badgeHtml}
           </button>
         `;
       }).join("");
@@ -4228,13 +4495,23 @@
     }
 
     function toggleSelectAllVisibleItems() {
-      const visibleItems = items.filter(it => !it.crossed_off && (currentStoreFilter === "all" || it.store === currentStoreFilter));
-      const allSelected = visibleItems.length > 0 && visibleItems.every(it => selectedItemIds.has(it.id));
-      if (allSelected) {
-        visibleItems.forEach(it => selectedItemIds.delete(it.id));
-      } else {
-        visibleItems.forEach(it => selectedItemIds.add(it.id));
+      // Si ja n'hi ha algun de seleccionat, "Cap" deselecciona tot a l'instant!
+      if (selectedItemIds.size > 0) {
+        selectedItemIds.clear();
+        updateSelectionUI();
+        renderLists();
+        return;
       }
+
+      // Si no n'hi ha cap de seleccionat, selecciona tots els visibles de la botiga actual
+      const visibleItems = items.filter(it => (currentStoreFilter === "all" || it.store === currentStoreFilter));
+      visibleItems.forEach(it => selectedItemIds.add(it.id));
+      updateSelectionUI();
+      renderLists();
+    }
+
+    function deselectAllItems() {
+      selectedItemIds.clear();
       updateSelectionUI();
       renderLists();
     }
@@ -4255,6 +4532,10 @@
       const uncheckBarLabel = document.getElementById("btn-uncheck-selected-bar-label");
       const cleanBarBtn = document.getElementById("btn-clean-selected-bar");
       const cleanBarLabel = document.getElementById("btn-clean-selected-bar-label");
+      const freezerBarBtn = document.getElementById("btn-freezer-selected-bar");
+      const freezerBarLabel = document.getElementById("btn-freezer-selected-bar-label");
+      const moveBtn = document.getElementById("btn-move-selected");
+      const catBtn = document.getElementById("btn-change-cat-selected");
 
       if (isSelectionMode) {
         if (bar) bar.classList.remove("hidden");
@@ -4266,49 +4547,45 @@
 
         const count = selectedItemIds.size;
         if (badge) {
-          badge.textContent = currentLang === "es"
-            ? `${count} seleccionado${count === 1 ? '' : 's'}`
-            : `${count} seleccionat${count === 1 ? '' : 's'}`;
+          badge.textContent = `${count}`;
+          badge.title = currentLang === "es" ? `${count} seleccionados` : `${count} seleccionats`;
         }
 
-        const visibleItems = items.filter(it => !it.crossed_off && (currentStoreFilter === "all" || it.store === currentStoreFilter));
-        const allSelected = visibleItems.length > 0 && visibleItems.every(it => selectedItemIds.has(it.id));
+        // Commutador intel·ligent Tots / Cap
         if (selectAllLabel) {
-          selectAllLabel.textContent = allSelected ? t('btnDeselectAll') : t('btnSelectAll');
+          selectAllLabel.textContent = count > 0 ? (currentLang === 'es' ? 'Ninguno' : 'Cap') : (currentLang === 'es' ? 'Todos' : 'Tots');
         }
         if (selectAllIcon) {
-          selectAllIcon.className = allSelected ? "fa-solid fa-square-check text-emerald-600" : "fa-regular fa-square text-emerald-600";
+          selectAllIcon.className = count > 0 ? "fa-solid fa-square-minus text-rose-500" : "fa-regular fa-square text-emerald-600";
         }
         const moveBtnLabel = document.getElementById("btn-move-selected-label");
-        if (moveBtnLabel) moveBtnLabel.textContent = currentLang === 'es' ? 'Cambiar lista' : 'Canviar llista';
+        if (moveBtnLabel) moveBtnLabel.textContent = currentLang === 'es' ? 'Lista' : 'Llista';
         const catBtnLabel = document.getElementById("btn-change-cat-selected-label");
-        if (catBtnLabel) catBtnLabel.textContent = currentLang === 'es' ? 'Categoría' : 'Categoria';
+        if (catBtnLabel) catBtnLabel.textContent = currentLang === 'es' ? 'Cat.' : 'Cat.';
 
-        // Botons contextuals per a ratllats seleccionats a la barra flotant
-        if (uncheckBarBtn) {
-          if (selectedCrossed.length > 0) {
-            uncheckBarBtn.classList.remove("hidden");
-            if (uncheckBarLabel) {
-              uncheckBarLabel.textContent = currentLang === 'es'
-                ? `Desmarcar (${selectedCrossed.length})`
-                : `Desratllar (${selectedCrossed.length})`;
-            }
-          } else {
-            uncheckBarBtn.classList.add("hidden");
-          }
+        if (freezerBarLabel) {
+          freezerBarLabel.textContent = currentLang === 'es' ? 'Congelar' : 'Congelar';
         }
 
-        if (cleanBarBtn) {
-          if (selectedCrossed.length > 0) {
-            cleanBarBtn.classList.remove("hidden");
-            if (cleanBarLabel) {
-              cleanBarLabel.textContent = currentLang === 'es'
-                ? `Borrar (${selectedCrossed.length})`
-                : `Netejar (${selectedCrossed.length})`;
-            }
-          } else {
-            cleanBarBtn.classList.add("hidden");
+        // Adaptació dinàmica dels botons de la barra segons el tipus d'elements seleccionats
+        if (selectedCrossed.length > 0) {
+          if (uncheckBarBtn) {
+            uncheckBarBtn.classList.remove("hidden");
+            if (uncheckBarLabel) uncheckBarLabel.textContent = currentLang === 'es' ? 'Desmarcar' : 'Desratllar';
           }
+          if (cleanBarBtn) {
+            cleanBarBtn.classList.remove("hidden");
+            if (cleanBarLabel) cleanBarLabel.textContent = currentLang === 'es' ? 'Borrar' : 'Netejar';
+          }
+          if (freezerBarBtn) freezerBarBtn.classList.remove("hidden");
+          if (moveBtn) moveBtn.classList.add("hidden");
+          if (catBtn) catBtn.classList.add("hidden");
+        } else {
+          if (uncheckBarBtn) uncheckBarBtn.classList.add("hidden");
+          if (cleanBarBtn) cleanBarBtn.classList.add("hidden");
+          if (freezerBarBtn) freezerBarBtn.classList.remove("hidden");
+          if (moveBtn) moveBtn.classList.remove("hidden");
+          if (catBtn) catBtn.classList.remove("hidden");
         }
 
       } else {
@@ -4443,7 +4720,10 @@
                 <p class="text-[10px] text-gray-500">${storeCount} ${currentLang === 'es' ? 'pendientes' : 'pendents'}</p>
               </div>
             </div>
-            <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+            <div class="flex items-center gap-2">
+              ${storeCount > 0 ? `<span class="min-w-[28px] h-6 px-2.5 rounded-full ${store.isFreezer || store.id.startsWith('congelador_') ? 'bg-cyan-600' : 'bg-green-600'} text-white font-black text-xs flex items-center justify-center shadow-xs">${storeCount}</span>` : ''}
+              <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+            </div>
           </div>
         `;
       }).join("");
@@ -4525,6 +4805,134 @@
       exitSelectionMode();
       renderStoreTabs();
       renderLists();
+    }
+
+    // ==========================================
+    // FUNCIONS PER AL CONGELADOR (PROPOSTA A)
+    // ==========================================
+    function openSendToFreezerModal() {
+      if (selectedItemIds.size === 0) {
+        showToast(t('toastSelectFirst'), "fa-circle-exclamation");
+        return;
+      }
+      const count = selectedItemIds.size;
+      const titleEl = document.getElementById("freezer-modal-title");
+      const subEl = document.getElementById("freezer-modal-subtitle");
+      if (titleEl) {
+        titleEl.textContent = currentLang === "es"
+          ? `Guardar ${count} artículo${count === 1 ? '' : 's'} en el congelador`
+          : `Guardar ${count} article${count === 1 ? '' : 's'} al congelador`;
+      }
+      if (subEl) {
+        subEl.textContent = currentLang === "es"
+          ? "Elige en qué cajón quieres colocar los artículos:"
+          : "Tria a quin calaix vols posar els articles:";
+      }
+
+      [1, 2, 3].forEach(d => {
+        const el = document.getElementById(`freezer-drawer-count-${d}`);
+        if (el) {
+          const c = items.filter(it => !it.crossed_off && it.store === `congelador_${d}`).length;
+          el.textContent = currentLang === "es"
+            ? `Congelador #${d} (${c} artículos actualmente)`
+            : `Congelador #${d} (${c} articles actualment)`;
+        }
+      });
+
+      const modal = document.getElementById("send-to-freezer-modal");
+      if (modal) modal.classList.remove("hidden");
+    }
+
+    function closeSendToFreezerModal() {
+      const modal = document.getElementById("send-to-freezer-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function executeSendToFreezer(storeId) {
+      if (selectedItemIds.size === 0) return;
+      const count = selectedItemIds.size;
+      const drawerNum = storeId === 'congelador_1' ? 1 : (storeId === 'congelador_2' ? 2 : 3);
+      let mergedCount = 0;
+
+      const itemsToFreeze = items.filter(it => selectedItemIds.has(it.id));
+
+      itemsToFreeze.forEach(it => {
+        // Comprovar si al congelador JA hi ha aquest mateix producte
+        const canonKey = getCanonicalProductKey(it.name);
+        const existingInFreezer = items.find(other =>
+          other.id !== it.id &&
+          other.store === storeId &&
+          (getCanonicalProductKey(other.name) === canonKey || areProductNamesSimilar(other.name, it.name))
+        );
+
+        if (existingInFreezer) {
+          // Ja hi era: sumem les unitats!
+          const currentQty = parseFloat(existingInFreezer.qty) || 1;
+          const addQty = parseFloat(it.qty) || 1;
+          existingInFreezer.qty = String(currentQty + addQty);
+          existingInFreezer.crossed_off = false;
+          delete existingInFreezer.crossedAt;
+          existingInFreezer.updatedAt = Date.now();
+          if (it.photo && !existingInFreezer.photo) existingInFreezer.photo = it.photo;
+          if (it.note && !existingInFreezer.note) existingInFreezer.note = it.note;
+
+          if (typeof recordItemDeletion === 'function') {
+            recordItemDeletion(it.id);
+          }
+          items = items.filter(x => x.id !== it.id);
+          mergedCount++;
+        } else {
+          // No hi era: simplement movem i desratllem
+          it.store = storeId;
+          it.crossed_off = false;
+          delete it.crossedAt;
+          it.updatedAt = Date.now();
+        }
+      });
+
+      // Consolidació
+      if (typeof consolidateAllItems === 'function') {
+        const cons = consolidateAllItems(items);
+        if (cons.mergedCount > 0) items = cons.list;
+      }
+
+      closeSendToFreezerModal();
+      exitSelectionMode();
+      saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+      renderStoreTabs();
+      renderLists();
+
+      const toastMsg = currentLang === 'es'
+        ? `${count} artículo${count === 1 ? '' : 's'} guardado${count === 1 ? '' : 's'} en Congelador #${drawerNum}${mergedCount > 0 ? ` (${mergedCount} sumando existencias)` : ''}`
+        : `${count} article${count === 1 ? '' : 's'} desat${count === 1 ? '' : 's'} al Congelador #${drawerNum}${mergedCount > 0 ? ` (${mergedCount} sumant existències)` : ''}`;
+
+      showToast(toastMsg, "fa-snowflake");
+    }
+
+    function getFreezerInfoForProduct(productName) {
+      if (!productName || typeof productName !== 'string') return null;
+      const canon = getCanonicalProductKey(productName);
+      if (!canon) return null;
+
+      const freezerItems = items.filter(it =>
+        !it.crossed_off &&
+        (it.store === 'congelador_1' || it.store === 'congelador_2' || it.store === 'congelador_3') &&
+        (getCanonicalProductKey(it.name) === canon || areProductNamesSimilar(it.name, productName))
+      );
+
+      if (freezerItems.length === 0) return null;
+
+      return freezerItems.map(it => {
+        const dNum = it.store === 'congelador_1' ? 1 : (it.store === 'congelador_2' ? 2 : 3);
+        const qtyText = it.qty ? `${it.qty} ${it.unit || 'ud'}` : '1 ud';
+        return {
+          drawer: dNum,
+          qty: qtyText,
+          store: it.store,
+          name: it.name
+        };
+      });
     }
 
     let changeCategoryTargetMode = 'list'; // 'list' | 'catalog'
@@ -5183,12 +5591,14 @@
 
         let storesListHtml = storesData.map(sd => {
           const st = sd.store;
+          const isFreezer = st.id.startsWith("congelador_") || st.isFreezer;
+          const storeIcon = isFreezer ? 'fa-snowflake text-cyan-600' : 'fa-store';
           return `
             <div onclick="setStoreFilter('${st.id}')"
-                 class="group bg-white hover:bg-emerald-50/50 active:bg-emerald-100/50 border border-gray-200 hover:border-emerald-300 rounded-2xl p-3 shadow-2xs hover:shadow-xs transition flex items-center justify-between gap-3 cursor-pointer select-none">
+                 class="group bg-white hover:bg-emerald-50/50 active:bg-emerald-100/50 border ${sd.pendingCount > 0 ? (isFreezer ? 'border-cyan-300 ring-1 ring-cyan-200/50' : 'border-emerald-300 ring-1 ring-emerald-200/50') : 'border-gray-200'} rounded-2xl p-3 shadow-2xs hover:shadow-xs transition flex items-center justify-between gap-3 cursor-pointer select-none">
               <div class="flex items-center gap-3 min-w-0 flex-1">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${st.badgeBg || 'bg-gray-100'} ${st.badgeText || 'text-gray-700'} shadow-2xs border border-black/5">
-                  <i class="fa-solid fa-store"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${isFreezer ? 'bg-cyan-50 text-cyan-700' : (st.badgeBg || 'bg-gray-100')} ${isFreezer ? 'text-cyan-700' : (st.badgeText || 'text-gray-700')} shadow-2xs border border-black/5">
+                  <i class="fa-solid ${storeIcon}"></i>
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
@@ -5196,8 +5606,8 @@
                   </div>
                   <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
                     ${sd.pendingCount > 0
-              ? `<span class="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid fa-cart-shopping text-[9px]"></i> ${sd.pendingCount} ${currentLang === 'es' ? 'pendientes' : 'pendents'}</span>`
-              : `<span class="inline-flex items-center gap-1 font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid fa-check text-[9px]"></i> ${currentLang === 'es' ? 'Sin pendientes' : 'Cap pendent'}</span>`
+              ? `<span class="inline-flex items-center gap-1 font-bold ${isFreezer ? 'text-cyan-800 bg-cyan-50' : 'text-emerald-700 bg-emerald-50'} px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid ${isFreezer ? 'fa-snowflake' : 'fa-cart-shopping'} text-[9px]"></i> ${sd.pendingCount} ${isFreezer ? (currentLang === 'es' ? 'en congelador' : 'al congelador') : (currentLang === 'es' ? 'pendientes' : 'pendents')}</span>`
+              : `<span class="inline-flex items-center gap-1 font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full text-[11px]"><i class="fa-solid fa-check text-[9px]"></i> ${isFreezer ? (currentLang === 'es' ? 'Vacío' : 'Buit') : (currentLang === 'es' ? 'Sin pendientes' : 'Cap pendent')}</span>`
             }
                     ${sd.cost > 0 ? `<span class="text-[11px] font-semibold text-gray-700">${sd.cost.toFixed(2)} €</span>` : ''}
                   </div>
@@ -5205,7 +5615,7 @@
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
                 ${sd.pendingCount > 0 ? `
-                  <span class="min-w-[28px] h-7 px-2.5 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
+                  <span class="min-w-[32px] h-7 px-3 rounded-full ${isFreezer ? 'bg-cyan-600' : 'bg-green-600'} text-white font-black text-xs flex items-center justify-center shadow-xs ring-1 ring-white/30">
                     ${sd.pendingCount}
                   </span>
                 ` : ''}
@@ -5847,6 +6257,13 @@
       const storeObj = STORES.find(s => s.id === finalStore);
       const storeDisp = storeObj ? getStoreDisplayName(storeObj, currentLang) : finalStore;
       showToast(`${currentLang === 'es' ? 'Añadido' : 'Afegit'}: ${finalName} (${storeDisp})`, "fa-plus");
+
+      if (isFreezerConversationActive) {
+        const moreText = currentLang === 'es' ? '¿Más?' : 'Més?';
+        speakText(moreText, () => {
+          if (isFreezerConversationActive) startVoiceRecognition();
+        });
+      }
     }
 
     // ==========================================
@@ -5953,7 +6370,7 @@
           const existingMatch = matchedProducts.find(m => m.canon === canon);
           const isThisStore = (activeStore && it.store === activeStore);
           const isPending = isThisStore && !it.crossed_off;
-          const finalScore = score + (isThisStore ? 25 : 0) + (isPending ? 15 : 0);
+          const finalScore = score + (isThisStore ? 25 : 0) + (isPending ? 15 : 0) + (it.favorite ? 30 : 0);
 
           if (existingMatch) {
             if (isThisStore && existingMatch.item.store !== activeStore) {
@@ -5999,6 +6416,14 @@
         const isCurrentStore = (currentStoreFilter !== 'all' && m.store === currentStoreFilter);
         const isPending = !m.crossed_off && isCurrentStore;
 
+        const freezerInfo = (!activeStore || !activeStore.startsWith('congelador_')) ? getFreezerInfoForProduct(m.name) : null;
+        let freezerBadge = '';
+        if (freezerInfo && freezerInfo.length > 0) {
+          const fzSummary = freezerInfo.map(f => `${f.qty} a C#${f.drawer}`).join(', ');
+          freezerBadge = `<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200 shadow-2xs" title="${currentLang === 'es' ? 'Tienes existencias en el congelador' : 'En tens al congelador'}"><i class="fa-solid fa-snowflake text-[8px] text-cyan-600"></i>${fzSummary}</span>`;
+        }
+        const favIcon = m.favorite ? `<i class="fa-solid fa-star text-amber-500 text-[10px] flex-shrink-0" title="${currentLang === 'es' ? 'Favorito' : 'Favorit'}"></i>` : '';
+
         let statusBadge = '';
         let actionBtnText = '';
         if (isPending) {
@@ -6017,8 +6442,10 @@
                  class="px-2.5 py-1.5 rounded-xl bg-gray-50/90 hover:bg-emerald-50 active:bg-emerald-100 flex items-center justify-between cursor-pointer transition border border-gray-100 group">
               <div class="flex items-center gap-2 truncate min-w-0 mr-2">
                 <i class="fa-solid ${isPending ? 'fa-cart-shopping text-emerald-600' : 'fa-plus text-emerald-600'} text-xs flex-shrink-0"></i>
+                ${favIcon}
                 <span class="font-bold text-xs text-gray-800 group-hover:text-emerald-900 truncate">${escapeHtml(m.name)}</span>
                 ${statusBadge}
+                ${freezerBadge}
                 ${localizedCat ? `<span class="text-[9px] text-gray-400 truncate hidden sm:inline">• ${localizedCat}</span>` : ''}
               </div>
               <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -6058,6 +6485,19 @@
       const targetStore = currentStoreFilter;
       const targetStoreObj = STORES.find(s => s.id === targetStore);
       const storeName = targetStoreObj ? getStoreDisplayName(targetStoreObj, currentLang) : targetStore;
+
+      // Alerta d'existències al congelador si s'afegeix a una botiga de compra normal
+      if (!targetStore.startsWith('congelador_')) {
+        const fz = getFreezerInfoForProduct(it.name);
+        if (fz && fz.length > 0) {
+          showToast(
+            currentLang === 'es'
+              ? `❄️ Atención: Tienes ${fz.map(f => `${f.qty} en Cajón ${f.drawer}`).join(', ')} en el congelador`
+              : `❄️ Atenció: En tens ${fz.map(f => `${f.qty} al Calaix ${f.drawer}`).join(', ')} al congelador`,
+            "fa-snowflake"
+          );
+        }
+      }
 
       const input = document.getElementById("quick-input");
       if (input) input.value = "";
@@ -6609,14 +7049,14 @@
               <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ${store.badgeBg || 'bg-emerald-100'} ${store.badgeText || 'text-emerald-800'}"></span>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
-                  <p class="text-xs font-bold text-gray-800 truncate">${store.name}</p>
-                  ${pendingCount > 0 ? `<span class="px-2 py-0.2 min-w-[20px] text-center text-[10px] font-black rounded-full bg-emerald-600 text-white shadow-2xs">${pendingCount}</span>` : ''}
+                  <p class="text-xs font-bold ${pendingCount > 0 ? 'text-gray-900 font-extrabold' : 'text-gray-700'} truncate">${store.name}</p>
                 </div>
                 <p class="text-[10px] text-gray-400">${pendingCount} pendents (${totalCount} en total)</p>
               </div>
             </div>
 
             <div class="flex items-center space-x-1 flex-shrink-0">
+              ${pendingCount > 0 ? `<span class="px-2.5 py-0.5 rounded-full ${store.isFreezer || store.id.startsWith('congelador_') ? 'bg-cyan-600' : 'bg-green-600'} text-white font-black text-xs shadow-xs ring-1 ring-white/30 mr-1.5">${pendingCount}</span>` : ''}
               ${isManual ? `
                 <button onclick="moveStoreOrder('${store.id}', -1)" title="Pujar" ${index === 0 ? 'disabled class="w-6 h-6 rounded text-gray-200 flex items-center justify-center text-[10px]"' : 'class="w-6 h-6 rounded text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center text-[10px] transition"'}>
                   <i class="fa-solid fa-chevron-up"></i>
@@ -6816,6 +7256,8 @@
 
       document.getElementById("edit-id").value = it.id;
       document.getElementById("edit-name").value = it.name;
+      const favCheck = document.getElementById("edit-favorite");
+      if (favCheck) favCheck.checked = !!it.favorite;
       document.getElementById("edit-qty").value = it.qty || "1";
       document.getElementById("edit-unit").value = it.unit || "ud";
       document.getElementById("edit-price").value = it.price ? it.price : "";
@@ -7308,6 +7750,9 @@
         return;
       }
 
+      const editFavEl = document.getElementById("edit-favorite");
+      const editFavChecked = editFavEl ? editFavEl.checked : false;
+      it.favorite = editFavChecked;
       it.name = newName;
       it.qty = newQtyStr;
       it.unit = newUnit;
@@ -8013,9 +8458,11 @@
     function populateSelectOptions() {
       const storeSelect = document.getElementById("edit-store");
       if (storeSelect) {
-        storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s =>
-          `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`
-        ).join("");
+        storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => {
+          const pCount = items.filter(it => !it.crossed_off && it.store === s.id).length;
+          const countBadge = pCount > 0 ? ` (${pCount})` : '';
+          return `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}${countBadge}</option>`;
+        }).join("");
       }
 
       CATEGORIES = getSortedCategoriesList();
@@ -8073,6 +8520,13 @@
             console.error("Error carregant botigues personalitzades:", e);
           }
         }
+
+        // Assegurar que totes les botigues per defecte (inclosos calaixos del congelador) hi són presents
+        DEFAULT_STORES.forEach(ds => {
+          if (!STORES.some(s => s.id === ds.id)) {
+            STORES.push(ds);
+          }
+        });
 
         const storedItems = localStorage.getItem(STORAGE_KEY_ITEMS);
         if (storedItems) {
@@ -10481,6 +10935,45 @@
       }
     }
 
+    let catalogOnlyFavorites = false;
+
+    function toggleCatalogFavoritesFilter() {
+      catalogOnlyFavorites = !catalogOnlyFavorites;
+      const btn = document.getElementById("catalog-fav-filter-btn");
+      const icon = document.getElementById("catalog-fav-filter-icon");
+      if (btn) {
+        if (catalogOnlyFavorites) {
+          btn.className = "px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 bg-amber-500 text-white border-amber-500 shadow-2xs";
+          if (icon) icon.className = "fa-solid fa-star text-white text-[10px]";
+        } else {
+          btn.className = "px-2 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 bg-white text-gray-700 border-gray-300 hover:border-amber-400";
+          if (icon) icon.className = "fa-regular fa-star text-amber-500 text-[10px]";
+        }
+      }
+      filterCatalogList();
+    }
+
+    function toggleItemFavorite(id, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      const it = items.find(x => x.id === id);
+      if (!it) return;
+      it.favorite = !it.favorite;
+      it.updatedAt = Date.now();
+      saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+      filterCatalogList();
+      renderLists();
+      showToast(
+        it.favorite
+          ? (currentLang === 'es' ? `Añadido a favoritos: ${it.name}` : `Afegit a favorits: ${it.name}`)
+          : (currentLang === 'es' ? `Quitado de favoritos: ${it.name}` : `Tret de favorits: ${it.name}`),
+        it.favorite ? "fa-star text-amber-500" : "fa-star text-gray-400"
+      );
+    }
+
     function getCurrentlyFilteredCatalogItems() {
       const searchInput = document.getElementById("catalog-search-input");
       const catFilter = document.getElementById("catalog-category-filter")?.value || "all";
@@ -10489,6 +10982,7 @@
       const normQuery = normalizeProductName(query);
 
       const filtered = items.filter(it => {
+        if (catalogOnlyFavorites && !it.favorite) return false;
         if (catFilter !== "all" && getCategoryCanonicalKey(it.category || 'General') !== getCategoryCanonicalKey(catFilter)) return false;
         if (statusFilter === "pending" && it.crossed_off) return false;
         if (statusFilter === "completed" && !it.crossed_off) return false;
@@ -10748,6 +11242,11 @@
       const localizedCategory = getCategoryDisplayName(canonicalCat, currentLang);
       const isSelected = selectedCatalogItemIds.has(it.id);
 
+      const freezerInfo = getFreezerInfoForProduct(it.name);
+      const freezerBadge = freezerInfo && freezerInfo.length > 0
+        ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200" title="${currentLang === 'es' ? 'Existencias en congelador' : 'Al congelador'}"><i class="fa-solid fa-snowflake text-[8px] text-cyan-600"></i>${freezerInfo.map(f => `${f.qty} a C#${f.drawer}`).join(', ')}</span>`
+        : '';
+
       const isAll = currentStoreFilter === "all";
       const canonKey = getCanonicalProductKey(it.name);
       const existingPendingInTarget = !isAll ? items.find(other =>
@@ -10785,6 +11284,7 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 ${it.photo ? `<img src="${it.photo}" class="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-gray-200 cursor-pointer shadow-2xs hover:scale-105 transition" onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(it.photo)}', '${encodeURIComponent(it.name || '')}')" title="${currentLang === 'es' ? 'Ver foto ampliada' : 'Veure foto en gran'}">` : ''}
                 <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${existingPendingInTarget ? 'text-emerald-950' : 'text-gray-600'}">${it.name}</span>
+                ${freezerBadge}
                 <button type="button" onclick="openChangeCategoryForSingleItem('${it.id}', event)" title="${currentLang === 'es' ? 'Cambiar categoría' : 'Canviar categoria'}"
                         class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-teal-100 text-emerald-800 hover:text-teal-900 border border-emerald-200/80 transition flex items-center gap-1 cursor-pointer font-medium">
                   <i class="fa-solid fa-tag text-[8px] text-emerald-600"></i>
@@ -10798,8 +11298,13 @@
             </div>
           </div>
 
-          <!-- Accions ràpides: Sumar unitats / Restar / Afegir / Editar -->
-          <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation()">
+          <!-- Accions ràpides: Sumar unitats / Restar / Afegir / Favorit / Editar -->
+          <div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+            <button onclick="event.stopPropagation(); toggleItemFavorite('${it.id}', event);" title="${it.favorite ? (currentLang === 'es' ? 'Quitar de favoritos' : 'Treure de favorits') : (currentLang === 'es' ? 'Marcar como favorito' : 'Marcar com a favorit')}"
+              class="p-1.5 rounded-lg text-xs transition ${it.favorite ? 'text-amber-500 hover:text-amber-600' : 'text-gray-300 hover:text-amber-400'}">
+              <i class="${it.favorite ? 'fa-solid fa-star' : 'fa-regular fa-star'}"></i>
+            </button>
+
             ${isAll ? `
               <span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-lg font-medium border border-gray-200/60">${currentLang === 'es' ? 'En "Todas"' : 'A "Totes"'}</span>
             ` : existingPendingInTarget ? `
