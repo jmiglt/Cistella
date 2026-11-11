@@ -5697,20 +5697,31 @@
           const examples = getCategoryExamples(canonical, currentLang);
           const isAllCatSelected = itemsInCat.length > 0 && itemsInCat.every(it => selectedItemIds.has(it.id));
           html += `
-            <div class="px-2 pt-2.5 pb-1 w-full">
-              <div class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center justify-between">
-                <span class="flex items-center gap-1.5"><i class="fa-solid ${icon} text-emerald-700 text-xs"></i> ${displayName}</span>
-                <div class="flex items-center gap-1.5">
-                  <span class="text-gray-400 font-normal text-[11px]">(${itemsInCat.length})</span>
+            <div class="w-full mt-3.5 mb-1.5 rounded-xl bg-gradient-to-r from-emerald-100/90 via-emerald-50/80 to-emerald-100/70 border border-emerald-300/80 p-2.5 shadow-2xs">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-2xs">
+                    <i class="fa-solid ${icon}"></i>
+                  </div>
+                  <span class="font-black text-xs sm:text-sm text-emerald-950 uppercase tracking-wide truncate">${displayName}</span>
+                  <span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-950 border border-emerald-300/80 shadow-2xs flex-shrink-0">
+                    ${itemsInCat.length}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
                   <button type="button" onclick="selectCategoryItems('${canonical}', event)"
-                          class="text-[10px] ${isAllCatSelected ? 'text-teal-800 bg-teal-100 font-bold border-teal-300' : 'text-gray-600 hover:text-emerald-800 bg-gray-100 hover:bg-emerald-50 font-semibold border-gray-200'} px-2 py-0.5 rounded-lg flex items-center gap-1 transition border shadow-2xs select-none"
+                          class="text-[10px] ${isAllCatSelected ? 'text-teal-900 bg-teal-200 font-bold border-teal-300' : 'text-emerald-800 hover:text-emerald-950 bg-white/90 hover:bg-white font-bold border-emerald-200/90'} px-2 py-1 rounded-lg flex items-center gap-1 transition border shadow-2xs select-none"
                           title="${currentLang === 'es' ? 'Seleccionar todos los artículos de esta categoría' : 'Seleccionar tots els articles d\'aquesta categoria'}">
-                    <i class="fa-${isAllCatSelected ? 'solid fa-square-check text-teal-600' : 'regular fa-square text-gray-400'} text-[10px]"></i>
+                    <i class="fa-${isAllCatSelected ? 'solid fa-square-check text-teal-600' : 'regular fa-square text-emerald-600'} text-[10px]"></i>
                     <span>${isAllCatSelected ? (currentLang === 'es' ? 'Desmarcar' : 'Desmarcar') : (currentLang === 'es' ? 'Seleccionar' : 'Seleccionar')}</span>
                   </button>
                 </div>
               </div>
-              ${examples ? `<div class="text-[10px] text-gray-400 font-normal normal-case italic truncate mt-0.5" title="${examples}">Ex: ${examples}</div>` : ''}
+              ${examples ? `
+                <div class="text-[11px] text-emerald-800/90 font-medium italic mt-1 pl-9 truncate leading-tight" title="${examples}">
+                  <span class="font-bold not-italic text-emerald-950 text-[10px] uppercase tracking-wider">Ex:</span> ${examples}
+                </div>
+              ` : ''}
             </div>
           `;
           html += toRender.map(item => createItemRowHTML(item, false, true)).join("");
@@ -11450,45 +11461,58 @@
           const isCollapsed = collapsedCatalogCategories.has(catKey);
           const totalInDb = items.filter(it => getCategoryCanonicalKey(it.category || 'General') === catKey || it.category === catKey).length;
 
+          const canonical = getCategoryCanonicalKey(catKey);
+          const examples = getCategoryExamples(canonical, currentLang) || getCategoryExamples(catKey, currentLang);
+
           html += `
-            <div class="category-drop-target mb-3 rounded-2xl border border-gray-200/80 bg-gray-50/70 p-2 space-y-1.5 transition"
+            <div class="category-drop-target mb-3.5 rounded-2xl border border-emerald-200/80 bg-emerald-50/25 p-2 sm:p-2.5 space-y-2 transition shadow-2xs"
                  data-category-id="${catKey}"
                  ondragover="handleCategoryDragOver(event)"
                  ondragleave="handleCategoryDragLeave(event)"
                  ondrop="handleCategoryDrop(event, '${catKey}')">
-              <div class="flex items-center justify-between px-2 py-1.5 border-b border-gray-200/70 bg-white/80 rounded-xl cursor-pointer hover:bg-white select-none transition shadow-2xs"
+              <!-- CAPÇALERA DE LA CATEGORIA: DESTACADA I DIFERENCIADA -->
+              <div class="flex flex-col px-3 py-2 rounded-xl cursor-pointer select-none transition-all duration-150 shadow-xs border border-emerald-300/80 bg-gradient-to-r from-emerald-100/90 via-emerald-50 to-emerald-100/70 hover:from-emerald-100 hover:to-emerald-100/90 active:scale-[0.99]"
                    onclick="toggleCatalogCategoryCollapse('${catKey}', event)">
-                <div class="flex items-center gap-2 min-w-0 flex-1">
-                  <i class="fa-solid ${isCollapsed ? 'fa-chevron-right text-gray-400' : 'fa-chevron-down text-emerald-600'} text-xs w-3 text-center flex-shrink-0 transition-transform"></i>
-                  <div class="w-6 h-6 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs flex-shrink-0">
-                    <i class="fa-solid ${icon}"></i>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                    <i class="fa-solid ${isCollapsed ? 'fa-chevron-right text-emerald-600' : 'fa-chevron-down text-emerald-700'} text-xs w-3 text-center flex-shrink-0 transition-transform"></i>
+                    <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-2xs">
+                      <i class="fa-solid ${icon}"></i>
+                    </div>
+                    <span class="font-black text-xs sm:text-sm text-emerald-950 uppercase tracking-wide truncate">${displayName}</span>
+                    <span class="text-[11px] font-black px-2 py-0.5 rounded-full ${groupItems.length > 0 ? 'bg-emerald-200 text-emerald-900 border border-emerald-300/80' : 'bg-gray-200/80 text-gray-600'} flex-shrink-0 shadow-2xs">
+                      ${groupItems.length}
+                    </span>
                   </div>
-                  <span class="font-bold text-xs text-gray-800 uppercase tracking-wide truncate">${displayName}</span>
-                  <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full ${groupItems.length > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200/70 text-gray-500'} flex-shrink-0">
-                    ${groupItems.length}
-                  </span>
-                </div>
-                <div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
-                  <button type="button" onclick="promptEditCategoryName('${catKey}', event)"
-                          title="${currentLang === 'es' ? 'Editar nombre de categoría' : 'Editar nom de categoria'}"
-                          class="p-1 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition text-xs">
-                    <i class="fa-solid fa-pen text-[11px]"></i>
-                  </button>
-                  <button type="button" onclick="deleteCategory('${catKey}', event)"
-                          title="${totalInDb > 0 ? (currentLang === 'es' ? `Tiene ${totalInDb} productos (no se puede borrar)` : `Té ${totalInDb} productes (no es pot esborrar)`) : (currentLang === 'es' ? 'Eliminar categoría vacía' : 'Eliminar categoria buida')}"
-                          class="p-1 ${totalInDb > 0 ? 'text-gray-300 opacity-50 cursor-not-allowed' : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'} rounded-lg transition text-xs">
-                    <i class="fa-solid fa-trash text-[11px]"></i>
-                  </button>
-                  ${isCatalogSelectionMode ? `
-                    <button type="button" onclick="selectCatalogCategoryItems('${catKey}', event)"
-                            class="text-[10px] font-bold text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2 py-0.5 rounded-md transition flex items-center gap-1">
-                      <i class="${allCatSelected ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} text-[9px]"></i>
-                      <span>${currentLang === 'es' ? 'Todo' : 'Tot'}</span>
+                  <div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+                    <button type="button" onclick="promptEditCategoryName('${catKey}', event)"
+                            title="${currentLang === 'es' ? 'Editar nombre de categoría' : 'Editar nom de categoria'}"
+                            class="p-1.5 text-emerald-800 hover:text-emerald-950 hover:bg-emerald-200/60 rounded-lg transition text-xs">
+                      <i class="fa-solid fa-pen text-[11px]"></i>
                     </button>
-                  ` : ''}
+                    <button type="button" onclick="deleteCategory('${catKey}', event)"
+                            title="${totalInDb > 0 ? (currentLang === 'es' ? `Tiene ${totalInDb} productos (no se puede borrar)` : `Té ${totalInDb} productes (no es pot esborrar)`) : (currentLang === 'es' ? 'Eliminar categoría vacía' : 'Eliminar categoria buida')}"
+                            class="p-1.5 ${totalInDb > 0 ? 'text-gray-300 opacity-40 cursor-not-allowed' : 'text-rose-600 hover:text-rose-800 hover:bg-rose-100/70'} rounded-lg transition text-xs">
+                      <i class="fa-solid fa-trash text-[11px]"></i>
+                    </button>
+                    ${isCatalogSelectionMode ? `
+                      <button type="button" onclick="selectCatalogCategoryItems('${catKey}', event)"
+                              class="text-[10px] font-bold text-teal-800 hover:text-teal-950 bg-teal-100 hover:bg-teal-200 border border-teal-300 px-2 py-1 rounded-md transition flex items-center gap-1">
+                        <i class="${allCatSelected ? 'fa-solid fa-square-check' : 'fa-regular fa-square'} text-[9px]"></i>
+                        <span>${currentLang === 'es' ? 'Todo' : 'Tot'}</span>
+                      </button>
+                    ` : ''}
+                  </div>
                 </div>
+                ${examples ? `
+                  <div class="text-[11px] text-emerald-800/90 font-medium italic mt-1 pl-8 sm:pl-9 truncate leading-tight" title="${examples}">
+                    <span class="font-bold not-italic text-emerald-950 text-[10px] uppercase tracking-wider">Ex:</span> ${examples}
+                  </div>
+                ` : ''}
               </div>
-              <div class="divide-y divide-gray-100 ${isCollapsed ? 'hidden' : ''}">
+
+              <!-- CONTENIDOR DELS ITEMS: BLANC, POLID I SEPARAT -->
+              <div class="bg-white rounded-xl border border-gray-200/80 shadow-2xs divide-y divide-gray-100 overflow-hidden ${isCollapsed ? 'hidden' : ''}">
                 ${groupItems.map(it => renderCatalogItemRow(it)).join("")}
               </div>
             </div>
