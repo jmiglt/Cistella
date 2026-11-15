@@ -912,6 +912,32 @@
         </p>
       </div>
 
+      <!-- GUIA DE TIPUS DE LLISTA (COMPRES vs ESTOC) -->
+      <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-slate-700 space-y-1">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-800">
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-emerald-600"></i> Tipus de llista (compres o estoc):
+          </span>
+        </div>
+        <p class="text-[10px] text-slate-500 leading-snug">
+          Fes un sol toc sobre el botó de cada fila per canviar entre:
+        </p>
+        <div class="grid grid-cols-2 gap-1.5 pt-0.5 text-[10px]">
+          <div class="flex items-center gap-1.5 p-1.5 bg-emerald-50/80 border border-emerald-200 rounded-lg text-emerald-900">
+            <span class="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold flex items-center gap-1 shrink-0 text-[9px]">
+              <i class="fa-solid fa-cart-shopping text-[8px]"></i> Compres
+            </span>
+            <span class="truncate leading-tight">Surten a <b>Totes</b></span>
+          </div>
+          <div class="flex items-center gap-1.5 p-1.5 bg-cyan-50/80 border border-cyan-200 rounded-lg text-cyan-900">
+            <span class="px-1.5 py-0.5 rounded bg-cyan-700 text-white font-bold flex items-center gap-1 shrink-0 text-[9px]">
+              <i class="fa-solid fa-box-archive text-[8px]"></i> Estoc
+            </span>
+            <span class="truncate leading-tight">Inventari (congelador)</span>
+          </div>
+        </div>
+      </div>
+
       <!-- LLISTA DE BOTIGUES -->
       <div id="manage-stores-list" class="flex-1 overflow-y-auto space-y-1 pr-1 divide-y divide-gray-100 max-h-[50vh]">
         <!-- Renderització dinàmica -->
@@ -2100,29 +2126,34 @@
       return !isStoreFreezer(storeId);
     }
 
-    function toggleStoreIncludeInAll(storeId) {
-      const current = isStoreIncludedInAll(storeId);
-      const next = !current;
+    function setStoreIncludedInAll(storeId, includeBool) {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_STORE_INCLUDE_ALL);
         const map = raw ? JSON.parse(raw) : {};
-        map[storeId] = next;
+        map[storeId] = !!includeBool;
         localStorage.setItem(STORAGE_KEY_STORE_INCLUDE_ALL, JSON.stringify(map));
       } catch (e) { }
 
       const st = STORES.find(s => s.id === storeId);
-      if (st) st.includeInAll = next;
+      if (st) st.includeInAll = !!includeBool;
 
       renderManageStoresList();
       renderStoreTabs();
       renderLists();
+    }
 
+    function toggleStoreIncludeInAll(storeId) {
+      const current = isStoreIncludedInAll(storeId);
+      const next = !current;
+      setStoreIncludedInAll(storeId, next);
+
+      const st = STORES.find(s => s.id === storeId);
       const sName = st ? getStoreDisplayName(st, currentLang) : storeId;
       showToast(
         next
-          ? (currentLang === 'es' ? `"${sName}" incluida en compras generales` : `"${sName}" inclosa a compres generals`)
-          : (currentLang === 'es' ? `"${sName}" excluida de compras generales` : `"${sName}" exclosa de compres generals`),
-        next ? "fa-cart-shopping" : "fa-eye-slash"
+          ? (currentLang === 'es' ? `"${sName}" configurada como lista de compra (en Todas)` : `"${sName}" configurada com a llista de compra (a Totes)`)
+          : (currentLang === 'es' ? `"${sName}" configurada como lista de estoc (no en Todas)` : `"${sName}" configurada com a llista d'estoc (no a Totes)`),
+        next ? "fa-cart-shopping" : "fa-box-archive"
       );
     }
 
@@ -4639,7 +4670,7 @@
     }
 
     function promptCreateNewStore() {
-      const name = prompt("Introdueix el nom de la nova llista o botiga:");
+      const name = prompt(currentLang === "es" ? "Introduce el nombre de la nueva lista o tienda:" : "Introdueix el nom de la nova llista o botiga:");
       if (!name || !name.trim()) return;
 
       const clean = name.trim();
@@ -4651,8 +4682,20 @@
       if (!slug) return;
 
       const store = ensureStore(slug, clean);
+
+      // Preguntar si és llista de compra normal o d'estoc/inventari (rebost, congelador, celler...)
+      const isInventory = confirm(currentLang === "es"
+        ? `¿Es una lista de ESTOC / INVENTARIO (como Despensa, Bodega, etc.)?\n\n• Aceptar = Lista de Estoc (no se mezcla con la compra general de Todas)\n• Cancelar = Lista de Compra normal (se incluye en Todas)`
+        : `És una llista d'ESTOC / INVENTARI (com Rebost, Celler, etc.)?\n\n• D'acord = Llista d'Estoc (no es barreja amb la compra general de Totes)\n• Cancel·lar = Llista de Compra normal (s'inclou a Totes)`);
+
+      if (isInventory) {
+        setStoreIncludedInAll(store.id, false);
+      } else {
+        setStoreIncludedInAll(store.id, true);
+      }
+
       setStoreFilter(store.id);
-      showToast(`Llista creada: ${store.name}`, "fa-plus");
+      showToast(currentLang === "es" ? `Lista creada: ${store.name}` : `Llista creada: ${store.name}`, "fa-plus");
     }
 
     function ensureStore(id, name) {
@@ -6028,9 +6071,9 @@
               <i class="fa-solid fa-folder-plus text-emerald-600"></i>
               <span>${currentLang === 'es' ? '+ Nueva lista / tienda' : '+ Nova llista / botiga'}</span>
             </button>
-            <button onclick="openManageStoresModal()" class="py-2.5 px-3 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-600 font-bold text-xs rounded-xl border border-gray-200 flex items-center justify-center gap-1.5 transition shadow-2xs" title="${currentLang === 'es' ? 'Gestionar orden' : 'Gestionar ordre'}">
-              <i class="fa-solid fa-arrow-down-wide-short text-gray-500"></i>
-              <span>${currentLang === 'es' ? 'Gestionar' : 'Gestionar'}</span>
+            <button onclick="openManageStoresModal()" class="py-2.5 px-3 bg-white hover:bg-gray-50 active:bg-gray-100 text-gray-700 font-bold text-xs rounded-xl border border-gray-200 flex items-center justify-center gap-1.5 transition shadow-2xs" title="${currentLang === 'es' ? 'Gestionar listas y orden' : 'Gestionar llistes i ordre'}">
+              <i class="fa-solid fa-sliders text-emerald-600"></i>
+              <span>${currentLang === 'es' ? 'Gestionar listas' : 'Gestionar llistes'}</span>
             </button>
           </div>
         `;
@@ -7465,12 +7508,13 @@
               ${pendingCount > 0 ? `<span class="px-2.5 py-0.5 rounded-full ${store.isFreezer || store.id.startsWith('congelador_') ? 'bg-cyan-600' : 'bg-green-600'} text-white font-black text-xs shadow-xs ring-1 ring-white/30 mr-1">${pendingCount}</span>` : ''}
               <button type="button" onclick="toggleStoreIncludeInAll('${store.id}')"
                       title="${isStoreIncludedInAll(store.id) 
-                        ? (currentLang === 'es' ? 'Incluida en compras generales de Todas (clic para ocultar)' : 'Inclosa a compres generals de Totes (clic per ocultar)') 
-                        : (currentLang === 'es' ? 'Oculta de compras generales (solo en su lista/congelador, clic para incluir)' : 'Oculta de compres generals (només a la seva llista/congelador, clic per incloure)')}"
-                      class="w-7 h-7 rounded-lg flex items-center justify-center transition border ${isStoreIncludedInAll(store.id) 
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
-                        : 'bg-gray-100 text-gray-400 border-gray-200 hover:text-gray-600 hover:bg-gray-200/70'}">
-                <i class="fa-solid ${isStoreIncludedInAll(store.id) ? 'fa-cart-shopping' : 'fa-eye-slash'} text-[11px]"></i>
+                        ? (currentLang === 'es' ? 'Lista de compras (aparece en Todas). Clic para cambiar a Estoc' : 'Llista de compres (apareix a Totes). Clic per passar a Estoc') 
+                        : (currentLang === 'es' ? 'Lista de estoc / inventario. Clic para cambiar a Compres' : 'Llista d\'estoc / inventari. Clic per passar a Compres')}"
+                      class="px-2 py-1 rounded-lg flex items-center gap-1 font-bold text-[10px] transition border shadow-2xs cursor-pointer ${isStoreIncludedInAll(store.id) 
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' 
+                        : 'bg-cyan-50 text-cyan-900 border-cyan-300 hover:bg-cyan-100'}">
+                <i class="fa-solid ${isStoreIncludedInAll(store.id) ? 'fa-cart-shopping text-emerald-600' : 'fa-box-archive text-cyan-700'} text-[10px]"></i>
+                <span>${isStoreIncludedInAll(store.id) ? (currentLang === 'es' ? 'Compras' : 'Compres') : (currentLang === 'es' ? 'Estoc' : 'Estoc')}</span>
               </button>
               ${isManual ? `
                 <button onclick="moveStoreOrder('${store.id}', -1)" title="Pujar" ${index === 0 ? 'disabled class="w-6 h-6 rounded text-gray-200 flex items-center justify-center text-[10px]"' : 'class="w-6 h-6 rounded text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-center text-[10px] transition"'}>
