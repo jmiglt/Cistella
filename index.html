@@ -264,7 +264,7 @@
       </div>
       <span
         class="text-[10px] font-mono font-bold bg-white/20 text-white px-2 py-0.5 rounded-full border border-white/25 shadow-xs">
-        v4.5.0
+        v4.6.0
       </span>
     </div>
 
@@ -480,6 +480,16 @@
 
   <!-- LLISTA PRINCIPAL COMPACTA D'ALTA DENSITAT (VERTICAL DE DALT A BAIX) -->
   <main class="flex-1 overflow-y-auto px-2 py-2 space-y-3 pb-24 flex flex-col" id="main-scroll-area">
+
+    <!-- INDICADOR PULL-TO-REFRESH (ARROSSEGAR PER ACTUALITZAR) -->
+    <div id="pull-to-refresh-container"
+      class="w-full flex items-center justify-center overflow-hidden transition-all duration-150 pointer-events-none select-none text-emerald-800 flex-shrink-0"
+      style="height: 0px; opacity: 0;">
+      <div class="flex items-center gap-2 py-1.5 px-3.5 bg-emerald-50/95 border border-emerald-300/80 rounded-full shadow-xs text-xs font-bold my-1">
+        <i id="pull-refresh-icon" class="fa-solid fa-arrow-down text-emerald-600 transition-transform duration-150 text-xs"></i>
+        <span id="pull-refresh-text" class="text-[11px] text-emerald-950 font-bold">Arrossega per refrescar...</span>
+      </div>
+    </div>
 
     <!-- BARRA DE CERCA I FILTRATGE RÀPID DE LA LLISTA -->
     <div class="px-0.5 pt-0.5 pb-1">
@@ -4043,6 +4053,7 @@
     }
 
     function openVoiceClarifyModal(parsed, candidateList) {
+      registerModalOpen('voice-clarify-modal', closeVoiceClarifyModal);
       pendingVoiceParsed = parsed;
       const targetStore = parsed.store || (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
       const detectedEl = document.getElementById("voice-clarify-detected-name");
@@ -4068,9 +4079,10 @@
             <button onclick="handleSelectClarifiedOption('${it.id}')"
               class="w-full text-left p-2.5 rounded-xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition flex items-center justify-between group">
               <div class="flex-1 min-w-0 pr-2">
-                <div class="font-bold text-xs text-gray-900 group-hover:text-emerald-900 flex items-center gap-1.5 truncate">
+                <div class="font-bold text-xs text-gray-900 group-hover:text-emerald-900 flex items-center gap-1.5 flex-wrap truncate">
                   <span>${it.name}</span>
                   <span class="text-[10px] font-semibold px-1.5 py-0.2 rounded ${storeObj.badgeBg} ${storeObj.badgeText}">${storeObj.name}</span>
+                  ${renderProductOccurrencesBadges(it.name)}
                 </div>
                 <div class="text-[10px] mt-0.5 ${statusColor} font-medium inline-block px-1.5 py-0.2 rounded">
                   ${statusText}
@@ -4096,7 +4108,8 @@
       closeVoiceClarifyModal();
     }
 
-    function closeVoiceClarifyModal() {
+    function closeVoiceClarifyModal(fromPopstate = false) {
+      registerModalClose('voice-clarify-modal', fromPopstate);
       pendingVoiceParsed = null;
       const modal = document.getElementById("voice-clarify-modal");
       if (modal) modal.classList.add("hidden");
@@ -4360,6 +4373,235 @@
       }
     }
 
+    
+    // ==========================================
+    // GESTIÓ DE NAVEGACIÓ ENRERE (SYSTEM BACK GESTURE)
+    // ==========================================
+    const openModalStack = [];
+
+    function registerModalOpen(modalId, closeFn) {
+      if (!modalId) return;
+      const idx = openModalStack.findIndex(m => m.id === modalId);
+      if (idx > -1) openModalStack.splice(idx, 1);
+      openModalStack.push({ id: modalId, closeFn });
+
+      try {
+        if (!history.state || history.state.modalId !== modalId) {
+          history.pushState({ modalId: modalId, timestamp: Date.now() }, "");
+        }
+      } catch (e) { }
+    }
+
+    function registerModalClose(modalId, fromPopstate = false) {
+      if (!modalId) return;
+      const idx = openModalStack.findIndex(m => m.id === modalId);
+      if (idx > -1) {
+        openModalStack.splice(idx, 1);
+      }
+      if (!fromPopstate) {
+        try {
+          if (history.state && history.state.modalId === modalId) {
+            history.back();
+          }
+        } catch (e) { }
+      }
+    }
+
+    function closeTopmostModal(fromPopstate = true) {
+      if (openModalStack.length > 0) {
+        const top = openModalStack.pop();
+        if (top && typeof top.closeFn === 'function') {
+          try {
+            top.closeFn(fromPopstate);
+            return true;
+          } catch (e) {
+            console.warn("Error executant closeFn:", e);
+          }
+        }
+      }
+
+      // Verificació directa sobre el DOM per si cap modal no s'havia registrat a la pila
+      const candidates = [
+        { id: 'image-lightbox-modal', close: closeImageLightbox },
+        { id: 'image-picker-modal', close: closeImagePickerModal },
+        { id: 'confirm-new-product-modal', close: closeConfirmNewProductModal },
+        { id: 'voice-clarify-modal', close: closeVoiceClarifyModal },
+        { id: 'receipt-item-picker-modal', close: closeReceiptItemPicker },
+        { id: 'receipt-scanner-modal', close: closeReceiptScannerModal },
+        { id: 'send-to-freezer-modal', close: closeSendToFreezerModal },
+        { id: 'move-items-modal', close: closeMoveItemsModal },
+        { id: 'change-category-modal', close: closeChangeCategoryModal },
+        { id: 'manage-categories-modal', close: closeManageCategoriesModal },
+        { id: 'manage-stores-modal', close: closeManageStoresModal },
+        { id: 'pwa-help-modal', close: closePwaHelpModal },
+        { id: 'share-modal', close: closeShareModal },
+        { id: 'sync-modal', close: closeSyncModal },
+        { id: 'stats-modal', close: closeStatsModal },
+        { id: 'edit-modal', close: closeEditModal },
+        { id: 'catalog-modal', close: closeCatalogModal }
+      ];
+
+      for (const c of candidates) {
+        const el = document.getElementById(c.id);
+        if (!el) continue;
+        if (c.id === 'edit-modal') {
+          if (!el.classList.contains('closed')) {
+            c.close(fromPopstate);
+            return true;
+          }
+        } else {
+          if (!el.classList.contains('hidden')) {
+            c.close(fromPopstate);
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    window.addEventListener("popstate", (e) => {
+      // 1. Si hi ha algun modal obert, tancar-lo
+      const closedModal = closeTopmostModal(true);
+      if (closedModal) return;
+
+      // 2. Si no hi ha modal però estem en mode selecció, sortir del mode selecció
+      if (typeof isSelectionMode !== "undefined" && isSelectionMode) {
+        toggleSelectionMode();
+        return;
+      }
+
+      // 3. Si no hi ha modal ni selecció però estem dins d'una botiga específica, tornar a "Totes"
+      if (typeof currentStoreFilter !== "undefined" && currentStoreFilter !== "all") {
+        setStoreFilter("all");
+        return;
+      }
+    });
+
+    // ==========================================
+    // GEST PULL-TO-REFRESH (ARROSSEGAR PER ACTUALITZAR)
+    // ==========================================
+    function initPullToRefresh() {
+      const scrollArea = document.getElementById("main-scroll-area");
+      const pullContainer = document.getElementById("pull-to-refresh-container");
+      const pullIcon = document.getElementById("pull-refresh-icon");
+      const pullText = document.getElementById("pull-refresh-text");
+      if (!scrollArea || !pullContainer || !pullIcon || !pullText) return;
+
+      let startY = 0;
+      let startX = 0;
+      let isPulling = false;
+      let pullDistance = 0;
+      const PULL_THRESHOLD = 65;
+      const MAX_PULL = 95;
+      let isRefreshing = false;
+      let hasVibrated = false;
+
+      function updatePullUI(dist) {
+        pullContainer.style.height = `${dist}px`;
+        pullContainer.style.opacity = `${Math.min(1, dist / 35)}`;
+        if (dist >= PULL_THRESHOLD) {
+          pullIcon.style.transform = "rotate(180deg)";
+          pullText.textContent = currentLang === "es" ? "Suelta para actualizar..." : "Deixa anar per actualitzar...";
+          if (!hasVibrated) {
+            if (navigator.vibrate) navigator.vibrate(25);
+            hasVibrated = true;
+          }
+        } else {
+          pullIcon.style.transform = `rotate(${Math.min(180, dist * 2.5)}deg)`;
+          pullText.textContent = currentLang === "es" ? "Arrastra para refrescar..." : "Arrossega per refrescar...";
+          hasVibrated = false;
+        }
+      }
+
+      function resetPullUI() {
+        pullContainer.style.transition = "all 0.25s ease-out";
+        pullContainer.style.height = "0px";
+        pullContainer.style.opacity = "0";
+        pullIcon.className = "fa-solid fa-arrow-down text-emerald-600 transition-transform duration-150 text-xs";
+        pullIcon.style.transform = "rotate(0deg)";
+        setTimeout(() => {
+          pullContainer.style.transition = "all 0.15s ease-out";
+        }, 250);
+        isPulling = false;
+        pullDistance = 0;
+        hasVibrated = false;
+      }
+
+      scrollArea.addEventListener("touchstart", (e) => {
+        if (isRefreshing) return;
+        const scrollTop = scrollArea.scrollTop || 0;
+        if (scrollTop <= 0 && e.touches.length === 1) {
+          startY = e.touches[0].pageY;
+          startX = e.touches[0].pageX;
+          isPulling = true;
+          pullDistance = 0;
+          hasVibrated = false;
+        }
+      }, { passive: true });
+
+      scrollArea.addEventListener("touchmove", (e) => {
+        if (!isPulling || isRefreshing) return;
+        const currentY = e.touches[0].pageY;
+        const currentX = e.touches[0].pageX;
+        const diffY = currentY - startY;
+        const diffX = Math.abs(currentX - startX);
+
+        if (diffX > diffY) {
+          isPulling = false;
+          resetPullUI();
+          return;
+        }
+
+        const scrollTop = scrollArea.scrollTop || 0;
+        if (scrollTop <= 0 && diffY > 0) {
+          pullDistance = Math.min(MAX_PULL, Math.pow(diffY, 0.85));
+          updatePullUI(pullDistance);
+          if (diffY > 12 && e.cancelable) {
+            e.preventDefault();
+          }
+        } else {
+          resetPullUI();
+        }
+      }, { passive: false });
+
+      scrollArea.addEventListener("touchend", () => {
+        if (!isPulling || isRefreshing) return;
+        if (pullDistance >= PULL_THRESHOLD) {
+          isRefreshing = true;
+          pullContainer.style.height = "46px";
+          pullContainer.style.opacity = "1";
+          pullIcon.className = "fa-solid fa-arrows-rotate fa-spin text-emerald-600 text-xs";
+          pullIcon.style.transform = "none";
+          pullText.textContent = currentLang === "es" ? "Sincronizando..." : "Sincronitzant...";
+
+          setTimeout(() => {
+            loadFromLocalStorage();
+            renderLists();
+            renderStoreTabs();
+            if (typeof scheduleCloudSync === 'function') scheduleCloudSync(true);
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistration().then(reg => reg?.update());
+            }
+
+            pullIcon.className = "fa-solid fa-check text-emerald-600 text-xs";
+            pullText.textContent = currentLang === "es" ? "¡Actualizado!" : "Actualitzat!";
+
+            setTimeout(() => {
+              resetPullUI();
+              isRefreshing = false;
+              showToast(
+                currentLang === "es" ? "Lista actualizada y sincronizada" : "Llista actualitzada i sincronitzada",
+                "fa-arrows-rotate"
+              );
+            }, 400);
+          }, 600);
+        } else {
+          resetPullUI();
+        }
+      });
+    }
+
     function initStoreTabsDesktopScroll() {
       const container = document.getElementById("store-tabs");
       if (!container) return;
@@ -4491,6 +4733,11 @@
         try { localStorage.setItem("cistella_all_view_mode", allStoresViewMode); } catch (e) { }
       } else {
         currentStoreFilter = storeId;
+        try {
+          if (!history.state || history.state.storeId !== storeId) {
+            history.pushState({ storeId: storeId, timestamp: Date.now() }, "");
+          }
+        } catch (e) { }
       }
 
       pendingVisibleLimit = 50;
@@ -4730,6 +4977,7 @@
     }
 
     function openMoveItemsModal() {
+      registerModalOpen('move-items-modal', closeMoveItemsModal);
       if (selectedItemIds.size === 0) {
         showToast(t('toastSelectFirst'), "fa-circle-exclamation");
         return;
@@ -4739,7 +4987,8 @@
       if (modal) modal.classList.remove("hidden");
     }
 
-    function closeMoveItemsModal() {
+    function closeMoveItemsModal(fromPopstate = false) {
+      registerModalClose('move-items-modal', fromPopstate);
       const modal = document.getElementById("move-items-modal");
       if (modal) modal.classList.add("hidden");
     }
@@ -4873,6 +5122,7 @@
     // FUNCIONS PER AL CONGELADOR (PROPOSTA A)
     // ==========================================
     function openSendToFreezerModal() {
+      registerModalOpen('send-to-freezer-modal', closeSendToFreezerModal);
       if (selectedItemIds.size === 0) {
         showToast(t('toastSelectFirst'), "fa-circle-exclamation");
         return;
@@ -4905,7 +5155,8 @@
       if (modal) modal.classList.remove("hidden");
     }
 
-    function closeSendToFreezerModal() {
+    function closeSendToFreezerModal(fromPopstate = false) {
+      registerModalClose('send-to-freezer-modal', fromPopstate);
       const modal = document.getElementById("send-to-freezer-modal");
       if (modal) modal.classList.add("hidden");
     }
@@ -4972,6 +5223,50 @@
       showToast(toastMsg, "fa-snowflake");
     }
 
+    function getProductListOccurrences(productName) {
+      if (!productName || typeof productName !== 'string') return [];
+      const canon = getCanonicalProductKey(productName);
+      if (!canon) return [];
+
+      const matches = items.filter(it =>
+        !it.crossed_off &&
+        (getCanonicalProductKey(it.name) === canon || areProductNamesSimilar(it.name, productName))
+      );
+
+      return matches.map(it => {
+        const sObj = STORES.find(s => s.id === it.store) || { id: it.store, name: it.store };
+        const sName = getStoreDisplayName(sObj, currentLang);
+        const isFreezer = it.store.startsWith("congelador_") || Boolean(sObj.isFreezer);
+        const drawerNum = it.store === 'congelador_1' ? 1 : (it.store === 'congelador_2' ? 2 : (it.store === 'congelador_3' ? 3 : (sObj.drawer || null)));
+        return {
+          itemId: it.id,
+          storeId: it.store,
+          storeName: sName,
+          qty: it.qty || "1",
+          unit: it.unit || "ud",
+          isFreezer: isFreezer,
+          drawerNum: drawerNum,
+          isCurrent: (currentStoreFilter !== "all" && it.store === currentStoreFilter)
+        };
+      });
+    }
+
+    function renderProductOccurrencesBadges(productName) {
+      const occs = getProductListOccurrences(productName);
+      if (!occs || occs.length === 0) return '';
+
+      return occs.map(occ => {
+        const qtyStr = occ.qty ? `x${occ.qty}` : 'x1';
+        if (occ.isFreezer) {
+          const dText = occ.drawerNum ? `C#${occ.drawerNum}` : 'Cong.';
+          return `<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200/90 shadow-2xs" title="${currentLang === 'es' ? 'En el congelador' : 'Al congelador'}: ${occ.storeName}"><i class="fa-solid fa-snowflake text-[8px] text-cyan-600"></i>${occ.qty} a ${dText}</span>`;
+        } else {
+          const isHere = occ.isCurrent;
+          return `<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold ${isHere ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-50 text-amber-900 border border-amber-200/80'} shadow-2xs" title="${currentLang === 'es' ? 'Ya en lista' : 'Ja a la llista'}: ${occ.storeName}"><i class="fa-solid fa-cart-shopping text-[8px] ${isHere ? 'text-emerald-600' : 'text-amber-600'}"></i>${occ.storeName} (${qtyStr})</span>`;
+        }
+      }).join(' ');
+    }
+
     function getFreezerInfoForProduct(productName) {
       if (!productName || typeof productName !== 'string') return null;
       const canon = getCanonicalProductKey(productName);
@@ -5001,6 +5296,7 @@
     let singleTargetItemId = null;
 
     function openChangeCategoryModal() {
+      registerModalOpen('change-category-modal', closeChangeCategoryModal);
       if (selectedItemIds.size === 0) {
         showToast(t('toastSelectFirst'), "fa-circle-exclamation");
         return;
@@ -5018,7 +5314,8 @@
       if (modal) modal.classList.remove("hidden");
     }
 
-    function closeChangeCategoryModal() {
+    function closeChangeCategoryModal(fromPopstate = false) {
+      registerModalClose('change-category-modal', fromPopstate);
       const modal = document.getElementById("change-category-modal");
       if (modal) modal.classList.add("hidden");
       singleTargetItemId = null;
@@ -6217,6 +6514,7 @@
     }
 
     function openConfirmNewProductModal(parsed, targetStore) {
+      registerModalOpen('confirm-new-product-modal', closeConfirmNewProductModal);
       pendingNewProductData = {
         name: parsed.name,
         qty: parsed.qty || "1",
@@ -6259,7 +6557,8 @@
       if (nameInput) setTimeout(() => nameInput.focus(), 80);
     }
 
-    function closeConfirmNewProductModal() {
+    function closeConfirmNewProductModal(fromPopstate = false) {
+      registerModalClose('confirm-new-product-modal', fromPopstate);
       const modal = document.getElementById("confirm-new-product-modal");
       if (modal) modal.classList.add("hidden");
       pendingNewProductData = null;
@@ -6523,38 +6822,29 @@
         const canonicalCat = getCategoryCanonicalKey(m.category || 'General');
         const localizedCat = getCategoryDisplayName(canonicalCat, currentLang);
         const isCurrentStore = (currentStoreFilter !== 'all' && m.store === currentStoreFilter);
-        const isPending = !m.crossed_off && isCurrentStore;
+        const isPendingInCurrent = !m.crossed_off && isCurrentStore;
 
-        const freezerInfo = (!activeStore || !activeStore.startsWith('congelador_')) ? getFreezerInfoForProduct(m.name) : null;
-        let freezerBadge = '';
-        if (freezerInfo && freezerInfo.length > 0) {
-          const fzSummary = freezerInfo.map(f => `${f.qty} a C#${f.drawer}`).join(', ');
-          freezerBadge = `<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200 shadow-2xs" title="${currentLang === 'es' ? 'Tienes existencias en el congelador' : 'En tens al congelador'}"><i class="fa-solid fa-snowflake text-[8px] text-cyan-600"></i>${fzSummary}</span>`;
-        }
+        const occurrencesBadges = renderProductOccurrencesBadges(m.name);
         const favIcon = m.favorite ? `<i class="fa-solid fa-star text-amber-500 text-[10px] flex-shrink-0" title="${currentLang === 'es' ? 'Favorito' : 'Favorit'}"></i>` : '';
 
-        let statusBadge = '';
-        let actionBtnText = '';
-        if (isPending) {
-          statusBadge = `<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">${currentLang === 'es' ? 'En lista' : 'A la llista'} (x${m.qty || 1})</span>`;
-          actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>+1</span>`;
-        } else if (m.crossed_off && isCurrentStore) {
-          statusBadge = `<span class="text-[9px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-500">${currentLang === 'es' ? 'Tachado' : 'Ratllat'}</span>`;
-          actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
-        } else {
-          statusBadge = `<span class="text-[9px] font-semibold px-1.5 py-0.2 rounded ${sObj.badgeBg || 'bg-gray-100'} ${sObj.badgeText || 'text-gray-700'}">${localizedStore}</span>`;
-          actionBtnText = `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
+        let defaultStoreBadge = '';
+        if (!occurrencesBadges) {
+          defaultStoreBadge = `<span class="text-[9px] font-semibold px-1.5 py-0.2 rounded ${sObj.badgeBg || 'bg-gray-100'} ${sObj.badgeText || 'text-gray-700'}">${localizedStore}</span>`;
         }
+
+        const actionBtnText = isPendingInCurrent
+          ? `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>+1</span>`
+          : `<span class="text-[9.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-1"><i class="fa-solid fa-plus text-[8px]"></i>${currentLang === 'es' ? 'Añadir' : 'Afegir'}</span>`;
 
         return `
             <div onclick="selectAutocompleteProduct('${m.id}')"
                  class="px-2.5 py-1.5 rounded-xl bg-gray-50/90 hover:bg-emerald-50 active:bg-emerald-100 flex items-center justify-between cursor-pointer transition border border-gray-100 group">
-              <div class="flex items-center gap-2 truncate min-w-0 mr-2">
-                <i class="fa-solid ${isPending ? 'fa-cart-shopping text-emerald-600' : 'fa-plus text-emerald-600'} text-xs flex-shrink-0"></i>
+              <div class="flex items-center gap-1.5 flex-wrap truncate min-w-0 mr-2">
+                <i class="fa-solid ${isPendingInCurrent ? 'fa-cart-shopping text-emerald-600' : 'fa-plus text-emerald-600'} text-xs flex-shrink-0"></i>
                 ${favIcon}
                 <span class="font-bold text-xs text-gray-800 group-hover:text-emerald-900 truncate">${escapeHtml(m.name)}</span>
-                ${statusBadge}
-                ${freezerBadge}
+                ${occurrencesBadges}
+                ${defaultStoreBadge}
                 ${localizedCat ? `<span class="text-[9px] text-gray-400 truncate hidden sm:inline">• ${localizedCat}</span>` : ''}
               </div>
               <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -6803,6 +7093,7 @@
     // VISOR D'IMATGES EN GRAN (LIGHTBOX)
     // ==========================================
     function openImageLightbox(photoUrl, name) {
+      registerModalOpen('image-lightbox-modal', closeImageLightbox);
       if (!photoUrl) return;
       const modal = document.getElementById("image-lightbox-modal");
       const img = document.getElementById("lightbox-image");
@@ -6818,7 +7109,8 @@
       modal.classList.remove("hidden");
     }
 
-    function closeImageLightbox() {
+    function closeImageLightbox(fromPopstate = false) {
+      registerModalClose('image-lightbox-modal', fromPopstate);
       const modal = document.getElementById("image-lightbox-modal");
       if (modal) modal.classList.add("hidden");
     }
@@ -6847,6 +7139,7 @@
     let draggedStoreId = null;
 
     function openManageStoresModal() {
+      registerModalOpen('manage-stores-modal', closeManageStoresModal);
       const sortSelect = document.getElementById("store-sort-mode-select");
       if (sortSelect) sortSelect.value = storeSortMode;
       renderManageStoresList();
@@ -6854,7 +7147,8 @@
       if (modal) modal.classList.remove("hidden");
     }
 
-    function closeManageStoresModal() {
+    function closeManageStoresModal(fromPopstate = false) {
+      registerModalClose('manage-stores-modal', fromPopstate);
       const modal = document.getElementById("manage-stores-modal");
       if (modal) modal.classList.add("hidden");
     }
@@ -6863,6 +7157,7 @@
     // CONTROLADOR DE GESTIÓ DE CATEGORIES
     // ==========================================
     function openManageCategoriesModal() {
+      registerModalOpen('manage-categories-modal', closeManageCategoriesModal);
       const modal = document.getElementById("manage-categories-modal");
       if (!modal) return;
       modal.classList.remove("hidden");
@@ -6871,7 +7166,8 @@
       renderManageCategoriesList();
     }
 
-    function closeManageCategoriesModal() {
+    function closeManageCategoriesModal(fromPopstate = false) {
+      registerModalClose('manage-categories-modal', fromPopstate);
       const modal = document.getElementById("manage-categories-modal");
       if (modal) modal.classList.add("hidden");
     }
@@ -7367,6 +7663,7 @@
     }
 
     function openEditModal(id) {
+      registerModalOpen('edit-modal', closeEditModal);
       const card = document.querySelector(`.item-card[data-item-id="${id}"]`);
       if (card && card._justSwiped) return;
 
@@ -7431,7 +7728,8 @@
       document.getElementById("edit-modal").classList.remove("closed");
     }
 
-    function closeEditModal() {
+    function closeEditModal(fromPopstate = false) {
+      registerModalClose('edit-modal', fromPopstate);
       document.getElementById("modal-backdrop").classList.add("hidden");
       document.getElementById("edit-modal").classList.add("closed");
       closeEditCategoryPopover();
@@ -7508,6 +7806,7 @@
     let isFetchingSupermarketImages = false;
 
     function openImagePickerModal(customQuery) {
+      registerModalOpen('image-picker-modal', closeImagePickerModal);
       const modal = document.getElementById("image-picker-modal");
       if (!modal) return;
 
@@ -7533,7 +7832,8 @@
       executeImagePickerSearch();
     }
 
-    function closeImagePickerModal() {
+    function closeImagePickerModal(fromPopstate = false) {
+      registerModalClose('image-picker-modal', fromPopstate);
       const modal = document.getElementById("image-picker-modal");
       if (modal) modal.classList.add("hidden");
     }
@@ -7931,6 +8231,7 @@
     let lastExtractedRawText = "";
 
     function openReceiptScannerModal() {
+      registerModalOpen('receipt-scanner-modal', closeReceiptScannerModal);
       const modal = document.getElementById("receipt-scanner-modal");
       const storeSelect = document.getElementById("receipt-store-select");
       if (!modal || !storeSelect) return;
@@ -7943,7 +8244,8 @@
       modal.classList.remove("hidden");
     }
 
-    function closeReceiptScannerModal() {
+    function closeReceiptScannerModal(fromPopstate = false) {
+      registerModalClose('receipt-scanner-modal', fromPopstate);
       const modal = document.getElementById("receipt-scanner-modal");
       if (modal) modal.classList.add("hidden");
     }
@@ -8183,6 +8485,7 @@
     let currentPickingReceiptIndex = null;
 
     function openReceiptItemPicker(matchIdx) {
+      registerModalOpen('receipt-item-picker-modal', closeReceiptItemPicker);
       currentPickingReceiptIndex = matchIdx;
       const m = detectedReceiptItems[matchIdx];
       const modal = document.getElementById("receipt-item-picker-modal");
@@ -8206,7 +8509,8 @@
       }
     }
 
-    function closeReceiptItemPicker() {
+    function closeReceiptItemPicker(fromPopstate = false) {
+      registerModalClose('receipt-item-picker-modal', fromPopstate);
       const modal = document.getElementById("receipt-item-picker-modal");
       if (modal) modal.classList.add("hidden");
       currentPickingReceiptIndex = null;
@@ -9467,10 +9771,12 @@
     }
 
     function openPwaHelpModal() {
+      registerModalOpen('pwa-help-modal', closePwaHelpModal);
       document.getElementById('pwa-help-modal').classList.remove('hidden');
     }
 
-    function closePwaHelpModal() {
+    function closePwaHelpModal(fromPopstate = false) {
+      registerModalClose('pwa-help-modal', fromPopstate);
       document.getElementById('pwa-help-modal').classList.add('hidden');
     }
 
@@ -9492,6 +9798,7 @@
     // 4.1 COMPARTIR LLISTA (WHATSAPP, TEXT, NATIVE SHARE)
     // -------------------------------------------------------------------------
     function openShareModal() {
+      registerModalOpen('share-modal', closeShareModal);
       const select = document.getElementById('share-store-select');
       const isEs = currentLang === 'es';
       if (select) {
@@ -9540,7 +9847,8 @@
       if (modal) modal.classList.remove('hidden');
     }
 
-    function closeShareModal() {
+    function closeShareModal(fromPopstate = false) {
+      registerModalClose('share-modal', fromPopstate);
       const modal = document.getElementById('share-modal');
       if (modal) modal.classList.add('hidden');
     }
@@ -10374,13 +10682,15 @@
     }
 
     function openSyncModal() {
+      registerModalOpen('sync-modal', closeSyncModal);
       publishDevicePresence(true);
       renderSyncModalUI();
       const modal = document.getElementById('sync-modal');
       if (modal) modal.classList.remove('hidden');
     }
 
-    function closeSyncModal() {
+    function closeSyncModal(fromPopstate = false) {
+      registerModalClose('sync-modal', fromPopstate);
       const modal = document.getElementById('sync-modal');
       if (modal) modal.classList.add('hidden');
     }
@@ -10560,12 +10870,14 @@
     // 4.3 ESTADÍSTIQUES I RESUM DE DESPESA
     // -------------------------------------------------------------------------
     function openStatsModal() {
+      registerModalOpen('stats-modal', closeStatsModal);
       renderStatsContent();
       const modal = document.getElementById('stats-modal');
       if (modal) modal.classList.remove('hidden');
     }
 
-    function closeStatsModal() {
+    function closeStatsModal(fromPopstate = false) {
+      registerModalClose('stats-modal', fromPopstate);
       const modal = document.getElementById('stats-modal');
       if (modal) modal.classList.add('hidden');
     }
@@ -10829,6 +11141,7 @@
     }
 
     function openCatalogModal() {
+      registerModalOpen('catalog-modal', closeCatalogModal);
       const modal = document.getElementById("catalog-modal");
       if (!modal) return;
 
@@ -10877,7 +11190,8 @@
       modal.classList.remove("hidden");
     }
 
-    function closeCatalogModal() {
+    function closeCatalogModal(fromPopstate = false) {
+      registerModalClose('catalog-modal', fromPopstate);
       const modal = document.getElementById("catalog-modal");
       if (modal) modal.classList.add("hidden");
       if (isCatalogSelectionMode) exitCatalogSelectionMode();
@@ -11361,10 +11675,7 @@
       const localizedCategory = getCategoryDisplayName(canonicalCat, currentLang);
       const isSelected = selectedCatalogItemIds.has(it.id);
 
-      const freezerInfo = getFreezerInfoForProduct(it.name);
-      const freezerBadge = freezerInfo && freezerInfo.length > 0
-        ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200" title="${currentLang === 'es' ? 'Existencias en congelador' : 'Al congelador'}"><i class="fa-solid fa-snowflake text-[8px] text-cyan-600"></i>${freezerInfo.map(f => `${f.qty} a C#${f.drawer}`).join(', ')}</span>`
-        : '';
+      const occurrencesBadges = renderProductOccurrencesBadges(it.name);
 
       const isAll = currentStoreFilter === "all";
       const canonKey = getCanonicalProductKey(it.name);
@@ -11403,7 +11714,7 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 ${it.photo ? `<img src="${it.photo}" class="w-6 h-6 rounded-md object-cover flex-shrink-0 border border-gray-200 cursor-pointer shadow-2xs hover:scale-105 transition" onclick="event.stopPropagation(); openImageLightbox('${encodeURIComponent(it.photo)}', '${encodeURIComponent(it.name || '')}')" title="${currentLang === 'es' ? 'Ver foto ampliada' : 'Veure foto en gran'}">` : ''}
                 <span class="font-bold text-xs text-gray-900 group-hover:text-emerald-950 truncate ${existingPendingInTarget ? 'text-emerald-950' : 'text-gray-600'}">${it.name}</span>
-                ${freezerBadge}
+                ${occurrencesBadges}
                 <button type="button" onclick="openChangeCategoryForSingleItem('${it.id}', event)" title="${currentLang === 'es' ? 'Cambiar categoría' : 'Canviar categoria'}"
                         class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-teal-100 text-emerald-800 hover:text-teal-900 border border-emerald-200/80 transition flex items-center gap-1 cursor-pointer font-medium">
                   <i class="fa-solid fa-tag text-[8px] text-emerald-600"></i>
