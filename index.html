@@ -417,6 +417,13 @@
               <span data-i18n="menuImportOG">Importar OurGroceries (.json/.zip)</span>
             </span>
           </button>
+          <button onclick="openJsonProductsImportModal(); toggleOptionsMenu();"
+            class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-file-code text-slate-500 w-4 text-center text-xs"></i>
+              <span data-i18n="menuImportProductsJson">Importar productes (json)</span>
+            </span>
+          </button>
           <button onclick="cleanTestListDuplicates(); toggleOptionsMenu();" id="menu-clean-test-btn"
             class="w-full text-left px-3.5 py-2 hover:bg-amber-50/60 active:bg-amber-100/60 text-slate-700 font-medium flex items-center justify-between transition-colors">
             <span class="flex items-center gap-2.5">
@@ -1650,6 +1657,130 @@
     </div>
   </div>
 
+  <!-- MODAL D'IMPORTACIÓ DE PRODUCTES EN JSON -->
+  <div id="json-products-import-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col">
+
+      <!-- CAPÇALERA -->
+      <div class="flex items-center justify-between border-b pb-2.5 flex-shrink-0">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
+            <i class="fa-solid fa-file-code text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900 leading-tight">Importar productes (JSON)</h3>
+            <p class="text-[10px] text-gray-500">Afegeix una llista d'articles a la Cistella</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeJsonProductsImportModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg transition" title="Tancar">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- COS SCROLLABLE -->
+      <div class="flex-1 overflow-y-auto space-y-3 pr-0.5 text-xs">
+
+        <!-- NOTA INFORMATIVA AMB EL FORMAT ESPERAT -->
+        <div class="bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs p-3 rounded-xl space-y-1.5 shadow-2xs">
+          <div class="flex items-center gap-1.5 font-bold text-emerald-950">
+            <i class="fa-solid fa-circle-info text-emerald-600"></i>
+            <span>Format JSON esperat:</span>
+          </div>
+          <p class="text-[11px] text-emerald-800 leading-snug">
+            Un fitxer o llista amb els camps <code>name</code>, <code>category</code>, <code>store</code>, <code>qty</code>, <code>unit</code>, <code>note</code> (només <code>name</code> és obligatori):
+          </p>
+          <pre class="bg-white/90 p-2 rounded-lg text-[10px] text-gray-700 font-mono overflow-x-auto border border-emerald-200/60 leading-relaxed">[
+  {
+    "name": "Formatge semicurat",
+    "category": "Làctics",
+    "qty": "200",
+    "unit": "g",
+    "note": "A llesques"
+  },
+  {
+    "name": "Barra de pa rústica",
+    "qty": "2",
+    "unit": "ud"
+  }
+]</pre>
+        </div>
+
+        <!-- SELECCIONAR FITXER -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+            <i class="fa-solid fa-file-arrow-up text-emerald-600"></i>
+            <span>Opció A: Seleccionar o arrossegar fitxer (.json)</span>
+          </label>
+          <input type="file" id="json-products-file-input" accept=".json,.txt" class="hidden" onchange="handleJsonProductsFile(event)">
+          <label for="json-products-file-input"
+            class="border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/80 rounded-xl p-3 flex items-center justify-center gap-3 cursor-pointer transition text-center select-none active:scale-[0.98]">
+            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 shadow-2xs flex-shrink-0">
+              <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+            </div>
+            <div class="text-left min-w-0">
+              <span class="font-bold text-xs text-emerald-950 block">Tria un fitxer JSON</span>
+              <span id="json-products-file-name" class="text-[10px] text-gray-500 truncate block">Fes clic per explorar els teus fitxers</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- SEPARADOR -->
+        <div class="flex items-center my-1">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="px-2 text-[10px] text-gray-400 uppercase font-semibold">o bé enganxa el codi</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+
+        <!-- TEXTAREA PER ENGANXAR DIRECTAMENT -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label for="json-products-textarea" class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-paste text-emerald-600"></i>
+              <span>Opció B: Enganxar text JSON directament</span>
+            </label>
+            <button type="button" onclick="pasteClipboardToJsonTextarea()" class="text-[10.5px] text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-emerald-50 cursor-pointer">
+              <i class="fa-solid fa-clipboard text-[10px]"></i> Enganxar
+            </button>
+          </div>
+          <textarea id="json-products-textarea" rows="4"
+            placeholder='[ { "name": "Plàtans", "qty": "1", "unit": "kg" } ]'
+            class="w-full text-xs font-mono p-2.5 border border-gray-300 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-gray-50/50 focus:bg-white resize-y leading-relaxed"></textarea>
+        </div>
+
+        <!-- TRIAR BOTIGA / LLISTA DE DESTINACIÓ -->
+        <div class="space-y-1.5 pt-1 border-t border-gray-100">
+          <label for="json-products-store-select" class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-store text-emerald-600"></i>
+            <span>A quina botiga o llista vols importar-los?</span>
+          </label>
+          <select id="json-products-store-select"
+            class="w-full h-9 text-xs border border-gray-300 rounded-xl px-2.5 bg-white font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs">
+            <!-- Injecció dinàmica des de JS -->
+          </select>
+          <p class="text-[10px] text-gray-400 italic">
+            💡 Si selecciones una botiga o calaix concret, tots els productes aniran a aquella llista.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- BOTONS DE PEU -->
+      <div class="pt-2.5 border-t border-gray-200 flex gap-2 flex-shrink-0">
+        <button type="button" onclick="submitJsonProductsImport()"
+          class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer">
+          <i class="fa-solid fa-file-import"></i>
+          <span>Importar productes</span>
+        </button>
+        <button type="button" onclick="closeJsonProductsImportModal()"
+          class="px-4 py-2.5 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold transition cursor-pointer">
+          <span>Cancel·lar</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ==========================================
        MODAL: COMPARTIR LLISTA (WHATSAPP & TEXT)
        ========================================== -->
@@ -2805,6 +2936,7 @@
         menuInstallApp: "Instal·lar com a App",
         menuOcr: "Llegir tiquet (extreure preus)",
         menuImportOG: "Importar OurGroceries (.json/.zip)",
+        menuImportProductsJson: "Importar productes (json)",
         menuCleanDupes: "Netejar duplicats / proves",
         menuExportBackup: "Exportar còpia de seguretat",
         menuImportBackup: "Importar còpia de seguretat",
@@ -2960,6 +3092,7 @@
         menuInstallApp: "Instalar como App",
         menuOcr: "Leer ticket (extraer precios)",
         menuImportOG: "Importar OurGroceries (.json/.zip)",
+        menuImportProductsJson: "Importar productos (json)",
         menuCleanDupes: "Limpiar duplicados / pruebas",
         menuExportBackup: "Exportar copia de seguridad",
         menuImportBackup: "Importar copia de seguridad",
@@ -9075,6 +9208,41 @@
           saveToLocalStorage();
         }
 
+        // Suport per importar ingredients enviats des del sistema de Receptes (?import_items=...)
+        if (typeof window !== "undefined" && window.location && window.location.search) {
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.has("import_items")) {
+            try {
+              const rawData = urlParams.get("import_items");
+              const importedList = JSON.parse(decodeURIComponent(rawData));
+              if (Array.isArray(importedList) && importedList.length > 0) {
+                const now = Date.now();
+                importedList.forEach(it => {
+                  items.push({
+                    id: "rec_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6),
+                    name: it.name || "Producte",
+                    category: it.category || "General",
+                    store: it.store || "mercadona",
+                    qty: String(it.qty || "1"),
+                    unit: it.unit || "ud",
+                    price: it.price || 0,
+                    note: it.note || "Importat des de Receptes",
+                    crossed_off: false,
+                    updatedAt: now
+                  });
+                });
+                saveToLocalStorage();
+                window.history.replaceState({}, document.title, window.location.pathname);
+                setTimeout(() => {
+                  alert(`S'han afegit amb èxit ${importedList.length} ingredients de la recepta a la Cistella!`);
+                }, 400);
+              }
+            } catch (errImport) {
+              console.error("Error important ingredients des de Receptes:", errImport);
+            }
+          }
+        }
+
         const storedStore = localStorage.getItem(STORAGE_KEY_STORE);
         if (storedStore && STORES.some(s => s.id === storedStore)) {
           currentStoreFilter = storedStore;
@@ -9587,6 +9755,223 @@
       const modal = document.getElementById("import-confirm-modal");
       if (modal) modal.classList.add("hidden");
       window._pendingImportItems = null;
+    }
+
+    // ==========================================
+    // IMPORTADOR DE PRODUCTES EN FORMAT JSON
+    // ==========================================
+    function openJsonProductsImportModal() {
+      if (typeof registerModalOpen === 'function') {
+        registerModalOpen('json-products-import-modal', closeJsonProductsImportModal);
+      }
+      const modal = document.getElementById("json-products-import-modal");
+      if (!modal) return;
+
+      // Netejar camps
+      const ta = document.getElementById("json-products-textarea");
+      if (ta) ta.value = "";
+      const finput = document.getElementById("json-products-file-input");
+      if (finput) finput.value = "";
+      const fname = document.getElementById("json-products-file-name");
+      if (fname) fname.innerText = currentLang === 'es' ? "Haz clic para elegir un archivo del dispositivo" : "Fes clic per triar un arxiu del dispositiu";
+
+      // Omplir desplegable de botigues
+      const select = document.getElementById("json-products-store-select");
+      if (select) {
+        const availableStores = STORES.filter(s => s.id !== "all");
+        let html = `
+          <option value="__json__">${currentLang === 'es' ? '⚙️ Según el campo "store" de cada producto (o lista actual)' : '⚙️ Segons el camp "store" de cada producte (o llista actual)'}</option>
+        `;
+        availableStores.forEach(s => {
+          const isFreezer = s.id.startsWith("congelador_") || s.isFreezer;
+          const icon = isFreezer ? "❄️ " : "🏪 ";
+          const sName = getStoreDisplayName(s, currentLang);
+          const isSelected = currentStoreFilter !== "all" && currentStoreFilter === s.id;
+          html += `<option value="${s.id}" ${isSelected ? 'selected' : ''}>${icon}${sName}</option>`;
+        });
+        select.innerHTML = html;
+      }
+
+      modal.classList.remove("hidden");
+    }
+
+    function closeJsonProductsImportModal() {
+      if (typeof registerModalClose === 'function') {
+        registerModalClose('json-products-import-modal');
+      }
+      const modal = document.getElementById("json-products-import-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function handleJsonProductsFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const fname = document.getElementById("json-products-file-name");
+      if (fname) fname.innerText = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const content = e.target.result;
+        const ta = document.getElementById("json-products-textarea");
+        if (ta) ta.value = content;
+        showToast(currentLang === 'es' ? `Archivo "${file.name}" cargado` : `Arxiu "${file.name}" carregat`, "fa-file-code");
+      };
+      reader.onerror = function () {
+        alert(currentLang === 'es' ? "Error al leer el archivo seleccionado" : "Error en llegir el fitxer seleccionat");
+      };
+      reader.readAsText(file);
+    }
+
+    async function pasteClipboardToJsonTextarea() {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            const ta = document.getElementById("json-products-textarea");
+            if (ta) {
+              ta.value = text;
+              showToast(currentLang === 'es' ? "Texto pegado desde el portapapeles" : "Text enganxat des del porta-retalls", "fa-paste");
+            }
+          }
+        } else {
+          alert(currentLang === 'es' ? "El navegador no permite acceso directo al portapapeles. Pega con Ctrl+V o mantén pulsado." : "El navegador no permet accés directe al porta-retalls. Enganxa amb Ctrl+V o mantén premut.");
+        }
+      } catch (err) {
+        console.warn("Clipboard access error:", err);
+        alert(currentLang === 'es' ? "No se ha podido leer el portapapeles. Pega manualmente en el área de texto." : "No s'ha pogut llegir el porta-retalls. Enganxa manualment a l'àrea de text.");
+      }
+    }
+
+    function submitJsonProductsImport() {
+      const ta = document.getElementById("json-products-textarea");
+      const raw = ta ? ta.value.trim() : "";
+      if (!raw) {
+        alert(currentLang === 'es' ? "Por favor, selecciona un archivo o pega el contenido JSON." : "Si us plau, selecciona un fitxer o enganxa el contingut JSON.");
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (err) {
+        alert((currentLang === 'es' ? "Error en el formato JSON:\n\n" : "Error en el format JSON:\n\n") + err.message);
+        return;
+      }
+
+      let rawList = [];
+      if (Array.isArray(parsed)) {
+        rawList = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        if (Array.isArray(parsed.products)) rawList = parsed.products;
+        else if (Array.isArray(parsed.items)) rawList = parsed.items;
+        else if (Array.isArray(parsed.ingredients)) rawList = parsed.ingredients;
+        else if (parsed.name) rawList = [parsed];
+      }
+
+      if (!Array.isArray(rawList) || rawList.length === 0) {
+        alert(currentLang === 'es' ? "No se ha encontrado ninguna lista de productos en el JSON proporcionado." : "No s'ha trobat cap llista de productes en el JSON proporcionat.");
+        return;
+      }
+
+      const storeSelect = document.getElementById("json-products-store-select");
+      const chosenStoreOption = storeSelect ? storeSelect.value : "__json__";
+
+      const validItems = rawList.filter(it => it && typeof it === "object" && it.name && String(it.name).trim().length > 0);
+      if (validItems.length === 0) {
+        alert(currentLang === 'es' ? "No se ha encontrado ningún producto válido con el campo 'name'." : "No s'ha trobat cap producte vàlid amb el camp 'name'.");
+        return;
+      }
+
+      const now = Date.now();
+      let importedCount = 0;
+      const destinationStores = new Set();
+
+      validItems.forEach(it => {
+        let targetStore = "mercadona";
+        if (chosenStoreOption !== "__json__") {
+          targetStore = chosenStoreOption;
+        } else if (it.store && typeof it.store === "string" && it.store.trim()) {
+          const rawStore = it.store.trim();
+          const cleanSlug = rawStore.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+          const matchedStore = STORES.find(s => s.id === cleanSlug || s.id === rawStore || s.name.toLowerCase() === rawStore.toLowerCase());
+          if (matchedStore) {
+            targetStore = matchedStore.id;
+          } else {
+            const newStore = ensureStore(cleanSlug || "custom_" + Date.now(), rawStore);
+            targetStore = newStore ? newStore.id : (currentStoreFilter !== "all" ? currentStoreFilter : "mercadona");
+          }
+        } else if (currentStoreFilter !== "all") {
+          targetStore = currentStoreFilter;
+        }
+
+        destinationStores.add(targetStore);
+        const pName = cleanName(String(it.name).trim());
+        const canon = getCanonicalProductKey(pName);
+
+        // Comprovar si ja existeix exactament a la botiga destí
+        const existing = items.find(x => x.store === targetStore && (getCanonicalProductKey(x.name) === canon || areProductNamesSimilar(x.name, pName)));
+
+        if (existing) {
+          existing.crossed_off = false;
+          delete existing.crossedAt;
+          if (it.qty) existing.qty = String(it.qty);
+          if (it.unit) existing.unit = String(it.unit);
+          if (it.note && String(it.note).trim()) existing.note = String(it.note).trim();
+          if (it.category && String(it.category).trim() && it.category !== "General") existing.category = String(it.category).trim();
+          if (typeof it.price !== "undefined" && Number(it.price) > 0) existing.price = Number(it.price);
+          existing.updatedAt = now;
+          const idx = items.indexOf(existing);
+          if (idx > -1) {
+            items.splice(idx, 1);
+            items.unshift(existing);
+          }
+        } else {
+          items.unshift({
+            id: "imp_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6),
+            name: pName,
+            category: it.category || "General",
+            store: targetStore,
+            qty: String(it.qty || "1"),
+            unit: it.unit || "ud",
+            price: Number(it.price) || 0,
+            note: it.note ? String(it.note).trim() : "",
+            crossed_off: false,
+            updatedAt: now
+          });
+        }
+        importedCount++;
+      });
+
+      saveToLocalStorage();
+      if (typeof scheduleCloudSync === 'function') scheduleCloudSync();
+
+      closeJsonProductsImportModal();
+
+      // Navegar a la llista destí i mostrar el missatge de confirmació
+      let targetListToShow = "all";
+      let destName = "";
+
+      if (destinationStores.size === 1) {
+        targetListToShow = Array.from(destinationStores)[0];
+        const storeObj = STORES.find(s => s.id === targetListToShow);
+        destName = storeObj ? getStoreDisplayName(storeObj, currentLang) : targetListToShow;
+      }
+
+      setStoreFilter(targetListToShow);
+      renderLists();
+      renderStoreTabs();
+      populateSelectOptions();
+
+      if (destName) {
+        showToast(currentLang === 'es'
+          ? `¡Se han importado ${importedCount} productos a "${destName}"!`
+          : `S'han importat ${importedCount} productes a "${destName}"!`, "fa-check");
+      } else {
+        showToast(currentLang === 'es'
+          ? `¡Se han importado ${importedCount} productos a sus respectivas listas!`
+          : `S'han importat ${importedCount} productes a les seves respectives llistes!`, "fa-check");
+      }
     }
 
     function cleanTestListDuplicates() {
