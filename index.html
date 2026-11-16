@@ -4557,6 +4557,7 @@
     // GESTIÓ DE NAVEGACIÓ ENRERE (SYSTEM BACK GESTURE)
     // ==========================================
     const openModalStack = [];
+    let isProgrammaticHistoryBack = false;
 
     function registerModalOpen(modalId, closeFn) {
       if (!modalId) return;
@@ -4580,7 +4581,9 @@
       if (!fromPopstate) {
         try {
           if (history.state && history.state.modalId === modalId) {
+            isProgrammaticHistoryBack = true;
             history.back();
+            setTimeout(() => { isProgrammaticHistoryBack = false; }, 350);
           }
         } catch (e) { }
       }
@@ -4640,6 +4643,13 @@
     }
 
     window.addEventListener("popstate", (e) => {
+      // 0. Si el retrocés d'historial prové d'un tancament programàtic d'un modal (botons Desar, Esborrar, Tancar),
+      // no hem de canviar de botiga ni forçar anar a "Totes"!
+      if (isProgrammaticHistoryBack) {
+        isProgrammaticHistoryBack = false;
+        return;
+      }
+
       // 1. Si hi ha algun modal obert, tancar-lo
       const closedModal = closeTopmostModal(true);
       if (closedModal) return;
@@ -4650,7 +4660,7 @@
         return;
       }
 
-      // 3. Si no hi ha modal ni selecció però estem dins d'una botiga específica, tornar a "Totes"
+      // 3. Si no hi ha modal ni selecció però l'usuari fa gest físic enrere en una botiga, tornar a "Totes"
       if (typeof currentStoreFilter !== "undefined" && currentStoreFilter !== "all") {
         setStoreFilter("all");
         return;
