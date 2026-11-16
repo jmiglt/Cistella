@@ -655,18 +655,40 @@
   </div>
 
   <div id="edit-modal"
-    class="bottom-sheet closed fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-[85] max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl">
+    class="bottom-sheet closed fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-[85] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
     <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-2.5 flex-shrink-0 cursor-pointer"
       onclick="closeEditModal()"></div>
 
-    <div class="px-4 py-2 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
-      <h3 class="text-base font-bold text-gray-800" data-i18n="editTitle">Fitxa del Producte</h3>
-      <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-full">
-        <i class="fa-solid fa-xmark text-lg"></i>
-      </button>
+    <div class="px-4 py-2.5 flex items-center justify-between border-b border-gray-100 flex-shrink-0 bg-white">
+      <div class="flex items-center gap-2 min-w-0">
+        <h3 class="text-sm sm:text-base font-bold text-gray-800 truncate" data-i18n="editTitle">Fitxa del Producte</h3>
+      </div>
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <!-- Esborrar (icona paperera) -->
+        <button type="button" onclick="deleteCurrentProduct()"
+          class="w-8 h-8 rounded-xl border border-rose-200 text-rose-600 bg-rose-50/60 hover:bg-rose-100 active:scale-95 flex items-center justify-center transition shadow-2xs cursor-pointer"
+          title="Eliminar producte" data-i18n-title="btnDelete">
+          <i class="fa-solid fa-trash text-xs"></i>
+        </button>
+
+        <!-- Desar (icona checkmark + Desar) -->
+        <button type="submit" form="edit-form"
+          class="h-8 px-2.5 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+          title="Desar canvis" data-i18n-title="btnSave">
+          <i class="fa-solid fa-check text-xs"></i>
+          <span class="text-xs" data-i18n="btnSaveShort">Desar</span>
+        </button>
+
+        <!-- Tancar (X) -->
+        <button type="button" onclick="closeEditModal()"
+          class="w-8 h-8 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:scale-95 flex items-center justify-center transition ml-0.5 cursor-pointer"
+          title="Tancar">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
     </div>
 
-    <form id="edit-form" class="p-4 space-y-3.5 text-xs" onsubmit="event.preventDefault(); saveProductEdit();">
+    <form id="edit-form" class="p-4 space-y-3.5 text-xs overflow-y-auto flex-1" onsubmit="event.preventDefault(); saveProductEdit();">
       <input type="hidden" id="edit-id">
 
       <!-- FOTO DEL PRODUCTE I CÀMERA -->
@@ -817,17 +839,8 @@
         </div>
       </div>
 
-      <!-- ACCIONS -->
-      <div class="pt-2 flex gap-2">
-        <button type="button" onclick="deleteCurrentProduct()"
-          class="flex-1 py-2.5 border border-rose-300 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-50 flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-trash"></i> <span data-i18n="btnDelete">Eliminar</span>
-        </button>
-        <button type="submit"
-          class="flex-[2] py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow flex items-center justify-center gap-1.5 active:scale-98 transition">
-          <i class="fa-solid fa-check"></i> <span data-i18n="btnSave">Desar canvis</span>
-        </button>
-      </div>
+      <!-- ESPAI INFERIOR -->
+      <div class="h-2"></div>
     </form>
   </div>
 
@@ -2984,6 +2997,7 @@
         lblPriceHistoryCount: "Últims 6-7 registres",
         btnDelete: "Eliminar",
         btnSave: "Desar canvis",
+        btnSaveShort: "Desar",
 
         manageCatTitle: "Gestionar categories",
         manageCatSub: "Categories ordenades i preparades",
@@ -3140,6 +3154,7 @@
         lblPriceHistoryCount: "Últimos 6-7 registros",
         btnDelete: "Eliminar",
         btnSave: "Guardar cambios",
+        btnSaveShort: "Guardar",
 
         manageCatTitle: "Gestionar categorías",
         manageCatSub: "Categorías ordenadas y preparadas",
@@ -8299,6 +8314,11 @@
       if (!it) return;
 
       const newName = cleanName(document.getElementById("edit-name").value.trim());
+      if (!newName) {
+        document.getElementById("edit-name")?.focus();
+        showToast(currentLang === 'es' ? "Introduce el nombre del producto" : "Introdueix el nom de l'article", "fa-triangle-exclamation");
+        return;
+      }
       const newQtyStr = document.getElementById("edit-qty").value.trim();
       const newUnit = document.getElementById("edit-unit").value.trim();
       const newPrice = parseFloat(document.getElementById("edit-price").value) || 0.0;
@@ -8385,10 +8405,16 @@
 
     function deleteCurrentProduct() {
       const id = document.getElementById("edit-id").value;
-      if (id) {
-        recordItemDeletion(id);
-        items = items.filter(x => x.id !== id);
+      if (!id) return;
+
+      const it = items.find(x => x.id === id);
+      const prodName = it ? it.name : (currentLang === 'es' ? 'este producto' : 'aquest article');
+      if (!confirm(currentLang === 'es' ? `¿Seguro que quieres eliminar "${prodName}"?` : `Segur que vols eliminar "${prodName}"?`)) {
+        return;
       }
+
+      recordItemDeletion(id);
+      items = items.filter(x => x.id !== id);
       saveToLocalStorage();
       closeEditModal();
       renderLists();
@@ -8397,7 +8423,7 @@
       if (typeof scheduleCloudSync === 'function') {
         scheduleCloudSync(true);
       }
-      showToast("Producte eliminat", "fa-trash");
+      showToast(currentLang === 'es' ? "Producto eliminado" : "Producte eliminat", "fa-trash");
     }
 
 
