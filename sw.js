@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cistella-cache-v65';
+const CACHE_NAME = 'cistella-cache-v66';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,7 +7,9 @@ const ASSETS_TO_CACHE = [
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png',
-  'https://cdn.jsdelivr.net/npm/mqtt@5.3.5/dist/mqtt.min.js'
+  'https://cdn.jsdelivr.net/npm/mqtt@5.3.5/dist/mqtt.min.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js'
 ];
 
 // Instal·lació del Service Worker i precaching bàsic

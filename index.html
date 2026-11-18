@@ -130,6 +130,9 @@
   </style>
   <!-- MQTT.js per a sincronització fiable i instantània en temps real -->
   <script src="https://cdn.jsdelivr.net/npm/mqtt@5.3.5/dist/mqtt.min.js"></script>
+  <!-- Firebase SDK per a emmagatzematge de tiquets al núvol (Cloud Storage) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 </head>
 
 <body class="bg-gray-100 text-gray-800 flex flex-col h-full overflow-hidden font-sans antialiased">
@@ -409,6 +412,15 @@
             </span>
             <span
               class="text-[9.5px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200">OCR</span>
+          </button>
+          <button onclick="openTicketsModal(); toggleOptionsMenu();"
+            class="w-full text-left px-3.5 py-2 hover:bg-emerald-50/50 active:bg-emerald-100/50 text-slate-700 font-medium flex items-center justify-between transition-colors">
+            <span class="flex items-center gap-2.5">
+              <i class="fa-solid fa-file-invoice-dollar text-emerald-600 w-4 text-center text-xs"></i>
+              <span data-i18n="menuTickets">Tiquets de compra</span>
+            </span>
+            <span id="menu-tickets-count-badge"
+              class="text-[9.5px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200">0</span>
           </button>
           <button onclick="openImportModal(); toggleOptionsMenu();"
             class="w-full text-left px-3.5 py-2 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium flex items-center justify-between transition-colors">
@@ -1525,6 +1537,259 @@
           Cancel·lar
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE TIQUETS DE COMPRA (LLISTAT I GESTIÓ) -->
+  <div id="tickets-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div
+      class="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col">
+      <!-- CAPÇALERA -->
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-base">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-sm font-bold text-gray-900" data-i18n="ticketsTitle">Tiquets de compra</h3>
+              <span id="tickets-total-count" class="text-[10px] font-bold px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded-full">0</span>
+            </div>
+            <p class="text-[10px] sm:text-[11px] text-gray-500" data-i18n="ticketsSubtitle">Desa fotos i PDFs al núvol compartit</p>
+          </div>
+        </div>
+        <button onclick="closeTicketsModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- TARGETA DE RESUM / DESPESA -->
+      <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-3 text-white shadow-sm flex items-center justify-between">
+        <div>
+          <span class="text-[10px] text-emerald-100 font-semibold uppercase tracking-wider block" id="tickets-period-label">Despesa total (aquest mes)</span>
+          <div class="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5" id="tickets-period-total">0,00 €</div>
+        </div>
+        <button onclick="openNewTicketModal()"
+          class="px-3 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span data-i18n="btnNewTicket">Nou tiquet</span>
+        </button>
+      </div>
+
+      <!-- FILTRES: BOTIGA I PERÍODE -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1" data-i18n="lblFilterStore">Filtrar per botiga:</label>
+          <select id="tickets-filter-store" onchange="renderTicketsList()"
+            class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+            <option value="all">Totes les botigues</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-gray-500 mb-1" data-i18n="lblFilterPeriod">Filtrar per mes:</label>
+          <select id="tickets-filter-month" onchange="renderTicketsList()"
+            class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+            <option value="current">Aquest mes</option>
+            <option value="all">Tots els mesos</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- LLISTAT DE TIQUETS -->
+      <div id="tickets-list-container" class="flex-1 overflow-y-auto space-y-2 pr-0.5 min-h-[160px] max-h-[55vh]">
+        <!-- Injecció dinàmica de targetes de tiquet -->
+      </div>
+
+      <!-- PEU DEL MODAL -->
+      <div class="pt-2 border-t flex items-center justify-between text-[11px] text-gray-400">
+        <span class="flex items-center gap-1">
+          <i class="fa-solid fa-cloud text-emerald-600"></i> Sincronitzat amb Firebase
+        </span>
+        <button onclick="closeTicketsModal()" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-xs transition">
+          Tancar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PER CREAR / PUJAR UN NOU TIQUET -->
+  <div id="new-ticket-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+    <div
+      class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col">
+      <!-- CAPÇALERA -->
+      <div class="flex items-center justify-between border-b pb-2">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-cloud-arrow-up text-emerald-600 text-base"></i>
+          <h3 class="text-sm font-bold text-gray-900" data-i18n="newTicketTitle">Afegir tiquet de compra</h3>
+        </div>
+        <button onclick="closeNewTicketModal()" class="text-gray-400 hover:text-gray-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- ZONA DE SELECCIÓ DE FITXER (CÀMERA O FITXER) -->
+      <div class="space-y-2">
+        <div id="new-ticket-upload-zone"
+          class="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-xl p-3.5 text-center space-y-2 bg-gray-50/70 transition">
+          <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-lg">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-gray-800">Fes una foto o tria un PDF</p>
+            <p class="text-[10px] text-gray-500">Admet imatges (JPG, PNG) i documents PDF</p>
+          </div>
+          <div class="flex gap-2 justify-center pt-1">
+            <button type="button" onclick="document.getElementById('new-ticket-camera-input').click()"
+              class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <i class="fa-solid fa-camera"></i> Fer foto
+            </button>
+            <button type="button" onclick="document.getElementById('new-ticket-file-input').click()"
+              class="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fa-solid fa-folder-open"></i> Triar arxiu
+            </button>
+          </div>
+          <input type="file" id="new-ticket-camera-input" accept="image/*" capture="environment" class="hidden"
+            onchange="handleNewTicketFileSelected(event)">
+          <input type="file" id="new-ticket-file-input" accept="image/*,application/pdf" class="hidden"
+            onchange="handleNewTicketFileSelected(event)">
+        </div>
+
+        <!-- PREVISUALITZACIÓ DEL FITXER SELECCIONAT -->
+        <div id="new-ticket-preview-box" class="hidden bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-2.5 flex items-center justify-between">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div id="new-ticket-preview-thumb" class="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100 border flex-shrink-0">
+              <!-- Imatge o icona de PDF -->
+            </div>
+            <div class="min-w-0">
+              <p id="new-ticket-preview-name" class="text-xs font-bold text-gray-800 truncate">tiquet.jpg</p>
+              <p id="new-ticket-preview-size" class="text-[10px] text-emerald-700 font-medium">120 KB</p>
+            </div>
+          </div>
+          <button type="button" onclick="clearNewTicketFile()" class="text-gray-400 hover:text-rose-600 p-1.5 transition" title="Treure arxiu">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- FORMULARI DE DADES DEL TIQUET -->
+      <div class="space-y-2.5 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-gray-700 text-xs mb-1">Supermercat / Botiga:</label>
+            <select id="new-ticket-store"
+              class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+              <!-- Injecció de botigues -->
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 text-xs mb-1">Data de compra:</label>
+            <input type="date" id="new-ticket-date"
+              class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-gray-700 text-xs mb-1">Import total (€):</label>
+          <div class="relative">
+            <input type="number" step="0.01" min="0" id="new-ticket-total" placeholder="0.00"
+              class="w-full text-sm font-bold border border-gray-300 rounded-lg pl-3 pr-7 py-1.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+            <span class="absolute right-3 top-2 text-xs font-bold text-gray-400">€</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-gray-700 text-xs mb-1">Notes o comentari (opcional):</label>
+          <input type="text" id="new-ticket-note" placeholder="Ex: Compra setmanal, dinar familiar..."
+            class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- BOTÓ DESAR / INDICADOR DE PUJADA -->
+      <div class="pt-2 border-t flex gap-2">
+        <button type="button" onclick="closeNewTicketModal()"
+          class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-lg text-xs transition">
+          Cancel·lar
+        </button>
+        <button type="button" id="new-ticket-submit-btn" onclick="submitNewTicket()"
+          class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span id="new-ticket-submit-text">Desar al núvol</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VISOR DE TIQUET (FOTO EN GRAN O PDF) -->
+  <div id="ticket-viewer-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in"
+    onclick="closeTicketViewerModal()">
+    <div class="relative max-w-2xl w-full flex flex-col items-center h-[94vh]" onclick="event.stopPropagation()">
+      <!-- BARRA SUPERIOR -->
+      <div class="w-full flex items-center justify-between text-white pb-2.5 px-2">
+        <div class="min-w-0 pr-2">
+          <div class="flex items-center gap-2">
+            <span id="viewer-ticket-store-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-gray-900">Mercadona</span>
+            <span id="viewer-ticket-date" class="text-xs text-white/80">18/11/2026</span>
+          </div>
+          <div id="viewer-ticket-total" class="text-lg font-extrabold text-emerald-400 mt-0.5">34,50 €</div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button id="viewer-ticket-share-btn" onclick="shareCurrentViewerTicket()" title="Compartir"
+            class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+            <i class="fa-solid fa-share-nodes text-xs"></i>
+          </button>
+          <a id="viewer-ticket-download-link" href="#" target="_blank" download title="Descarregar / Obrir"
+            class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+            <i class="fa-solid fa-download text-xs"></i>
+          </a>
+          <button onclick="closeTicketViewerModal()" title="Tancar"
+            class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTINGUT (IMATGE AMB CONTROLS O IFRAME DE PDF) -->
+      <div class="flex-1 w-full bg-gray-950 rounded-2xl overflow-hidden border border-white/15 flex flex-col items-center justify-center relative p-1">
+        <!-- Visualitzador d'imatge -->
+        <div id="viewer-image-wrapper" class="w-full h-full flex items-center justify-center overflow-auto relative">
+          <img id="viewer-ticket-img" src="" alt="Tiquet" class="max-h-full max-w-full object-contain transition-transform duration-150 select-none">
+        </div>
+        <!-- Visualitzador de PDF -->
+        <div id="viewer-pdf-wrapper" class="hidden w-full h-full flex flex-col items-center justify-center p-4 text-center space-y-3">
+          <div class="w-16 h-16 rounded-2xl bg-rose-600/20 text-rose-500 flex items-center justify-center text-3xl">
+            <i class="fa-solid fa-file-pdf"></i>
+          </div>
+          <p id="viewer-pdf-name" class="text-sm font-bold text-white truncate max-w-xs">tiquet.pdf</p>
+          <a id="viewer-pdf-open-btn" href="#" target="_blank"
+            class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Obrir document PDF
+          </a>
+        </div>
+
+        <!-- CONTROLS D'IMATGE (ZOOM I ROTACIÓ) -->
+        <div id="viewer-image-controls" class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md border border-white/20 rounded-full px-3 py-1.5 flex items-center gap-3 text-white text-xs">
+          <button onclick="zoomViewerTicket(-0.25)" class="hover:text-emerald-400 p-1" title="Allunyar">
+            <i class="fa-solid fa-magnifying-glass-minus"></i>
+          </button>
+          <span id="viewer-zoom-level" class="text-[11px] font-mono min-w-[35px] text-center">100%</span>
+          <button onclick="zoomViewerTicket(0.25)" class="hover:text-emerald-400 p-1" title="Apropar">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+          </button>
+          <div class="w-px h-3.5 bg-white/20"></div>
+          <button onclick="rotateViewerTicket()" class="hover:text-emerald-400 p-1" title="Girar 90º">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+          <button onclick="resetViewerTicketTransform()" class="hover:text-emerald-400 p-1 text-[10px]" title="Restablir">
+            1:1
+          </button>
+        </div>
+      </div>
+
+      <!-- PEU / NOTA -->
+      <div id="viewer-ticket-note" class="w-full text-center text-white/70 text-xs py-1.5 truncate px-3"></div>
     </div>
   </div>
 
@@ -2968,6 +3233,13 @@
         menuSecTools: "Eines i Dades",
         menuInstallApp: "Instal·lar com a App",
         menuOcr: "Llegir tiquet (extreure preus)",
+        menuTickets: "Tiquets de compra",
+        ticketsTitle: "Tiquets de compra",
+        ticketsSubtitle: "Desa fotos i PDFs al núvol compartit",
+        btnNewTicket: "Nou tiquet",
+        lblFilterStore: "Filtrar per botiga:",
+        lblFilterPeriod: "Filtrar per mes:",
+        newTicketTitle: "Afegir tiquet de compra",
         menuImportOG: "Importar OurGroceries (.json/.zip)",
         menuImportProductsJson: "Importar productes (json)",
         menuCleanDupes: "Netejar duplicats / proves",
@@ -3125,6 +3397,13 @@
         menuSecTools: "Herramientas y Datos",
         menuInstallApp: "Instalar como App",
         menuOcr: "Leer ticket (extraer precios)",
+        menuTickets: "Tickets de compra",
+        ticketsTitle: "Tickets de compra",
+        ticketsSubtitle: "Guarda fotos y PDFs en la nube compartida",
+        btnNewTicket: "Nuevo ticket",
+        lblFilterStore: "Filtrar por tienda:",
+        lblFilterPeriod: "Filtrar por mes:",
+        newTicketTitle: "Añadir ticket de compra",
         menuImportOG: "Importar OurGroceries (.json/.zip)",
         menuImportProductsJson: "Importar productos (json)",
         menuCleanDupes: "Limpiar duplicados / pruebas",
@@ -4630,6 +4909,9 @@
 
       // Verificació directa sobre el DOM per si cap modal no s'havia registrat a la pila
       const candidates = [
+        { id: 'ticket-viewer-modal', close: (fromPop) => closeTicketViewerModal(fromPop) },
+        { id: 'new-ticket-modal', close: (fromPop) => closeNewTicketModal(fromPop) },
+        { id: 'tickets-modal', close: (fromPop) => closeTicketsModal(fromPop) },
         { id: 'image-lightbox-modal', close: closeImageLightbox },
         { id: 'image-picker-modal', close: closeImagePickerModal },
         { id: 'confirm-new-product-modal', close: closeConfirmNewProductModal },
@@ -9398,7 +9680,13 @@
     }
 
     function exportDataJSON() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items, null, 2));
+      const backupData = {
+        version: 2,
+        exportDate: new Date().toISOString(),
+        items: items,
+        tickets: typeof TICKETS !== 'undefined' ? TICKETS : []
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `cistella_backup_${new Date().toISOString().slice(0, 10)}.json`);
@@ -9501,6 +9789,18 @@
             renderLists();
             renderStoreTabs();
             showToast(`${parsed.length} articles de còpia restaurats!`, "fa-check");
+          } else if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.items)) {
+              items = parsed.items;
+              saveToLocalStorage();
+              renderLists();
+              renderStoreTabs();
+            }
+            if (Array.isArray(parsed.tickets)) {
+              TICKETS = parsed.tickets;
+              if (typeof saveTickets === 'function') saveTickets(true);
+            }
+            showToast("Còpia de seguretat restaurada!", "fa-check");
           } else {
             alert("El fitxer no és una còpia de seguretat vàlida.");
           }
@@ -10691,7 +10991,8 @@
         items: `cistella/v1/${clean}/items`,
         presenceAll: `cistella/v1/${clean}/devices/+`,
         myPresence: `cistella/v1/${clean}/devices/${syncDeviceId}`,
-        commands: `cistella/v1/${clean}/cmd`
+        commands: `cistella/v1/${clean}/cmd`,
+        tickets: `cistella/v1/${clean}/tickets`
       };
     }
 
@@ -10756,7 +11057,7 @@
           }
 
           // Subscripció als canals de la sala
-          mqttClient.subscribe([topics.items, topics.presenceAll, topics.commands], { qos: 1 });
+          mqttClient.subscribe([topics.items, topics.presenceAll, topics.commands, topics.tickets], { qos: 1 });
 
           // Publicar presència retinuda
           publishDevicePresence(true);
@@ -10765,6 +11066,9 @@
           if (items.length > 0) {
             scheduleCloudSync(true);
           }
+          if (typeof TICKETS !== 'undefined' && TICKETS.length > 0 && typeof broadcastTicketsSync === 'function') {
+            broadcastTicketsSync();
+          }
         });
 
         mqttClient.on('message', (topic, message) => {
@@ -10772,6 +11076,13 @@
             const rawText = message.toString();
             if (!rawText) return;
             const payload = JSON.parse(rawText);
+
+            if (topic.endsWith('/tickets')) {
+              if (typeof handleIncomingTicketsSync === 'function') {
+                handleIncomingTicketsSync(payload);
+              }
+              return;
+            }
 
             if (topic.includes('/devices/')) {
               // Notificació de presència d'un dispositiu
@@ -12527,6 +12838,728 @@
     window.handleCardContextMenu = handleCardContextMenu;
     window.handleQuickAddBtnClick = handleQuickAddBtnClick;
 
+    // =========================================================================
+    // MÒDUL DE TIQUETS DE COMPRA AMB FIREBASE CLOUD STORAGE I SINCRONITZACIÓ
+    // =========================================================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyC5cRUBbypMH8TegsJoIPaPXmVHQh-VgEA",
+      authDomain: "cistella-app.firebaseapp.com",
+      projectId: "cistella-app",
+      storageBucket: "cistella-app.firebasestorage.app",
+      messagingSenderId: "12148786944",
+      appId: "1:12148786944:web:be704987566d4baace55e5"
+    };
+
+    const STORAGE_KEY_TICKETS = "cistella_tickets_v1";
+    const STORAGE_KEY_DELETED_TICKETS = "cistella_deleted_tickets_v1";
+
+    let TICKETS = [];
+    let deletedTicketIdsMap = {};
+    let firebaseAppInstance = null;
+    let firebaseStorageInstance = null;
+
+    let pendingTicketFileObj = null;
+    let pendingTicketBlobToUpload = null;
+    let currentViewerTicketObj = null;
+    let ticketViewerZoomLevel = 1;
+    let ticketViewerRotationDeg = 0;
+
+    function getFirebaseStorage() {
+      if (!firebaseStorageInstance && typeof firebase !== "undefined") {
+        try {
+          if (!firebase.apps || firebase.apps.length === 0) {
+            firebaseAppInstance = firebase.initializeApp(FIREBASE_CONFIG);
+          } else {
+            firebaseAppInstance = firebase.app();
+          }
+          firebaseStorageInstance = firebase.storage();
+        } catch (e) {
+          console.error("Error inicialitzant Firebase Storage:", e);
+        }
+      }
+      return firebaseStorageInstance;
+    }
+
+    function loadTickets() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_TICKETS);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            TICKETS = parsed;
+          }
+        }
+        const rawDel = localStorage.getItem(STORAGE_KEY_DELETED_TICKETS);
+        if (rawDel) {
+          deletedTicketIdsMap = JSON.parse(rawDel) || {};
+        }
+      } catch (e) {
+        console.error("Error carregant tiquets de localStorage:", e);
+      }
+      updateTicketsBadge();
+    }
+
+    function saveTickets(broadcast = true) {
+      try {
+        localStorage.setItem(STORAGE_KEY_TICKETS, JSON.stringify(TICKETS));
+      } catch (e) {
+        console.error("Error guardant tiquets a localStorage:", e);
+      }
+      updateTicketsBadge();
+      if (broadcast && typeof broadcastTicketsSync === "function") {
+        broadcastTicketsSync();
+      }
+    }
+
+    function updateTicketsBadge() {
+      const badge = document.getElementById("menu-tickets-count-badge");
+      if (badge) {
+        badge.innerText = TICKETS.length;
+        if (TICKETS.length > 0) {
+          badge.classList.remove("hidden");
+        }
+      }
+      const totalCount = document.getElementById("tickets-total-count");
+      if (totalCount) {
+        totalCount.innerText = TICKETS.length;
+      }
+    }
+
+    function openTicketsModal() {
+      registerModalOpen("tickets-modal", closeTicketsModal);
+      const modal = document.getElementById("tickets-modal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+
+      populateTicketsStoreFilter();
+      populateTicketsMonthFilter();
+      renderTicketsList();
+    }
+
+    function closeTicketsModal(fromPopstate = false) {
+      registerModalClose("tickets-modal", fromPopstate);
+      const modal = document.getElementById("tickets-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function populateTicketsStoreFilter() {
+      const select = document.getElementById("tickets-filter-store");
+      if (!select) return;
+      const currentVal = select.value || "all";
+      const isEs = currentLang === "es";
+      let html = `<option value="all">${isEs ? "Todas las tiendas" : "Totes les botigues"}</option>`;
+      STORES.filter(s => s.id !== "all").forEach(s => {
+        const count = TICKETS.filter(t => t.store === s.id).length;
+        const countBadge = count > 0 ? ` (${count})` : "";
+        html += `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}${countBadge}</option>`;
+      });
+      select.innerHTML = html;
+      select.value = currentVal;
+    }
+
+    function populateTicketsMonthFilter() {
+      const select = document.getElementById("tickets-filter-month");
+      if (!select) return;
+      const currentVal = select.value || "current";
+      const isEs = currentLang === "es";
+
+      const monthMap = new Map();
+      TICKETS.forEach(t => {
+        if (t.date) {
+          const ym = t.date.substring(0, 7);
+          if (ym) {
+            monthMap.set(ym, true);
+          }
+        }
+      });
+
+      let html = `<option value="current">${isEs ? "Este mes" : "Aquest mes"}</option>`;
+      html += `<option value="all">${isEs ? "Todos los meses" : "Tots els mesos"}</option>`;
+
+      const sortedMonths = Array.from(monthMap.keys()).sort().reverse();
+      sortedMonths.forEach(ym => {
+        const [year, month] = ym.split("-");
+        const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const monthName = dateObj.toLocaleDateString(isEs ? "es-ES" : "ca-ES", { month: "long", year: "numeric" });
+        const capitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+        html += `<option value="${ym}">${capitalized}</option>`;
+      });
+
+      select.innerHTML = html;
+      select.value = currentVal;
+    }
+
+    function renderTicketsList() {
+      const container = document.getElementById("tickets-list-container");
+      const periodLabel = document.getElementById("tickets-period-label");
+      const periodTotal = document.getElementById("tickets-period-total");
+      if (!container) return;
+
+      const storeFilter = document.getElementById("tickets-filter-store")?.value || "all";
+      const monthFilter = document.getElementById("tickets-filter-month")?.value || "current";
+      const isEs = currentLang === "es";
+
+      const now = new Date();
+      const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+      let filtered = TICKETS.slice();
+
+      if (storeFilter !== "all") {
+        filtered = filtered.filter(t => t.store === storeFilter);
+      }
+
+      let activeMonthLabel = isEs ? "Gasto total" : "Despesa total";
+      if (monthFilter === "current") {
+        filtered = filtered.filter(t => (t.date || "").startsWith(currentYm));
+        activeMonthLabel = isEs ? "Gasto total (este mes)" : "Despesa total (aquest mes)";
+      } else if (monthFilter !== "all") {
+        filtered = filtered.filter(t => (t.date || "").startsWith(monthFilter));
+        const [year, month] = monthFilter.split("-");
+        const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const mName = dateObj.toLocaleDateString(isEs ? "es-ES" : "ca-ES", { month: "long", year: "numeric" });
+        activeMonthLabel = `${isEs ? "Gasto total" : "Despesa total"} (${mName})`;
+      } else {
+        activeMonthLabel = isEs ? "Gasto total (acumulado)" : "Despesa total (acumulada)";
+      }
+
+      if (periodLabel) periodLabel.innerText = activeMonthLabel;
+
+      const sum = filtered.reduce((acc, t) => acc + (parseFloat(t.total) || 0), 0);
+      if (periodTotal) {
+        periodTotal.innerText = sum.toFixed(2).replace(".", ",") + " €";
+      }
+
+      filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0) || (b.createdAt || 0) - (a.createdAt || 0));
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 px-4 text-gray-400 space-y-2">
+            <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto text-xl text-gray-400">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+            <p class="text-xs font-semibold text-gray-600">${isEs ? "No hay tickets guardados con este filtro." : "No hi ha cap tiquet desat amb aquest filtre."}</p>
+            <p class="text-[10px] text-gray-400">${isEs ? "Pulsa '+ Nuevo ticket' para fotografiar o subir un ticket de compra." : "Prem '+ Nou tiquet' per fotografiar o pujar un tiquet de compra."}</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(t => {
+        const storeObj = STORES.find(s => s.id === t.store);
+        const storeName = storeObj ? getStoreDisplayName(storeObj, currentLang) : (t.store || "General");
+        const isPdf = t.fileType === "application/pdf" || (t.fileName || "").toLowerCase().endsWith(".pdf");
+        
+        let dateFormatted = t.date || "";
+        if (t.date) {
+          try {
+            const [y, m, d] = t.date.split("-");
+            const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+            dateFormatted = dt.toLocaleDateString(isEs ? "es-ES" : "ca-ES", { day: "numeric", month: "short", year: "numeric" });
+          } catch(e){}
+        }
+
+        const totalFormatted = typeof t.total === "number" ? t.total.toFixed(2).replace(".", ",") + " €" : (parseFloat(t.total) ? parseFloat(t.total).toFixed(2).replace(".", ",") + " €" : "0,00 €");
+
+        return `
+          <div class="bg-white border border-gray-200/90 hover:border-emerald-500/60 rounded-xl p-2.5 shadow-2xs hover:shadow-xs transition flex items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer" onclick="openTicketViewer('${escapeHtml(t.id)}')">
+              <!-- Miniatura o icona -->
+              <div class="w-11 h-11 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100 border border-gray-200 flex-shrink-0 relative">
+                ${isPdf 
+                  ? `<div class="w-full h-full bg-rose-50 flex items-center justify-center text-rose-600 text-lg"><i class="fa-solid fa-file-pdf"></i></div>` 
+                  : (t.fileUrl 
+                      ? `<img src="${escapeHtml(t.fileUrl)}" alt="Tiquet" class="w-full h-full object-cover">` 
+                      : `<div class="w-full h-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-lg"><i class="fa-solid fa-image"></i></div>`
+                    )
+                }
+              </div>
+
+              <!-- Dades del tiquet -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200">${escapeHtml(storeName)}</span>
+                  <span class="text-[10px] text-gray-400">${escapeHtml(dateFormatted)}</span>
+                </div>
+                <div class="text-xs font-bold text-gray-900 mt-0.5 truncate">
+                  ${t.note ? escapeHtml(t.note) : (isPdf ? (t.fileName ? escapeHtml(t.fileName) : "Document PDF") : (isEs ? "Foto de ticket" : "Foto de tiquet"))}
+                </div>
+              </div>
+
+              <!-- Import -->
+              <div class="text-right flex-shrink-0 pr-1">
+                <div class="text-sm font-extrabold text-emerald-700">${totalFormatted}</div>
+              </div>
+            </div>
+
+            <!-- Accions -->
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <button onclick="openTicketViewer('${escapeHtml(t.id)}')" title="${isEs ? 'Ver ticket' : 'Veure tiquet'}"
+                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-emerald-100 text-gray-600 hover:text-emerald-700 flex items-center justify-center transition text-xs">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button onclick="shareTicket('${escapeHtml(t.id)}')" title="${isEs ? 'Compartir' : 'Compartir'}"
+                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-teal-100 text-gray-600 hover:text-teal-700 flex items-center justify-center transition text-xs">
+                <i class="fa-solid fa-share-nodes"></i>
+              </button>
+              <button onclick="deleteTicket('${escapeHtml(t.id)}')" title="${isEs ? 'Eliminar' : 'Eliminar'}"
+                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-rose-100 text-gray-400 hover:text-rose-600 flex items-center justify-center transition text-xs">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function openNewTicketModal() {
+      registerModalOpen("new-ticket-modal", closeNewTicketModal);
+      const modal = document.getElementById("new-ticket-modal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+
+      clearNewTicketFile();
+      const storeSelect = document.getElementById("new-ticket-store");
+      if (storeSelect) {
+        storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => {
+          return `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`;
+        }).join("");
+        if (currentStoreFilter !== "all") {
+          storeSelect.value = currentStoreFilter;
+        }
+      }
+
+      const dateInput = document.getElementById("new-ticket-date");
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().split("T")[0];
+      }
+
+      const totalInput = document.getElementById("new-ticket-total");
+      if (totalInput) totalInput.value = "";
+
+      const noteInput = document.getElementById("new-ticket-note");
+      if (noteInput) noteInput.value = "";
+
+      const submitBtn = document.getElementById("new-ticket-submit-btn");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        document.getElementById("new-ticket-submit-text").innerText = currentLang === "es" ? "Guardar en la nube" : "Desar al núvol";
+      }
+    }
+
+    function closeNewTicketModal(fromPopstate = false) {
+      registerModalClose("new-ticket-modal", fromPopstate);
+      const modal = document.getElementById("new-ticket-modal");
+      if (modal) modal.classList.add("hidden");
+      clearNewTicketFile();
+    }
+
+    function clearNewTicketFile() {
+      pendingTicketFileObj = null;
+      pendingTicketBlobToUpload = null;
+      const uploadZone = document.getElementById("new-ticket-upload-zone");
+      const previewBox = document.getElementById("new-ticket-preview-box");
+      const camInput = document.getElementById("new-ticket-camera-input");
+      const fileInput = document.getElementById("new-ticket-file-input");
+      if (camInput) camInput.value = "";
+      if (fileInput) fileInput.value = "";
+      if (uploadZone) uploadZone.classList.remove("hidden");
+      if (previewBox) previewBox.classList.add("hidden");
+    }
+
+    async function handleNewTicketFileSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      pendingTicketFileObj = file;
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+      const uploadZone = document.getElementById("new-ticket-upload-zone");
+      const previewBox = document.getElementById("new-ticket-preview-box");
+      const thumb = document.getElementById("new-ticket-preview-thumb");
+      const nameEl = document.getElementById("new-ticket-preview-name");
+      const sizeEl = document.getElementById("new-ticket-preview-size");
+
+      if (nameEl) nameEl.innerText = file.name;
+
+      if (isPdf) {
+        pendingTicketBlobToUpload = file;
+        const sizeKb = Math.round(file.size / 1024);
+        if (sizeEl) sizeEl.innerText = `Document PDF (${sizeKb} KB)`;
+        if (thumb) thumb.innerHTML = `<i class="fa-solid fa-file-pdf text-rose-500 text-xl"></i>`;
+      } else {
+        try {
+          if (thumb) thumb.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-emerald-600 text-base"></i>`;
+          const compressedBlob = await compressTicketImage(file);
+          pendingTicketBlobToUpload = compressedBlob;
+          const sizeKb = Math.round(compressedBlob.size / 1024);
+          if (sizeEl) sizeEl.innerText = `${currentLang === 'es' ? 'Imagen optimizada' : 'Imatge optimitzada'} (${sizeKb} KB)`;
+          
+          const objectUrl = URL.createObjectURL(compressedBlob);
+          if (thumb) thumb.innerHTML = `<img src="${objectUrl}" class="w-full h-full object-cover">`;
+        } catch (e) {
+          console.warn("Error comprimint imatge, utilitzant fitxer original:", e);
+          pendingTicketBlobToUpload = file;
+          const sizeKb = Math.round(file.size / 1024);
+          if (sizeEl) sizeEl.innerText = `${sizeKb} KB`;
+        }
+      }
+
+      if (uploadZone) uploadZone.classList.add("hidden");
+      if (previewBox) previewBox.classList.remove("hidden");
+    }
+
+    async function compressTicketImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            let width = img.width;
+            let height = img.height;
+            const maxDim = 1800;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error("Canvas toBlob failed"));
+            }, "image/jpeg", 0.82);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function submitNewTicket() {
+      if (!pendingTicketBlobToUpload) {
+        alert(currentLang === "es" ? "Por favor, selecciona una foto o un archivo PDF del ticket." : "Si us plau, selecciona una foto o un arxiu PDF del tiquet.");
+        return;
+      }
+
+      const storage = getFirebaseStorage();
+      if (!storage) {
+        alert("Firebase Storage no està llest o no s'ha pogut inicialitzar. Si us plau, recarrega la pàgina.");
+        return;
+      }
+
+      const storeSelect = document.getElementById("new-ticket-store");
+      const storeId = storeSelect ? storeSelect.value : "mercadona";
+      const dateInput = document.getElementById("new-ticket-date");
+      const ticketDate = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split("T")[0];
+      const totalInput = document.getElementById("new-ticket-total");
+      const ticketTotal = totalInput && totalInput.value ? parseFloat(totalInput.value) || 0 : 0;
+      const noteInput = document.getElementById("new-ticket-note");
+      const ticketNote = noteInput ? noteInput.value.trim() : "";
+
+      const submitBtn = document.getElementById("new-ticket-submit-btn");
+      const submitText = document.getElementById("new-ticket-submit-text");
+      if (submitBtn) submitBtn.disabled = true;
+      if (submitText) submitText.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> ${currentLang === 'es' ? 'Subiendo...' : 'Pujant...'}`;
+
+      try {
+        const ticketId = "tkt_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+        const originalName = pendingTicketFileObj ? pendingTicketFileObj.name : "tiquet.jpg";
+        const isPdf = pendingTicketFileObj && (pendingTicketFileObj.type === "application/pdf" || originalName.toLowerCase().endsWith(".pdf"));
+        const fileExt = isPdf ? ".pdf" : ".jpg";
+        const safeRoom = (currentSyncCode || "general").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const storagePath = `tickets/${safeRoom}/${ticketId}${fileExt}`;
+
+        const storageRef = storage.ref().child(storagePath);
+        const uploadTask = await storageRef.put(pendingTicketBlobToUpload, {
+          contentType: isPdf ? "application/pdf" : "image/jpeg"
+        });
+
+        const downloadUrl = await uploadTask.ref.getDownloadURL();
+
+        const newTicket = {
+          id: ticketId,
+          store: storeId,
+          date: ticketDate,
+          total: ticketTotal,
+          note: ticketNote,
+          fileUrl: downloadUrl,
+          storagePath: storagePath,
+          fileName: originalName,
+          fileType: isPdf ? "application/pdf" : "image/jpeg",
+          fileSize: pendingTicketBlobToUpload.size,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+
+        TICKETS.unshift(newTicket);
+        saveTickets(true);
+        populateTicketsStoreFilter();
+        populateTicketsMonthFilter();
+        renderTicketsList();
+        closeNewTicketModal();
+
+        showToast(currentLang === "es" ? "¡Ticket guardado en la nube!" : "Tiquet desat al núvol!", "fa-cloud-arrow-up");
+      } catch (err) {
+        console.error("Error pujant tiquet a Firebase:", err);
+        alert((currentLang === "es" ? "Error al subir el ticket a Firebase: " : "Error pujant el tiquet a Firebase: ") + (err.message || err));
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitText) submitText.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> ${currentLang === "es" ? "Guardar en la nube" : "Desar al núvol"}`;
+      }
+    }
+
+    async function deleteTicket(id) {
+      const ticket = TICKETS.find(t => t.id === id);
+      if (!ticket) return;
+
+      const isEs = currentLang === "es";
+      const confirmMsg = isEs 
+        ? "¿Seguro que quieres eliminar este ticket de compra del historial y de la nube?" 
+        : "Segur que vols eliminar aquest tiquet de compra de l'històric i del núvol?";
+
+      if (!confirm(confirmMsg)) return;
+
+      if (ticket.storagePath) {
+        const storage = getFirebaseStorage();
+        if (storage) {
+          try {
+            await storage.ref().child(ticket.storagePath).delete();
+          } catch (e) {
+            console.warn("No s'ha pogut eliminar el fitxer de Firebase Storage:", e);
+          }
+        }
+      }
+
+      deletedTicketIdsMap[id] = Date.now();
+      try {
+        localStorage.setItem(STORAGE_KEY_DELETED_TICKETS, JSON.stringify(deletedTicketIdsMap));
+      } catch(e){}
+
+      TICKETS = TICKETS.filter(t => t.id !== id);
+      saveTickets(true);
+      populateTicketsStoreFilter();
+      populateTicketsMonthFilter();
+      renderTicketsList();
+
+      showToast(isEs ? "Ticket eliminado" : "Tiquet eliminat", "fa-trash");
+    }
+
+    function openTicketViewer(id) {
+      const ticket = TICKETS.find(t => t.id === id);
+      if (!ticket) return;
+
+      currentViewerTicketObj = ticket;
+      ticketViewerZoomLevel = 1;
+      ticketViewerRotationDeg = 0;
+
+      registerModalOpen("ticket-viewer-modal", closeTicketViewerModal);
+      const modal = document.getElementById("ticket-viewer-modal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+
+      const storeObj = STORES.find(s => s.id === ticket.store);
+      const storeName = storeObj ? getStoreDisplayName(storeObj, currentLang) : (ticket.store || "General");
+      
+      const isPdf = ticket.fileType === "application/pdf" || (ticket.fileName || "").toLowerCase().endsWith(".pdf");
+
+      let dateFormatted = ticket.date || "";
+      if (ticket.date) {
+        try {
+          const [y, m, d] = ticket.date.split("-");
+          const dt = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+          dateFormatted = dt.toLocaleDateString(currentLang === "es" ? "es-ES" : "ca-ES", { day: "numeric", month: "long", year: "numeric" });
+        } catch(e){}
+      }
+
+      const totalFormatted = typeof ticket.total === "number" ? ticket.total.toFixed(2).replace(".", ",") + " €" : (parseFloat(ticket.total) ? parseFloat(ticket.total).toFixed(2).replace(".", ",") + " €" : "0,00 €");
+
+      document.getElementById("viewer-ticket-store-badge").innerText = storeName;
+      document.getElementById("viewer-ticket-date").innerText = dateFormatted;
+      document.getElementById("viewer-ticket-total").innerText = totalFormatted;
+      document.getElementById("viewer-ticket-note").innerText = ticket.note ? `“${ticket.note}”` : (ticket.fileName || "");
+
+      const downloadLink = document.getElementById("viewer-ticket-download-link");
+      if (downloadLink) {
+        downloadLink.href = ticket.fileUrl || "#";
+        downloadLink.setAttribute("download", ticket.fileName || "tiquet");
+      }
+
+      const imgWrapper = document.getElementById("viewer-image-wrapper");
+      const pdfWrapper = document.getElementById("viewer-pdf-wrapper");
+      const imgEl = document.getElementById("viewer-ticket-img");
+      const pdfOpenBtn = document.getElementById("viewer-pdf-open-btn");
+      const pdfNameEl = document.getElementById("viewer-pdf-name");
+      const controlsEl = document.getElementById("viewer-image-controls");
+
+      if (isPdf) {
+        if (imgWrapper) imgWrapper.classList.add("hidden");
+        if (controlsEl) controlsEl.classList.add("hidden");
+        if (pdfWrapper) pdfWrapper.classList.remove("hidden");
+        if (pdfNameEl) pdfNameEl.innerText = ticket.fileName || "Document PDF";
+        if (pdfOpenBtn) pdfOpenBtn.href = ticket.fileUrl || "#";
+      } else {
+        if (pdfWrapper) pdfWrapper.classList.add("hidden");
+        if (imgWrapper) imgWrapper.classList.remove("hidden");
+        if (controlsEl) controlsEl.classList.remove("hidden");
+        if (imgEl) {
+          imgEl.src = ticket.fileUrl || "";
+          applyViewerTransform();
+        }
+      }
+    }
+
+    function closeTicketViewerModal(fromPopstate = false) {
+      registerModalClose("ticket-viewer-modal", fromPopstate);
+      const modal = document.getElementById("ticket-viewer-modal");
+      if (modal) modal.classList.add("hidden");
+      currentViewerTicketObj = null;
+    }
+
+    function zoomViewerTicket(delta) {
+      ticketViewerZoomLevel = Math.max(0.5, Math.min(3.5, ticketViewerZoomLevel + delta));
+      applyViewerTransform();
+    }
+
+    function rotateViewerTicket() {
+      ticketViewerRotationDeg = (ticketViewerRotationDeg + 90) % 360;
+      applyViewerTransform();
+    }
+
+    function resetViewerTicketTransform() {
+      ticketViewerZoomLevel = 1;
+      ticketViewerRotationDeg = 0;
+      applyViewerTransform();
+    }
+
+    function applyViewerTransform() {
+      const imgEl = document.getElementById("viewer-ticket-img");
+      const zoomLevelEl = document.getElementById("viewer-zoom-level");
+      if (imgEl) {
+        imgEl.style.transform = `scale(${ticketViewerZoomLevel}) rotate(${ticketViewerRotationDeg}deg)`;
+      }
+      if (zoomLevelEl) {
+        zoomLevelEl.innerText = `${Math.round(ticketViewerZoomLevel * 100)}%`;
+      }
+    }
+
+    function shareCurrentViewerTicket() {
+      if (!currentViewerTicketObj) return;
+      shareTicket(currentViewerTicketObj.id);
+    }
+
+    function shareTicket(id) {
+      const ticket = TICKETS.find(t => t.id === id);
+      if (!ticket) return;
+
+      const isEs = currentLang === "es";
+      const storeObj = STORES.find(s => s.id === ticket.store);
+      const storeName = storeObj ? getStoreDisplayName(storeObj, currentLang) : (ticket.store || "General");
+      const title = `${isEs ? 'Ticket' : 'Tiquet'} ${storeName} (${ticket.date || ''})`;
+      const text = `${title} - ${ticket.total ? ticket.total + ' €' : ''}\n${ticket.fileUrl || ''}`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: title,
+          text: text,
+          url: ticket.fileUrl || window.location.href
+        }).catch(err => {
+          if (err.name !== "AbortError") {
+            window.open(ticket.fileUrl, "_blank");
+          }
+        });
+      } else {
+        if (ticket.fileUrl) {
+          window.open(ticket.fileUrl, "_blank");
+        }
+      }
+    }
+
+    function broadcastTicketsSync() {
+      if (!currentSyncCode || !mqttClient || !mqttClient.connected) return;
+      try {
+        const clean = currentSyncCode.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const topic = `cistella/v1/${clean}/tickets`;
+        mqttClient.publish(topic, JSON.stringify({
+          deviceId: syncDeviceId,
+          timestamp: Date.now(),
+          tickets: TICKETS,
+          deletedIds: deletedTicketIdsMap
+        }), { qos: 1, retain: true });
+      } catch (e) {
+        console.warn("Error enviant tiquets per MQTT:", e);
+      }
+    }
+
+    function handleIncomingTicketsSync(payload) {
+      if (!payload || !Array.isArray(payload.tickets)) return;
+      if (payload.deviceId === syncDeviceId) return;
+
+      if (payload.deletedIds && typeof payload.deletedIds === "object") {
+        deletedTicketIdsMap = { ...deletedTicketIdsMap, ...payload.deletedIds };
+        try { localStorage.setItem(STORAGE_KEY_DELETED_TICKETS, JSON.stringify(deletedTicketIdsMap)); } catch(e){}
+      }
+
+      let changed = false;
+      const map = new Map();
+      TICKETS.forEach(t => map.set(t.id, t));
+
+      payload.tickets.forEach(inc => {
+        if (!inc || !inc.id) return;
+        if (deletedTicketIdsMap[inc.id]) return;
+
+        const cur = map.get(inc.id);
+        if (!cur || (inc.updatedAt || inc.createdAt || 0) > (cur.updatedAt || cur.createdAt || 0)) {
+          map.set(inc.id, inc);
+          changed = true;
+        }
+      });
+
+      for (const [id, t] of map.entries()) {
+        if (deletedTicketIdsMap[id]) {
+          map.delete(id);
+          changed = true;
+        }
+      }
+
+      if (changed || map.size !== TICKETS.length) {
+        TICKETS = Array.from(map.values()).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        saveTickets(false);
+        renderTicketsList();
+        updateTicketsBadge();
+      }
+    }
+
+    function initTicketsModule() {
+      loadTickets();
+      getFirebaseStorage();
+    }
+
+    window.openTicketsModal = openTicketsModal;
+    window.closeTicketsModal = closeTicketsModal;
+    window.openNewTicketModal = openNewTicketModal;
+    window.closeNewTicketModal = closeNewTicketModal;
+    window.handleNewTicketFileSelected = handleNewTicketFileSelected;
+    window.clearNewTicketFile = clearNewTicketFile;
+    window.submitNewTicket = submitNewTicket;
+    window.deleteTicket = deleteTicket;
+    window.openTicketViewer = openTicketViewer;
+    window.closeTicketViewerModal = closeTicketViewerModal;
+    window.zoomViewerTicket = zoomViewerTicket;
+    window.rotateViewerTicket = rotateViewerTicket;
+    window.resetViewerTicketTransform = resetViewerTicketTransform;
+    window.shareCurrentViewerTicket = shareCurrentViewerTicket;
+    window.shareTicket = shareTicket;
+    window.renderTicketsList = renderTicketsList;
+
     // ==========================================
     // INICIALITZACIÓ GLOBAL (Tots els mòduls llestos)
     // ==========================================
@@ -12554,6 +13587,9 @@
 
       if (typeof initCloudSync === 'function') {
         initCloudSync();
+      }
+      if (typeof initTicketsModule === 'function') {
+        initTicketsModule();
       }
 
       // Tancar suggeriments en fer clic fora o prémer Escape
