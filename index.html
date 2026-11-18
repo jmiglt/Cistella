@@ -2416,6 +2416,15 @@
               ca: "Farina, Sucre i edulcorants, Llevat i preparats",
               es: "Harina, Azúcar y edulcorantes, Levadura y preparados"
             }
+          },
+          {
+            id: "Aperitius i Snacks",
+            name: { ca: "Aperitius i Snacks", es: "Aperitivos y Snacks" },
+            icon: "fa-bowl-food",
+            examples: {
+              ca: "Patates xips, Fritos i Doritos, Crispetes, Fruits secs salats, Nachos, Conos",
+              es: "Patatas fritas / chips, Fritos y Doritos, Palomitas, Frutos secos salados, Nachos, Conos"
+            }
           }
         ]
       },
@@ -2807,7 +2816,10 @@
       "Bazar": "Material d'Oficina i Escolar",
       "Llar": "Utillatge de Llar",
       "Bebè": "Nadons",
-      "Aperitius": "Conserves",
+      "Aperitius": "Aperitius i Snacks",
+      "Aperitivos": "Aperitius i Snacks",
+      "Snacks": "Aperitius i Snacks",
+      "Aperitivos y Snacks": "Aperitius i Snacks",
       "Altres": "General"
     };
 
@@ -2855,10 +2867,16 @@
     function getCategoryCanonicalKey(rawCat) {
       if (!rawCat) return "General";
       const trimmed = String(rawCat).trim();
-      if (CATEGORY_TRANSLATIONS[trimmed]) return trimmed;
       if (LEGACY_CAT_ALIASES[trimmed]) return LEGACY_CAT_ALIASES[trimmed];
 
       const lower = trimmed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      for (const [legacyKey, newKey] of Object.entries(LEGACY_CAT_ALIASES)) {
+        const legNorm = legacyKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (lower === legNorm) return newKey;
+      }
+
+      if (CATEGORY_TRANSLATIONS[trimmed]) return trimmed;
+
       for (const [key, trans] of Object.entries(CATEGORY_TRANSLATIONS)) {
         const caNorm = trans.ca.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         const esNorm = trans.es.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -2866,11 +2884,6 @@
         if (lower === caNorm || lower === esNorm || lower === keyNorm) {
           return key;
         }
-      }
-
-      for (const [legacyKey, newKey] of Object.entries(LEGACY_CAT_ALIASES)) {
-        const legNorm = legacyKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (lower === legNorm) return newKey;
       }
 
       if (lower.includes("cabina")) return "Productes Cabina";
@@ -2881,8 +2894,9 @@
       if (lower.includes("pescad") || lower.includes("peix")) return "Peixateria";
       if (lower.includes("panad") || lower.includes("forn")) return "Forn i Pastisseria";
       if (lower.includes("carn")) return "Carnisseria";
-      if (lower.includes("bebida") || lower.includes("beguda")) return "Aigua i Sucs";
+      if (lower.includes("bebid") || lower.includes("begud")) return "Aigua i Sucs";
       if (lower.includes("congelad") || lower.includes("congelat")) return "Plats Cuinats Congelats";
+      if (lower.includes("aperiti") || lower.includes("snack") || lower.includes("patates xips") || lower.includes("patatas fritas") || lower.includes("doritos") || lower.includes("fritos")) return "Aperitius i Snacks";
       return trimmed;
     }
 
@@ -3290,6 +3304,7 @@
         if (!CATEGORY_ICONS[k]) CATEGORY_ICONS[k] = DEFAULT_CATEGORY_ICONS[k];
       });
       if (!CATEGORY_ICONS["Productes Cabina"]) CATEGORY_ICONS["Productes Cabina"] = "fa-spa";
+      if (!CATEGORY_ICONS["Aperitius i Snacks"]) CATEGORY_ICONS["Aperitius i Snacks"] = "fa-bowl-food";
       CATEGORIES = getSortedCategoriesList();
     }
 
