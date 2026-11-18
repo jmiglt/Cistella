@@ -1673,6 +1673,17 @@
         </div>
       </div>
 
+      <!-- INDICADOR D'OCR / DETECCIÓ AUTOMÀTICA -->
+      <div id="new-ticket-ocr-status" class="hidden rounded-xl p-2.5 text-xs transition-all">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <i id="new-ticket-ocr-icon" class="fa-solid fa-circle-notch animate-spin text-emerald-600 text-sm flex-shrink-0"></i>
+            <span id="new-ticket-ocr-text" class="text-xs truncate font-medium">Detectant dades del tiquet...</span>
+          </div>
+          <span id="new-ticket-ocr-badge" class="hidden text-[9.5px] font-bold px-2 py-0.5 rounded-full border shadow-2xs flex-shrink-0"></span>
+        </div>
+      </div>
+
       <!-- FORMULARI DE DADES DEL TIQUET -->
       <div class="space-y-2.5 text-xs">
         <div class="grid grid-cols-2 gap-2">
@@ -13139,6 +13150,9 @@
       const noteInput = document.getElementById("new-ticket-note");
       if (noteInput) noteInput.value = "";
 
+      const ocrStatus = document.getElementById("new-ticket-ocr-status");
+      if (ocrStatus) ocrStatus.classList.add("hidden");
+
       const submitBtn = document.getElementById("new-ticket-submit-btn");
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -13153,17 +13167,431 @@
       clearNewTicketFile();
     }
 
+    let currentTicketOcrSessionId = 0;
+
     function clearNewTicketFile() {
+      currentTicketOcrSessionId++;
       pendingTicketFileObj = null;
       pendingTicketBlobToUpload = null;
       const uploadZone = document.getElementById("new-ticket-upload-zone");
       const previewBox = document.getElementById("new-ticket-preview-box");
       const camInput = document.getElementById("new-ticket-camera-input");
       const fileInput = document.getElementById("new-ticket-file-input");
+      const ocrStatus = document.getElementById("new-ticket-ocr-status");
       if (camInput) camInput.value = "";
       if (fileInput) fileInput.value = "";
       if (uploadZone) uploadZone.classList.remove("hidden");
       if (previewBox) previewBox.classList.add("hidden");
+      if (ocrStatus) ocrStatus.classList.add("hidden");
+    }
+
+    function highlightTicketField(el) {
+      if (!el) return;
+      el.classList.add("ring-2", "ring-emerald-500", "bg-emerald-50/70", "transition-all");
+      setTimeout(() => {
+        el.classList.remove("ring-2", "ring-emerald-500", "bg-emerald-50/70");
+      }, 2500);
+    }
+
+    function loadPdfJs() {
+      return new Promise((resolve, reject) => {
+        if (window.pdfjsLib) return resolve(window.pdfjsLib);
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        script.onload = () => {
+          if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            resolve(window.pdfjsLib);
+          } else {
+            reject(new Error("pdfjsLib no disponible"));
+          }
+        };
+        script.onerror = () => reject(new Error("No s'ha pogut carregar el lector PDF"));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function extractTextFromPdfFile(file) {
+      try {
+        const pdfjs = await loadPdfJs();
+        const arrayBuffer = await file.arrayBuffer();
+        const doc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        let fullText = "";
+        const maxPages = Math.min(doc.numPages, 3);
+        for (let i = 1; i <= maxPages; i++) {
+          const page = await doc.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = (textContent.items || []).map(item => item.str).join(" ");
+          fullText += pageText + "\n";
+        }
+
+        // Si és un PDF escanejat (sense text digital o molt poc text)
+        if (fullText.trim().length < 25) {
+          const page = await doc.getPage(1);
+          const viewport = page.getViewport({ scale: 2.0 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d");
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          const Tesseract = await loadTesseract();
+          const res = await Tesseract.recognize(canvas, 'spa');
+          fullText = res?.data?.text || "";
+        }
+        return fullText;
+      } catch (e) {
+        console.warn("Avís extraient text del PDF:", e);
+        return "";
+      }
+    }
+
+    function parseTicketOcrData(rawText, availableStores = []) {
+      if (!rawText || typeof rawText !== "string") {
+        return { store: null, date: null, total: null };
+      }
+
+      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const fullLower = rawText.toLowerCase();
+
+      // 1. DETECCIÓ DE SUPERMERCAT / BOTIGA
+      let detectedStore = null;
+      const headerText = lines.slice(0, 15).join(" ").toLowerCase();
+
+      const storePatterns = [
+        { id: "mercadona", regex: /\b(mercadona|hacendado|deliplus|bosque verde|comapy|a-?46103834)\b/i },
+        { id: "esclat", regex: /\b(esclat)\b/i },
+        { id: "bonpreu", regex: /\b(bonpreu|bon preu|a-?08639205)\b/i },
+        { id: "lidl", regex: /\b(lidl|a-?08599458)\b/i },
+        { id: "carrefour", regex: /\b(carrefour|a-?28425270)\b/i },
+        { id: "consum", regex: /\b(consum|charter|f-?46077236)\b/i },
+        { id: "dia", regex: /\b(dia|maxi dia|distribuidora internacional|a-?28164754)\b/i },
+        { id: "caprabo", regex: /\b(caprabo|eroski|a-?08115032)\b/i },
+        { id: "alcampo", regex: /\b(alcampo|auchan|a-?28585008)\b/i },
+        { id: "ametller", regex: /\b(ametller|casa ametller|ametller origen)\b/i },
+        { id: "aldi", regex: /\b(aldi)\b/i },
+        { id: "sirena", regex: /\b(la sirena|sirena|a-?08865768)\b/i },
+        { id: "clarel", regex: /\b(clarel)\b/i },
+        { id: "spar", regex: /\b(spar|eurospar)\b/i },
+        { id: "makro", regex: /\b(makro)\b/i },
+        { id: "decathlon", regex: /\b(decathlon)\b/i },
+        { id: "ikea", regex: /\b(ikea)\b/i },
+        { id: "farmacia", regex: /\b(farmacia|farmàcia)\b/i },
+        { id: "ferreteria", regex: /\b(ferreteria|ferretería)\b/i },
+        { id: "forn", regex: /\b(forn|panaderia|panadería|fleca)\b/i },
+        { id: "pescaderia", regex: /\b(peixateria|pescaderia|pescadería)\b/i },
+        { id: "carnisseria", regex: /\b(carnisseria|carniceria|carnicería)\b/i },
+        { id: "fruteria", regex: /\b(fruiteria|fruteria|frutería)\b/i }
+      ];
+
+      for (const sp of storePatterns) {
+        if (sp.regex.test(headerText) || sp.regex.test(fullLower)) {
+          detectedStore = sp.id;
+          break;
+        }
+      }
+
+      // Si no és una de les cadenes conegudes, cercar a les botigues disponibles a la configuració
+      if (!detectedStore && Array.isArray(availableStores)) {
+        for (const s of availableStores) {
+          if (!s || s.id === "all") continue;
+          const sName = (s.name || "").toLowerCase();
+          if (sName.length >= 3 && (headerText.includes(sName) || fullLower.includes(sName))) {
+            detectedStore = s.id;
+            break;
+          }
+        }
+      }
+
+      // 2. DETECCIÓ DE DATA DE COMPRA
+      let detectedDate = null;
+      const labeledDateRegex = /(?:fecha|data|f\.\s*fac|ticket|dia|emissi[oó]|emisi[oó]n|hora|op:)?\s*[:\.]?\s*\b(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](20\d{2}|\d{2})\b/i;
+      const generalDateRegex = /\b(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](20\d{2}|\d{2})\b/g;
+
+      const textMonthMap = {
+        'ene': 1, 'enero': 1, 'gen': 1, 'gener': 1,
+        'feb': 2, 'febrero': 2, 'febrer': 2,
+        'mar': 3, 'marzo': 3, 'març': 3, 'marc': 3,
+        'abr': 4, 'abril': 4,
+        'may': 5, 'mayo': 5, 'mai': 5, 'maig': 5,
+        'jun': 6, 'junio': 6, 'juny': 6,
+        'jul': 7, 'julio': 7, 'juliol': 7,
+        'ago': 8, 'agosto': 8, 'agost': 8,
+        'sep': 9, 'sept': 9, 'septiembre': 9, 'set': 9, 'setembre': 9,
+        'oct': 10, 'octubre': 10,
+        'nov': 11, 'noviembre': 11, 'novembre': 11,
+        'dic': 12, 'diciembre': 12, 'des': 12, 'desembre': 12
+      };
+      const textMonthRegex = /\b(\d{1,2})\s*(?:de\s+|-|\/|\s+)?(gener|febrer|març|marc|abril|maig|juny|juliol|agost|setembre|set|octubre|oct|novembre|nov|desembre|des|enero|ene|febrero|feb|marzo|mar|abril|abr|mayo|may|junio|jun|julio|jul|agosto|ago|septiembre|sep|diciembre|dic)\.?\s*(?:de\s+|-|\/|\s+)?(20\d{2}|\d{2})\b/i;
+
+      // Primer prioritzem línies amb etiquetes relacionades amb data
+      for (const line of lines) {
+        if (/(?:fecha|data|f\.\s*fac|dia|emissi|emisi|t[ií]quet|hora|op:)/i.test(line)) {
+          const lm = line.match(labeledDateRegex);
+          if (lm) {
+            let d = parseInt(lm[1], 10);
+            let m = parseInt(lm[2], 10);
+            let y = parseInt(lm[3], 10);
+            if (y < 100) y += 2000;
+            if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2015 && y <= 2035) {
+              detectedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              break;
+            }
+          }
+
+          const tm = line.match(textMonthRegex);
+          if (tm) {
+            let d = parseInt(tm[1], 10);
+            let m = textMonthMap[tm[2].toLowerCase()];
+            let y = parseInt(tm[3], 10);
+            if (y < 100) y += 2000;
+            if (d >= 1 && d <= 31 && m && y >= 2015 && y <= 2035) {
+              detectedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              break;
+            }
+          }
+        }
+      }
+
+      // Si no s'ha trobat en línies amb etiqueta, cercar a qualsevol línia
+      if (!detectedDate) {
+        for (const line of lines) {
+          let match;
+          while ((match = generalDateRegex.exec(line)) !== null) {
+            let d = parseInt(match[1], 10);
+            let m = parseInt(match[2], 10);
+            let y = parseInt(match[3], 10);
+            if (y < 100) y += 2000;
+            if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2015 && y <= 2035) {
+              detectedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              break;
+            }
+          }
+          if (detectedDate) break;
+
+          const tm = line.match(textMonthRegex);
+          if (tm) {
+            let d = parseInt(tm[1], 10);
+            let m = textMonthMap[tm[2].toLowerCase()];
+            let y = parseInt(tm[3], 10);
+            if (y < 100) y += 2000;
+            if (d >= 1 && d <= 31 && m && y >= 2015 && y <= 2035) {
+              detectedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              break;
+            }
+          }
+        }
+      }
+
+      // 3. DETECCIÓ D'IMPORT TOTAL (€)
+      let detectedTotal = null;
+      const negativeTotalRegex = /art[ií]cul|unitat|unidad|linea|l[íi]nea|punto|punt|ahorro|estalvi|dto|descuento|descompte|base|iva|cambio|canvi|resto|devuelto|entregad/i;
+
+      // Cercar des del final del tiquet cap amunt (on acostuma a estar el total)
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        if (/\b(?:total|import|importe)\b/i.test(line) && !negativeTotalRegex.test(line)) {
+          const matches = [...line.matchAll(/(?:^|[^\d])(\d{1,4}(?:[\.,\s]\d{3})*[\.,]\s*\d{2})(?:\s*[€a-zA-Z%])?(?:\s|$)/g)];
+          if (matches.length > 0) {
+            let lastM = matches[matches.length - 1][1].replace(/\s+/g, '');
+            if (lastM.includes('.') && lastM.includes(',')) {
+              lastM = lastM.replace(/\./g, '').replace(',', '.');
+            } else {
+              lastM = lastM.replace(',', '.');
+            }
+            const parsed = parseFloat(lastM);
+            if (!isNaN(parsed) && parsed > 0 && parsed < 2000) {
+              detectedTotal = parsed;
+              break;
+            }
+          }
+        }
+      }
+
+      // Fallback 1: Si la línia només diu "TOTAL", cercar l'import a la següent línia
+      if (detectedTotal === null) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i];
+          if (/^\s*total(?:\s*\(?€\)?|\s*eur)?\s*$/i.test(line)) {
+            if (i + 1 < lines.length) {
+              const nextLine = lines[i + 1];
+              const m = nextLine.match(/(\d{1,4}[\.,]\s*\d{2})/);
+              if (m) {
+                const parsed = parseFloat(m[1].replace(/\s+/g, '').replace(',', '.'));
+                if (!isNaN(parsed) && parsed > 0 && parsed < 2000) {
+                  detectedTotal = parsed;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Fallback 2: Línia de cobrament o targeta (TARJETA / TARGETA / VISA / MASTERCARD / BIZUM / PAGAT)
+      if (detectedTotal === null) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i];
+          if (/\b(tarjeta|targeta|visa|mastercard|bizum|pagat|pagado)\b/i.test(line) && !negativeTotalRegex.test(line)) {
+            const matches = [...line.matchAll(/(?:^|[^\d])(\d{1,4}[\.,]\s*\d{2})/g)];
+            if (matches.length > 0) {
+              const parsed = parseFloat(matches[matches.length - 1][1].replace(/\s+/g, '').replace(',', '.'));
+              if (!isNaN(parsed) && parsed > 0 && parsed < 2000) {
+                detectedTotal = parsed;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      return { store: detectedStore, date: detectedDate, total: detectedTotal };
+    }
+
+    async function runTicketDataDetection(file, isPdf) {
+      const sessionId = ++currentTicketOcrSessionId;
+      const statusBox = document.getElementById("new-ticket-ocr-status");
+      const statusText = document.getElementById("new-ticket-ocr-text");
+      const statusIcon = document.getElementById("new-ticket-ocr-icon");
+      const statusBadge = document.getElementById("new-ticket-ocr-badge");
+
+      if (statusBox) {
+        statusBox.className = "rounded-xl p-2.5 text-xs transition-all bg-emerald-50/80 border border-emerald-200 text-emerald-800";
+        statusBox.classList.remove("hidden");
+      }
+      if (statusIcon) {
+        statusIcon.className = "fa-solid fa-circle-notch animate-spin text-emerald-600 text-sm flex-shrink-0";
+      }
+      if (statusText) {
+        statusText.innerText = currentLang === "es"
+          ? "Detectando supermercado, fecha e importe con OCR..."
+          : "Detectant supermercat, data i import amb OCR...";
+      }
+      if (statusBadge) {
+        statusBadge.classList.add("hidden");
+      }
+
+      try {
+        let extractedText = "";
+
+        if (isPdf) {
+          extractedText = await extractTextFromPdfFile(file);
+        } else {
+          // Imatge: preprocessament de contrast i resolució
+          const canvas = await preprocessReceiptImage(file);
+          if (sessionId !== currentTicketOcrSessionId) return;
+
+          const Tesseract = await loadTesseract();
+          if (sessionId !== currentTicketOcrSessionId) return;
+
+          let res;
+          try {
+            res = await Tesseract.recognize(canvas, 'spa');
+          } catch (e1) {
+            console.warn("Avís model spa, provant eng:", e1);
+            res = await Tesseract.recognize(canvas, 'eng');
+          }
+          extractedText = res?.data?.text || "";
+        }
+
+        if (sessionId !== currentTicketOcrSessionId) return;
+
+        const detected = parseTicketOcrData(extractedText, STORES);
+        console.log("Dades del tiquet detectades automàticament:", detected);
+
+        let detectedCount = 0;
+        const detectedLabels = [];
+
+        // 1. Assignar botiga / supermercat
+        if (detected.store) {
+          let targetStoreId = detected.store;
+          let storeObj = STORES.find(s => s.id === targetStoreId);
+
+          // Si s'ha detectat 'esclat' però només tenim 'bonpreu' (o viceversa)
+          if (!storeObj && targetStoreId === "esclat" && STORES.some(s => s.id === "bonpreu")) {
+            targetStoreId = "bonpreu";
+            storeObj = STORES.find(s => s.id === "bonpreu");
+          }
+
+          // Si és una botiga coneguda que no existia a la llista (ex: consum, aldi), crear-la
+          if (!storeObj) {
+            const knownNames = { consum: "Consum", aldi: "Aldi" };
+            if (knownNames[targetStoreId] && typeof ensureStore === "function") {
+              storeObj = ensureStore(targetStoreId, knownNames[targetStoreId]);
+            }
+          }
+
+          const storeSelect = document.getElementById("new-ticket-store");
+          if (storeSelect) {
+            // Actualitzar opcions si s'ha afegit una botiga nova
+            if (!Array.from(storeSelect.options).some(o => o.value === targetStoreId)) {
+              storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => {
+                return `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`;
+              }).join("");
+            }
+            storeSelect.value = targetStoreId;
+            highlightTicketField(storeSelect);
+            detectedCount++;
+            const sName = storeObj ? getStoreDisplayName(storeObj, currentLang) : targetStoreId;
+            detectedLabels.push(sName);
+          }
+        }
+
+        // 2. Assignar data
+        if (detected.date) {
+          const dateInput = document.getElementById("new-ticket-date");
+          if (dateInput) {
+            dateInput.value = detected.date;
+            highlightTicketField(dateInput);
+            detectedCount++;
+            const parts = detected.date.split("-");
+            if (parts.length === 3) {
+              detectedLabels.push(`${parts[2]}/${parts[1]}/${parts[0]}`);
+            }
+          }
+        }
+
+        // 3. Assignar import total
+        if (detected.total !== null && detected.total > 0) {
+          const totalInput = document.getElementById("new-ticket-total");
+          if (totalInput) {
+            totalInput.value = detected.total.toFixed(2);
+            highlightTicketField(totalInput);
+            detectedCount++;
+            detectedLabels.push(`${detected.total.toFixed(2)} €`);
+          }
+        }
+
+        if (statusBox && sessionId === currentTicketOcrSessionId) {
+          if (detectedCount > 0) {
+            statusBox.className = "rounded-xl p-2.5 text-xs transition-all bg-emerald-50 border border-emerald-300 text-emerald-900";
+            if (statusIcon) statusIcon.className = "fa-solid fa-wand-magic-sparkles text-emerald-600 text-sm flex-shrink-0";
+            if (statusText) {
+              statusText.innerHTML = `<strong>${currentLang === 'es' ? 'Detectado:' : 'Detectat:'}</strong> ${detectedLabels.join(' · ')}`;
+            }
+            if (statusBadge) {
+              statusBadge.className = "text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs flex-shrink-0";
+              statusBadge.innerText = currentLang === 'es' ? "Automático" : "Automàtic";
+              statusBadge.classList.remove("hidden");
+            }
+            showToast(currentLang === 'es' ? "¡Supermercado, fecha y total detectados!" : "Supermercat, data i total detectats!", "fa-wand-magic-sparkles");
+          } else {
+            statusBox.className = "rounded-xl p-2.5 text-xs transition-all bg-gray-50 border border-gray-200 text-gray-600";
+            if (statusIcon) statusIcon.className = "fa-regular fa-circle-question text-gray-400 text-sm flex-shrink-0";
+            if (statusText) {
+              statusText.innerText = currentLang === 'es'
+                ? "No se han detectado datos claros. Rellena los campos a mano si es necesario."
+                : "No s'han detectat dades clares. Revisa o omple els camps a mà.";
+            }
+            if (statusBadge) statusBadge.classList.add("hidden");
+          }
+        }
+      } catch (ocrErr) {
+        console.warn("Avís procés OCR tiquet:", ocrErr);
+        if (statusBox && sessionId === currentTicketOcrSessionId) {
+          statusBox.classList.add("hidden");
+        }
+      }
     }
 
     async function handleNewTicketFileSelected(event) {
@@ -13206,6 +13634,9 @@
 
       if (uploadZone) uploadZone.classList.add("hidden");
       if (previewBox) previewBox.classList.remove("hidden");
+
+      // Auto-detecció de supermercat, data i import mitjançant OCR / extracció de text
+      runTicketDataDetection(file, isPdf);
     }
 
     async function compressTicketImage(file) {
@@ -13559,6 +13990,8 @@
     window.shareCurrentViewerTicket = shareCurrentViewerTicket;
     window.shareTicket = shareTicket;
     window.renderTicketsList = renderTicketsList;
+    window.parseTicketOcrData = parseTicketOcrData;
+    window.runTicketDataDetection = runTicketDataDetection;
 
     // ==========================================
     // INICIALITZACIÓ GLOBAL (Tots els mòduls llestos)

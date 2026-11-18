@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cistella-cache-v66';
+const CACHE_NAME = 'cistella-cache-v67';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
