@@ -2422,8 +2422,8 @@
             name: { ca: "Aperitius i Snacks", es: "Aperitivos y Snacks" },
             icon: "fa-bowl-food",
             examples: {
-              ca: "Patates xips, Fritos i Doritos, Crispetes, Fruits secs salats, Nachos, Conos",
-              es: "Patatas fritas / chips, Fritos y Doritos, Palomitas, Frutos secos salados, Nachos, Conos"
+              ca: "Patates xips, Fritos i Doritos, Crispetes, Fruits secs salats, Xiclets i caramels, Llaminadures",
+              es: "Patatas fritas / chips, Fritos y Doritos, Palomitas, Frutos secos salados, Chicles y caramelos, Golosinas"
             }
           }
         ]
@@ -2820,6 +2820,12 @@
       "Aperitivos": "Aperitius i Snacks",
       "Snacks": "Aperitius i Snacks",
       "Aperitivos y Snacks": "Aperitius i Snacks",
+      "Xiclets": "Aperitius i Snacks",
+      "Chicles": "Aperitius i Snacks",
+      "Golosinas": "Aperitius i Snacks",
+      "Llaminadures": "Aperitius i Snacks",
+      "Caramels": "Aperitius i Snacks",
+      "Caramelos": "Aperitius i Snacks",
       "Altres": "General"
     };
 
@@ -2896,7 +2902,7 @@
       if (lower.includes("carn")) return "Carnisseria";
       if (lower.includes("bebid") || lower.includes("begud")) return "Aigua i Sucs";
       if (lower.includes("congelad") || lower.includes("congelat")) return "Plats Cuinats Congelats";
-      if (lower.includes("aperiti") || lower.includes("snack") || lower.includes("patates xips") || lower.includes("patatas fritas") || lower.includes("doritos") || lower.includes("fritos")) return "Aperitius i Snacks";
+      if (lower.includes("aperiti") || lower.includes("snack") || lower.includes("patates xips") || lower.includes("patatas fritas") || lower.includes("doritos") || lower.includes("fritos") || lower.includes("xiclet") || lower.includes("chicle") || lower.includes("golosin") || lower.includes("llaminadur") || lower.includes("caramel")) return "Aperitius i Snacks";
       return trimmed;
     }
 
@@ -3766,8 +3772,12 @@
     function detectSemanticCategory(name) {
       const n = name.toLowerCase();
 
+      // Prioritats per a productes elaborats amb aromes o sabors (evitar fals positiu amb fruites o herbes)
+      if (/xiclet|chicle|caramel|orbit|trident|smint|halls|gominol|chuche|llaminadur|golosin|lacasito|conguitos|chupachup/i.test(n)) return "Aperitius i Snacks";
+      if (/infusi[oó]|(?:^|\s)(?:te|té)(?:\s|$)/i.test(n)) return "Esmorzars i Berenars";
+
       // 1. Frescos i Rebost del dia
-      if (/poma|manzana|pl[àa]tan|taronja|naranja|llimona|lim[oó]n|maduixa|fresa|ra[ïi]m|uva|pera|pr[eé]ssec|mel[oó]|s[ií]ndria|tom[àa]quet|tomate|enciam|lechuga|ceba|cebolla|patata|pastanaga|zanahoria|pebrot|pimiento|all\b|ajo|calabac|alberg|espinac|br[oò]quil|mongeta tendra|judia verde|alvocat|aguacate|bolets|setas|xampiny|champiñ|herba|menta|alfàbrega|albahaca|julivert|perejil/i.test(n)) return "Fruita i Verdura";
+      if (/poma|manzana|pl[àa]tan|taronja|naranja|llimona|lim[oó]n|maduix|fresa|ra[ïi]m|uva|pera|pr[eé]ssec|mel[oó]|s[ií]ndria|tom[àa]quet|tomate|enciam|lechuga|ceba|cebolla|patata|pastanaga|zanahoria|pebrot|pimiento|all\b|ajo|calabac|alberg|espinac|br[oò]quil|mongeta tendra|judia verde|alvocat|aguacate|bolets|setas|xampiny|champiñ|herba|menta|alfàbrega|albahaca|julivert|perejil/i.test(n)) return "Fruita i Verdura";
       if (/pollastre|pollo|vedella|ternera|porc|cerdo|hamburguesa|botifarra|llonza|costell|conill|conejo|pavo|gall dindi|carn picada|carne picada|bistec|salsitx|salchicha|costillar|aletes|alitas|chuleta/i.test(n)) return "Carnisseria";
       if (/peix fresc|pescado|salm[oó]|llu[çc]|merluza|bacall[àa]|bacalao|daurada|dorada|llobarro|lubina|gamba|llagost|musclo|mejillon|calamar|s[ií]pia|sepia|pop\b|pulpo|tonyina|at[uú]n|sardina|anxova|anchoa|boquer|arengada|salmó fumat|ahumado/i.test(n)) return "Peixateria";
       if (/formatge|queso|parmes|mozzarella|gouda|cheddar|brie|roquefort|manchego|pernil|jam[oó]n|xori[çc]|chorizo|fuet|llonganissa|mortadel|sobrassada|bac[oó]n|embotit|pat[eé]|foie/i.test(n)) return "Xarcuteria i Formatges";
@@ -3779,7 +3789,7 @@
       if (/conserva|llauna|lata\b|oliva|aceituna|cogombret|pepinillo|adob|encurtido|tonyina en llauna|atún en lata|espàrrecs|espárragos|berberetxo|mejillones en escabeche/i.test(n)) return "Conserves";
       if (/(?:^|\s)(?:te|té)(?:\s|$)|caf[eè]|infusi|cereal|muesli|avena|civada|galet|melmelada|mermelada|\bmel\b|miel|nutella|nocilla|colacao|nesquik|xocolata|chocolate|ametlla|almendra|nous|nueces|anacard|pistatx|cacauet|cacahuete|avellana|pipa|piny[oó]|fruit.*sec/i.test(n)) return "Esmorzars i Berenars";
       if (/farina|harina|llevat|levadura|sucre|az[uú]car|cacau en pols|cacao puro|vainilla|maizena|gelatina|bicarbonat|sobres.*cuajada|sobres.*quallada|polvo.*cuajada|cuajada en pols|preparado.*cuajada|preparat.*quallada|\broyal\b/i.test(n)) return "Farines i Rebosteria";
-      if (/patates xips|patatas fritas|patatas chips|doritos|fritos\b|palomitas|crispetes|nachos|snack|gusanitos|cortezas|conos\b/i.test(n)) return "Aperitius i Snacks";
+      if (/patates xips|patatas fritas|patatas chips|doritos|fritos\b|palomitas|crispetes|nachos|snack|gusanitos|cortezas|conos\b|xiclet|chicle|caramel|orbit|trident|smint|halls|gominol|chuche|llaminadur|golosin|lacasito|conguitos/i.test(n)) return "Aperitius i Snacks";
 
       // 3. Lactis, Ous i Refrigerats
       if (/llet\b|leche|beguda de civada|bebida de avena|beguda de soja|bebida de soja|beguda vegetal|llet d'ametlles|leche sin lactosa|llet sense lactosa/i.test(n)) return "Llets i Alternatives";
