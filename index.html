@@ -2413,8 +2413,8 @@
             name: { ca: "Farines i Rebosteria", es: "Harinas y Repostería" },
             icon: "fa-wheat-awn",
             examples: {
-              ca: "Farina, Sucre i edulcorants, Llevat i preparats",
-              es: "Harina, Azúcar y edulcorantes, Levadura y preparados"
+              ca: "Farina, Sucre i edulcorants, Llevat (químic/forner), Sobres de quallada i preparats",
+              es: "Harina, Azúcar y edulcorantes, Levadura (química/panadero), Sobres de cuajada y preparados"
             }
           },
           {
@@ -3778,7 +3778,8 @@
       if (/oli\b|aceite|vinagre|sal\b|pebre|pimienta|llorer|laurel|orenga|or[eé]gano|roman[ií]|romero|farigola|tomillo|canyella|canela|curri|curry|com[ií]|piment[oó]|safr[àa]|maionesa|mayonesa|ketchup|qu[eè]txup|mostassa|mostaza|salsa|allioli|guacamole|pesto|tom[àa]quet fregit|tomate frito/i.test(n)) return "Olis, Salses i Condiments";
       if (/conserva|llauna|lata\b|oliva|aceituna|cogombret|pepinillo|adob|encurtido|tonyina en llauna|atún en lata|espàrrecs|espárragos|berberetxo|mejillones en escabeche/i.test(n)) return "Conserves";
       if (/(?:^|\s)(?:te|té)(?:\s|$)|caf[eè]|infusi|cereal|muesli|avena|civada|galet|melmelada|mermelada|\bmel\b|miel|nutella|nocilla|colacao|nesquik|xocolata|chocolate|ametlla|almendra|nous|nueces|anacard|pistatx|cacauet|cacahuete|avellana|pipa|piny[oó]|fruit.*sec/i.test(n)) return "Esmorzars i Berenars";
-      if (/farina|harina|llevat|levadura|sucre|az[uú]car|cacau en pols|cacao puro|vainilla|maizena|gelatina|bicarbonat/i.test(n)) return "Farines i Rebosteria";
+      if (/farina|harina|llevat|levadura|sucre|az[uú]car|cacau en pols|cacao puro|vainilla|maizena|gelatina|bicarbonat|sobres.*cuajada|sobres.*quallada|polvo.*cuajada|cuajada en pols|preparado.*cuajada|preparat.*quallada|\broyal\b/i.test(n)) return "Farines i Rebosteria";
+      if (/patates xips|patatas fritas|patatas chips|doritos|fritos\b|palomitas|crispetes|nachos|snack|gusanitos|cortezas|conos\b/i.test(n)) return "Aperitius i Snacks";
 
       // 3. Lactis, Ous i Refrigerats
       if (/llet\b|leche|beguda de civada|bebida de avena|beguda de soja|bebida de soja|beguda vegetal|llet d'ametlles|leche sin lactosa|llet sense lactosa/i.test(n)) return "Llets i Alternatives";
