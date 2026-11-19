@@ -1542,9 +1542,25 @@
 
   <!-- MODAL DE TIQUETS DE COMPRA (LLISTAT I GESTIÓ) -->
   <div id="tickets-modal"
-    class="hidden fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs">
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs"
+    ondragover="event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect='copy'; showTicketDropOverlay();"
+    ondrop="handleTicketDropGeneric(event)">
     <div
-      class="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col">
+      class="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col relative transition-all"
+      ondragover="event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect='copy'; showTicketDropOverlay();"
+      ondrop="handleTicketDropGeneric(event)">
+
+      <!-- OVERLAY QUAN S'ARROSSEGA UN ARXIU SOBRE EL LLISTAT DE TIQUETS -->
+      <div id="tickets-drop-overlay"
+        class="hidden absolute inset-0 z-30 bg-emerald-700/90 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center text-white border-2 border-dashed border-emerald-200 shadow-2xl transition-all cursor-copy"
+        ondragover="event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect='copy';"
+        ondrop="handleTicketDropGeneric(event)">
+        <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-2 animate-bounce pointer-events-none">
+          <i class="fa-solid fa-cloud-arrow-up text-2xl text-white"></i>
+        </div>
+        <p class="text-sm font-bold text-white mb-0.5 pointer-events-none">Deixa anar el tiquet per afegir-lo</p>
+        <p class="text-[11px] text-emerald-100 pointer-events-none">S'obrirà el formulari i s'analitzaran les dades</p>
+      </div>
       <!-- CAPÇALERA -->
       <div class="flex items-center justify-between border-b pb-2.5">
         <div class="flex items-center space-x-2">
@@ -1617,26 +1633,24 @@
   <div id="new-ticket-modal"
     class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs"
     onclick="closeNewTicketModal()"
-    ondragenter="handleNewTicketModalDragEnter(event)"
-    ondragover="handleNewTicketModalDragOver(event)"
-    ondragleave="handleNewTicketModalDragLeave(event)"
-    ondrop="handleNewTicketModalDrop(event)">
+    ondragover="event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect='copy'; showTicketDropOverlay();"
+    ondrop="handleTicketDropGeneric(event)">
     <div id="new-ticket-modal-card"
       class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col relative transition-all"
       onclick="event.stopPropagation()"
-      ondragenter="handleNewTicketModalDragEnter(event)"
-      ondragover="handleNewTicketModalDragOver(event)"
-      ondragleave="handleNewTicketModalDragLeave(event)"
-      ondrop="handleNewTicketModalDrop(event)">
+      ondragover="event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect='copy'; showTicketDropOverlay();"
+      ondrop="handleTicketDropGeneric(event)">
 
       <!-- OVERLAY QUAN S'ARROSSEGA UN ARXIU DINS EL POPUP -->
       <div id="new-ticket-drop-overlay"
-        class="hidden absolute inset-0 z-30 bg-emerald-700/90 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center text-white border-2 border-dashed border-emerald-200 shadow-2xl pointer-events-none transition-all">
-        <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-2 animate-bounce">
+        class="hidden absolute inset-0 z-30 bg-emerald-700/90 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center text-white border-2 border-dashed border-emerald-200 shadow-2xl transition-all cursor-copy"
+        ondragover="event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect='copy';"
+        ondrop="handleTicketDropGeneric(event)">
+        <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-2 animate-bounce pointer-events-none">
           <i class="fa-solid fa-cloud-arrow-up text-2xl text-white"></i>
         </div>
-        <p class="text-sm font-bold text-white mb-0.5" id="new-ticket-drop-overlay-title" data-i18n="newTicketDropOverlay">Deixa anar el tiquet aquí</p>
-        <p class="text-[11px] text-emerald-100">Admet PDF o imatges (JPG, PNG)</p>
+        <p class="text-sm font-bold text-white mb-0.5 pointer-events-none" id="new-ticket-drop-overlay-title" data-i18n="newTicketDropOverlay">Deixa anar el tiquet aquí</p>
+        <p class="text-[11px] text-emerald-100 pointer-events-none">Admet PDF o imatges (JPG, PNG)</p>
       </div>
 
       <!-- CAPÇALERA -->
@@ -1654,7 +1668,9 @@
       <div class="space-y-2">
         <div id="new-ticket-upload-zone"
           class="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-xl p-3.5 text-center space-y-2 bg-gray-50/70 transition cursor-pointer"
-          onclick="document.getElementById('new-ticket-file-input').click()">
+          onclick="document.getElementById('new-ticket-file-input').click()"
+          ondragover="event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect='copy';"
+          ondrop="handleTicketDropGeneric(event)">
           <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-lg pointer-events-none">
             <i class="fa-solid fa-receipt"></i>
           </div>
@@ -13331,13 +13347,10 @@
       clearNewTicketFile();
     }
 
-    let newTicketDragCounter = 0;
+    let ticketDragCounter = 0;
 
     function clearNewTicketFile() {
-      newTicketDragCounter = 0;
-      const overlay = document.getElementById("new-ticket-drop-overlay");
-      if (overlay) overlay.classList.add("hidden");
-
+      hideAllTicketDropOverlays();
       currentTicketOcrSessionId++;
       pendingTicketFileObj = null;
       pendingTicketBlobToUpload = null;
@@ -13357,52 +13370,76 @@
       if (rawTextEl) rawTextEl.value = "";
     }
 
-    function handleNewTicketModalDragEnter(e) {
-      if (!e.dataTransfer || !e.dataTransfer.types) return;
-      const types = Array.from(e.dataTransfer.types);
-      if (!types.includes("Files")) return;
-      e.preventDefault();
-      newTicketDragCounter++;
-      const overlay = document.getElementById("new-ticket-drop-overlay");
-      if (overlay) {
-        overlay.classList.remove("hidden");
-        const titleEl = document.getElementById("new-ticket-drop-overlay-title");
-        if (titleEl) {
-          titleEl.innerText = currentLang === "es" ? "Suelta el ticket aquí" : "Deixa anar el tiquet aquí";
+    function extractFileFromDropEvent(e) {
+      if (!e || !e.dataTransfer) return null;
+      const dt = e.dataTransfer;
+      if (dt.files && dt.files.length > 0) return dt.files[0];
+      if (dt.items && dt.items.length > 0) {
+        for (let i = 0; i < dt.items.length; i++) {
+          const item = dt.items[i];
+          if (item && item.kind === 'file') {
+            const f = item.getAsFile();
+            if (f) return f;
+          }
         }
       }
+      return null;
     }
 
-    function handleNewTicketModalDragOver(e) {
-      if (!e.dataTransfer || !e.dataTransfer.types) return;
-      const types = Array.from(e.dataTransfer.types);
-      if (!types.includes("Files")) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
+    async function extractFileFromDropEventAsync(e) {
+      const direct = extractFileFromDropEvent(e);
+      if (direct) return direct;
+      if (!e || !e.dataTransfer) return null;
+      const dt = e.dataTransfer;
+      const url = dt.getData("text/uri-list") || dt.getData("text/plain");
+      if (url && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:"))) {
+        try {
+          const resp = await fetch(url);
+          const blob = await resp.blob();
+          const name = url.split("/").pop().split("?")[0] || "tiquet.pdf";
+          return new File([blob], name, { type: blob.type || "application/pdf" });
+        } catch (err) {
+          console.warn("Avís descarregant fitxer URL arrossegat:", err);
+        }
+      }
+      return null;
     }
 
-    function handleNewTicketModalDragLeave(e) {
-      if (!e.dataTransfer || !e.dataTransfer.types) return;
-      const types = Array.from(e.dataTransfer.types);
-      if (!types.includes("Files")) return;
-      e.preventDefault();
-      newTicketDragCounter--;
-      if (newTicketDragCounter <= 0) {
-        newTicketDragCounter = 0;
-        const overlay = document.getElementById("new-ticket-drop-overlay");
-        if (overlay) overlay.classList.add("hidden");
+    function isAnyTicketModalOpen() {
+      const newModal = document.getElementById("new-ticket-modal");
+      const ticketsModal = document.getElementById("tickets-modal");
+      return (newModal && !newModal.classList.contains("hidden")) || (ticketsModal && !ticketsModal.classList.contains("hidden"));
+    }
+
+    function showTicketDropOverlay() {
+      const newModal = document.getElementById("new-ticket-modal");
+      const ticketsModal = document.getElementById("tickets-modal");
+      if (newModal && !newModal.classList.contains("hidden")) {
+        const o1 = document.getElementById("new-ticket-drop-overlay");
+        if (o1) o1.classList.remove("hidden");
+      } else if (ticketsModal && !ticketsModal.classList.contains("hidden")) {
+        const o2 = document.getElementById("tickets-drop-overlay");
+        if (o2) o2.classList.remove("hidden");
       }
     }
 
-    function handleNewTicketModalDrop(e) {
-      e.preventDefault();
-      newTicketDragCounter = 0;
-      const overlay = document.getElementById("new-ticket-drop-overlay");
-      if (overlay) overlay.classList.add("hidden");
+    function hideAllTicketDropOverlays() {
+      ticketDragCounter = 0;
+      const o1 = document.getElementById("new-ticket-drop-overlay");
+      if (o1) o1.classList.add("hidden");
+      const o2 = document.getElementById("tickets-drop-overlay");
+      if (o2) o2.classList.add("hidden");
+    }
 
-      const files = e.dataTransfer && e.dataTransfer.files;
-      if (files && files.length > 0) {
-        processNewTicketFile(files[0]);
+    async function handleTicketDropGeneric(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      hideAllTicketDropOverlays();
+      const file = await extractFileFromDropEventAsync(e);
+      if (file) {
+        processNewTicketFile(file);
       }
     }
 
@@ -14106,13 +14143,21 @@
     async function processNewTicketFile(file) {
       if (!file) return;
 
-      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-      const isImg = file.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|heic|bmp)$/i.test(file.name);
+      const fileName = file.name || "";
+      const fileType = file.type || "";
+      const isPdf = fileType.includes("pdf") || fileName.toLowerCase().endsWith(".pdf");
+      const isImg = fileType.startsWith("image/") || /\.(jpg|jpeg|png|webp|heic|bmp|tiff)$/i.test(fileName);
       if (!isPdf && !isImg) {
         alert(currentLang === "es"
           ? "Por favor, selecciona o arrastra un archivo PDF o una imagen (JPG, PNG)."
           : "Si us plau, selecciona o arrossega un arxiu PDF o una imatge (JPG, PNG).");
         return;
+      }
+
+      // Si el modal de creació de tiquet no està obert, obrir-lo primer
+      const newModal = document.getElementById("new-ticket-modal");
+      if (!newModal || newModal.classList.contains("hidden")) {
+        openNewTicketModal();
       }
 
       pendingTicketFileObj = file;
@@ -14123,7 +14168,7 @@
       const nameEl = document.getElementById("new-ticket-preview-name");
       const sizeEl = document.getElementById("new-ticket-preview-size");
 
-      if (nameEl) nameEl.innerText = file.name;
+      if (nameEl) nameEl.innerText = fileName || (isPdf ? "tiquet.pdf" : "tiquet.jpg");
 
       if (isPdf) {
         pendingTicketBlobToUpload = file;
@@ -14610,10 +14655,9 @@
     window.closeNewTicketModal = closeNewTicketModal;
     window.handleNewTicketFileSelected = handleNewTicketFileSelected;
     window.processNewTicketFile = processNewTicketFile;
-    window.handleNewTicketModalDragEnter = handleNewTicketModalDragEnter;
-    window.handleNewTicketModalDragOver = handleNewTicketModalDragOver;
-    window.handleNewTicketModalDragLeave = handleNewTicketModalDragLeave;
-    window.handleNewTicketModalDrop = handleNewTicketModalDrop;
+    window.handleTicketDropGeneric = handleTicketDropGeneric;
+    window.showTicketDropOverlay = showTicketDropOverlay;
+    window.hideAllTicketDropOverlays = hideAllTicketDropOverlays;
     window.clearNewTicketFile = clearNewTicketFile;
     window.submitNewTicket = submitNewTicket;
     window.deleteTicket = deleteTicket;
@@ -14629,25 +14673,36 @@
     window.runTicketDataDetection = runTicketDataDetection;
     window.reparseNewTicketText = reparseNewTicketText;
 
-    // Prevenir que el navegador obri el PDF o la imatge si es deixa anar dins la finestra amb el modal obert
-    window.addEventListener("dragover", (e) => {
-      const modal = document.getElementById("new-ticket-modal");
-      if (modal && !modal.classList.contains("hidden")) {
+    // Gestió global de Drag & Drop per a finestres de tiquets
+    window.addEventListener("dragenter", (e) => {
+      if (isAnyTicketModalOpen()) {
         e.preventDefault();
+        ticketDragCounter++;
+        showTicketDropOverlay();
+      }
+    });
+
+    window.addEventListener("dragover", (e) => {
+      if (isAnyTicketModalOpen()) {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+        showTicketDropOverlay();
+      }
+    });
+
+    window.addEventListener("dragleave", (e) => {
+      if (isAnyTicketModalOpen()) {
+        e.preventDefault();
+        ticketDragCounter--;
+        if (ticketDragCounter <= 0) {
+          hideAllTicketDropOverlays();
+        }
       }
     });
 
     window.addEventListener("drop", (e) => {
-      const modal = document.getElementById("new-ticket-modal");
-      if (modal && !modal.classList.contains("hidden")) {
-        e.preventDefault();
-        newTicketDragCounter = 0;
-        const overlay = document.getElementById("new-ticket-drop-overlay");
-        if (overlay) overlay.classList.add("hidden");
-        const files = e.dataTransfer && e.dataTransfer.files;
-        if (files && files.length > 0) {
-          processNewTicketFile(files[0]);
-        }
+      if (isAnyTicketModalOpen()) {
+        handleTicketDropGeneric(e);
       }
     });
 
