@@ -13565,9 +13565,9 @@
         if (fullText.trim().length < 25) {
           const page = await doc.getPage(1);
           const baseVp = page.getViewport({ scale: 1.0 });
-          // Escalar a una amplada òptima per OCR (~1050 px)
-          const targetWidth = 1050;
-          const scale = Math.max(1.5, Math.min(3.0, targetWidth / (baseVp.width || targetWidth)));
+          // Escalar a una amplada òptima per OCR (~1400 px) per capturar detalls fins, punts decimals i text tèrmic
+          const targetWidth = 1400;
+          const scale = Math.max(1.8, Math.min(3.2, targetWidth / (baseVp.width || 600)));
           const viewport = page.getViewport({ scale });
 
           const canvas = document.createElement("canvas");
@@ -13603,18 +13603,26 @@
           const Tesseract = await loadTesseract();
           let res;
           try {
-            res = await Tesseract.recognize(canvas, 'spa', {
+            res = await Tesseract.recognize(canvas, 'cat+spa', {
               logger: (m) => {
                 if (typeof logger === 'function') logger(m);
               }
             });
-          } catch (e1) {
-            console.warn("Avís model spa a PDF, provant eng:", e1);
-            res = await Tesseract.recognize(canvas, 'eng', {
-              logger: (m) => {
-                if (typeof logger === 'function') logger(m);
-              }
-            });
+          } catch (eCat) {
+            try {
+              res = await Tesseract.recognize(canvas, 'spa', {
+                logger: (m) => {
+                  if (typeof logger === 'function') logger(m);
+                }
+              });
+            } catch (e1) {
+              console.warn("Avís model spa a PDF, provant eng:", e1);
+              res = await Tesseract.recognize(canvas, 'eng', {
+                logger: (m) => {
+                  if (typeof logger === 'function') logger(m);
+                }
+              });
+            }
           }
           fullText = res?.data?.text || "";
         }
@@ -13626,10 +13634,10 @@
     }
 
     function parseTicketFromFileName(name, availableStores = []) {
-      const res = { store: null, date: null, total: null };
+      const res = { store: null, date: null, total: null, note: null };
       if (!name || typeof name !== "string") return res;
 
-      // 1. Detecció de data: 20261106, 2026-11-06, Scan_20261103_...
+      // 1. Detecció de data: 20261106, 2026-11-06, 13NOV26, Scan_20261103_...
       const dMatch = name.match(/\b(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})\b/) || name.match(/(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})/);
       if (dMatch) {
         const y = parseInt(dMatch[1], 10);
@@ -13638,17 +13646,61 @@
         if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
           res.date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         }
+      } else {
+        const textMonthMap = {
+          'ene': 1, 'enero': 1, 'gen': 1, 'gener': 1,
+          'feb': 2, 'febrero': 2, 'febrer': 2,
+          'mar': 3, 'marzo': 3, 'març': 3, 'marc': 3,
+          'abr': 4, 'abril': 4,
+          'may': 5, 'mayo': 5, 'mai': 5, 'maig': 5,
+          'jun': 6, 'junio': 6, 'juny': 6,
+          'jul': 7, 'julio': 7, 'juliol': 7,
+          'ago': 8, 'agosto': 8, 'agost': 8,
+          'sep': 9, 'sept': 9, 'septiembre': 9, 'set': 9, 'setembre': 9,
+          'oct': 10, 'octubre': 10,
+          'nov': 11, 'noviembre': 11, 'novembre': 11,
+          'dic': 12, 'diciembre': 12, 'des': 12, 'desembre': 12
+        };
+        const textM = name.replace(/n0v/gi, 'nov').replace(/0ct/gi, 'oct').replace(/ag0/gi, 'ago')
+          .match(/\b(\d{1,2})\s*(?:de\s+|[-_.\s])?\s*(gener|febrer|març|marc|abril|abr|maig|mai|juny|juliol|agost|ago|setembre|set|octubre|oct|novembre|nov|desembre|des|enero|ene|febrero|feb|marzo|mar|mayo|may|junio|jun|julio|jul|septiembre|sept|sep|diciembre|dic)\.?(?:\s*(?:de\s+|[-_.\s])?\s*(20\d{2}|\d{2}))?\b/i);
+        if (textM) {
+          const mNum = textMonthMap[textM[2].toLowerCase()];
+          let yVal = textM[3] ? parseInt(textM[3], 10) : new Date().getFullYear();
+          if (yVal < 100) yVal += 2000;
+          const dVal = parseInt(textM[1], 10);
+          if (dVal >= 1 && dVal <= 31 && mNum >= 1 && mNum <= 12 && yVal >= 2015 && yVal <= 2035) {
+            res.date = `${yVal}-${String(mNum).padStart(2, '0')}-${String(dVal).padStart(2, '0')}`;
+          }
+        }
       }
 
       // 2. Detecció de botiga al nom del fitxer
       const lower = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const defaultKnown = ['caprabo', 'mercadona', 'bonpreu', 'esclat', 'lidl', 'carrefour', 'dia', 'consum', 'aldi', 'farmacia', 'ametller', 'sirena', 'alcampo'];
-      for (const s of defaultKnown) {
-        if (lower.includes(s)) {
-          res.store = (s === 'esclat' ? 'bonpreu' : s);
+      const defaultKnown = [
+        { id: 'carnisseria', keys: ['valcan', 'carnisseria', 'carniceria', 'embotits', 'xarcuteria'] },
+        { id: 'farmacia', keys: ['farmacia', 'farmacia sant jordi'] },
+        { id: 'caprabo', keys: ['caprabo'] },
+        { id: 'mercadona', keys: ['mercadona'] },
+        { id: 'bonpreu', keys: ['bonpreu', 'esclat'] },
+        { id: 'lidl', keys: ['lidl'] },
+        { id: 'carrefour', keys: ['carrefour'] },
+        { id: 'dia', keys: ['dia'] },
+        { id: 'consum', keys: ['consum'] },
+        { id: 'aldi', keys: ['aldi'] },
+        { id: 'spar', keys: ['spar', 'eurospar'] },
+        { id: 'ametller', keys: ['ametller'] },
+        { id: 'sirena', keys: ['sirena'] },
+        { id: 'alcampo', keys: ['alcampo'] }
+      ];
+      for (const item of defaultKnown) {
+        if (item.keys.some(k => lower.includes(k))) {
+          res.store = item.id;
           break;
         }
       }
+      if (lower.includes('valcan')) res.note = 'Embotits Valcan';
+      else if (lower.includes('sant jordi') && lower.includes('farm')) res.note = 'Farmàcia Sant Jordi';
+
       if (!res.store && Array.isArray(availableStores)) {
         for (const s of availableStores) {
           if (!s || s.id === 'all') continue;
@@ -13674,17 +13726,29 @@
 
     function parseTicketOcrData(rawText, availableStores = []) {
       if (!rawText || typeof rawText !== "string") {
-        return { store: null, date: null, total: null };
+        return { store: null, date: null, total: null, note: null };
       }
 
-      // Pre-neteja de caràcters OCR habituals (ex: 2O24 -> 2024, 2O25 -> 2025, 2O26 -> 2026)
-      const normalizedText = rawText.replace(/\b2[oO](\d{2})\b/g, '20$1');
+      // Pre-neteja de caràcters OCR habituals (ex: 2O24 -> 2024, 2O25 -> 2025, 2O26 -> 2026, 13N0V26 -> 13nov26)
+      const normalizedText = rawText
+        .replace(/\b2[oO](\d{2})\b/g, '20$1')
+        .replace(/n0v/gi, 'nov')
+        .replace(/0ct/gi, 'oct')
+        .replace(/ag0/gi, 'ago');
+
       const lines = normalizedText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       const fullLower = normalizedText.toLowerCase();
 
-      // 1. DETECCIÓ DE SUPERMERCAT / BOTIGA
+      // 1. DETECCIÓ DE SUPERMERCAT / BOTIGA I NOTA
       let detectedStore = null;
+      let detectedNote = null;
       const headerText = lines.slice(0, 15).join(" ").toLowerCase();
+
+      if (/\bvalcan\b/i.test(normalizedText)) {
+        detectedNote = "Embotits Valcan";
+      } else if (/\bsant\s+jordi\b/i.test(normalizedText) && /\bfarm/i.test(normalizedText)) {
+        detectedNote = "Farmàcia Sant Jordi";
+      }
 
       const storePatterns = [
         { id: "mercadona", regex: /\b(mercadona|hacendado|deliplus|bosque verde|comapy|a-?46103834)\b/i },
@@ -13704,11 +13768,11 @@
         { id: "makro", regex: /\b(makro)\b/i },
         { id: "decathlon", regex: /\b(decathlon)\b/i },
         { id: "ikea", regex: /\b(ikea)\b/i },
-        { id: "farmacia", regex: /\b(farmacia|farmàcia)\b/i },
+        { id: "farmacia", regex: /\b(farmacia|farmàcia|farmaceutic|farmacèutic|botic[ao])\b/i },
         { id: "ferreteria", regex: /\b(ferreteria|ferretería)\b/i },
         { id: "forn", regex: /\b(forn|panaderia|panadería|fleca)\b/i },
         { id: "pescaderia", regex: /\b(peixateria|pescaderia|pescadería)\b/i },
-        { id: "carnisseria", regex: /\b(carnisseria|carniceria|carnicería)\b/i },
+        { id: "carnisseria", regex: /\b(carnisseria|carniceria|carnicería|embotits|embotit|xarcuteria|charcuteria|valcan|carnisser)\b/i },
         { id: "fruteria", regex: /\b(fruiteria|fruteria|frutería)\b/i }
       ];
 
@@ -13776,8 +13840,8 @@
           if (res) return res;
         }
 
-        // C) Format amb mes en text: "15 de novembre de 2024", "15 nov 2024", "15-nov-24"
-        const textMonthRegex = /\b(\d{1,2})\s*(?:de\s+|-|\/|\.|\s+)(gener|febrer|març|marc|abril|maig|juny|juliol|agost|setembre|set|octubre|oct|novembre|nov|desembre|des|enero|ene|febrero|feb|marzo|mar|abril|abr|mayo|may|junio|jun|julio|jul|agosto|ago|septiembre|sep|diciembre|dic)\.?(?:\s*(?:de\s+|-|\/|\.|\s+)(20\d{2}|\d{2}))?\b/i;
+        // C) Format amb mes en text: "15 de novembre de 2024", "15 nov 2024", "15-nov-24", "13NOV26"
+        const textMonthRegex = /\b(\d{1,2})\s*(?:de\s+|[-/\.\s])?\s*(gener|febrer|març|marc|abril|abr|maig|mai|juny|juliol|agost|ago|setembre|set|octubre|oct|novembre|nov|desembre|des|enero|ene|febrero|feb|marzo|mar|mayo|may|junio|jun|julio|jul|septiembre|sept|sep|diciembre|dic)\.?(?:\s*(?:de\s+|[-/\.\s])?\s*(20\d{2}|\d{2}))?\b/i;
         const tmMatch = line.match(textMonthRegex);
         if (tmMatch) {
           const mNum = textMonthMap[tmMatch[2].toLowerCase()];
@@ -13816,9 +13880,9 @@
       // 3. DETECCIÓ D'IMPORT TOTAL (€)
       let detectedTotal = null;
 
-      // Línies que NO són el total final a pagar (descomptes, canvi, unitats, o desglossament pur d'IVA / punts)
+      // Línies que NO són el total final a pagar (descomptes, canvi, unitats, o desglossament pur d'IVA / punts / capçaleres)
       // Important: NO descartem "TOTAL (IVA INCLUIDO)" ni "TOTAL A PAGAR (IVA INCL.)"
-      const rejectLineRegex = /\b(art[ií]culos?|unitats?|unidades?|l[íi]neas?|puntos?|punts?|ahorro|estalvi|descuento|descompte|dto\.?|cambio|canvi|su\s*cambio|resto|devuelto|entregad[oa]|import\s*entregat|base\s*imponible|base\b|cuota|tipo\s*iva|desglose|acumulat|acumulado|saldo|club\b)\b/i;
+      const rejectLineRegex = /\b(art[ií]culos?|unitats?|unidades?|l[íi]neas?|puntos?|punts?|ahorro|estalvi|descuento|descompte|dto\.?|cambio|canvi|su\s*cambio|resto|devuelto|devoluci[oó]n?|entregad[oa]|entrega|import\s*entregat|base\s*imponible|base\b|cuota|tipo\s*iva|desglose|acumulat|acumulado|saldo|club\b|descripci[oó]n?|p\.?v\.?p|preu|precio|quantitat|cantidad|impositiu)\b/i;
 
       function parseAmount(str) {
         if (!str) return null;
@@ -13830,51 +13894,35 @@
           s = s.replace(',', '.');
         }
         const val = parseFloat(s);
-        return (!isNaN(val) && val > 0.05 && val < 3000) ? val : null;
+        return (!isNaN(val) && val > 0.05 && val < 5000) ? val : null;
       }
 
       // Regex per capturar imports monetaris amb decimals (suporta '23,45', '23.45', '23 , 45', '23 . 45')
       const pricePattern = /(?:^|[^\d])(\d{1,4}(?:[,\.\s]\d{3})*\s*[\.,\']\s*\d{2})(?:\s*[€a-zA-Z%])?(?:\s|$)/g;
 
-      // Prioritat 1 (Màxima): Frases explícites de TOTAL FINAL A PAGAR (ex: "TOTAL A PAGAR", "TOTAL (€)", etc.)
-      const strongTotalKeywordsRegex = /\b(total\s+a\s+pagar|total\s+factura|total\s+compra|total\s+t[ií]quet|total\s*\(\s*€\s*\)|import\s+total|importe\s+total)\b/i;
-
+      // Prioritat 0: Detecció específica de tiquets de balances comercials (ex: carnisseries/xarcuteries: "Tra. 2 41.14" o "Tra, 2 4114")
       for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i];
-        if (strongTotalKeywordsRegex.test(line) && !rejectLineRegex.test(line)) {
-          const matches = [...line.matchAll(pricePattern)];
-          if (matches.length > 0) {
-            const val = parseAmount(matches[matches.length - 1][1]);
-            if (val !== null) {
-              detectedTotal = val;
-              break;
-            }
+        const traMatch = line.match(/\btra[\.,\s]+(?:\d+\s+)?(\d{1,4}(?:[\.,]\d{2})?)\b/i);
+        if (traMatch && !rejectLineRegex.test(line)) {
+          const raw = traMatch[1];
+          if (raw.includes('.') || raw.includes(',')) {
+            detectedTotal = parseAmount(raw);
           } else {
-            // Si el text està sol a la línia i l'import a la següent (o següent + 1)
-            for (let nextOffset = 1; nextOffset <= 2; nextOffset++) {
-              if (i + nextOffset < lines.length) {
-                const nextMatches = [...lines[i + nextOffset].matchAll(pricePattern)];
-                if (nextMatches.length > 0) {
-                  const val = parseAmount(nextMatches[nextMatches.length - 1][1]);
-                  if (val !== null) {
-                    detectedTotal = val;
-                    break;
-                  }
-                }
-              }
-            }
-            if (detectedTotal !== null) break;
+            const intV = parseInt(raw, 10);
+            if (intV > 100 && intV < 100000) detectedTotal = intV / 100;
           }
+          if (detectedTotal) break;
         }
       }
 
-      // Prioritat 2: Paraules clau generals de TOTAL amb tolerància a variacions i errors OCR
+      // Prioritat 1 (Màxima): Línies que contenen paraules clau explícites de TOTAL (ex: "TOTAL A PAGAR", "TOTAL...: 33,27", "TOTAL (€)", etc.)
       if (detectedTotal === null) {
-        const totalKeywordsRegex = /\b(t[o0]ta[li1!]|t[o0]t\b|import|importe|suma|a\s*pagar|pagar|cobro|liquidaci[oó]n)\b/i;
+        const strongTotalKeywordsRegex = /\b(t[o0]ta[li1!]|t[o0]t\b|total\s+a\s+pagar|total\s+factura|total\s+compra|total\s+t[ií]quet|total\s*\(\s*€\s*\)|import\s+total|importe\s+total)\b/i;
+
         for (let i = lines.length - 1; i >= 0; i--) {
           const line = lines[i];
-
-          if (totalKeywordsRegex.test(line) && !rejectLineRegex.test(line)) {
+          if (strongTotalKeywordsRegex.test(line) && !rejectLineRegex.test(line)) {
             const matches = [...line.matchAll(pricePattern)];
             if (matches.length > 0) {
               const val = parseAmount(matches[matches.length - 1][1]);
@@ -13883,7 +13931,7 @@
                 break;
               }
             } else {
-              // Si el text "TOTAL" està sol a la línia i l'import a la següent (o següent + 1)
+              // Si el text està sol a la línia i l'import a la següent (o següent + 1)
               for (let nextOffset = 1; nextOffset <= 2; nextOffset++) {
                 if (i + nextOffset < lines.length) {
                   const nextMatches = [...lines[i + nextOffset].matchAll(pricePattern)];
@@ -13902,9 +13950,44 @@
         }
       }
 
-      // Prioritat 3 (Fallback): Buscar línia de forma de pagament (TARJETA / TARGETA / VISA / MASTERCARD / BIZUM / PAGADO)
+      // Prioritat 2: Altres termes de tancament (suma, a pagar, cobro, liquidació)
+      // Nota: NO incloem 'import' ni 'importe' sol, ja que apareix com a capçalera de columna ("Import")
       if (detectedTotal === null) {
-        const paymentRegex = /\b(tarjeta|targeta|visa|mastercard|bizum|pagat|pagado|efectiu|efectivo|met[aá]lico|cobrat|cobrado)\b/i;
+        const totalKeywordsRegex = /\b(suma|a\s*pagar|pagar|cobro|liquidaci[oó]n)\b/i;
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i];
+
+          if (totalKeywordsRegex.test(line) && !rejectLineRegex.test(line)) {
+            const matches = [...line.matchAll(pricePattern)];
+            if (matches.length > 0) {
+              const val = parseAmount(matches[matches.length - 1][1]);
+              if (val !== null) {
+                detectedTotal = val;
+                break;
+              }
+            } else {
+              // Si el text està sol a la línia i l'import a la següent (o següent + 1)
+              for (let nextOffset = 1; nextOffset <= 2; nextOffset++) {
+                if (i + nextOffset < lines.length) {
+                  const nextMatches = [...lines[i + nextOffset].matchAll(pricePattern)];
+                  if (nextMatches.length > 0) {
+                    const val = parseAmount(nextMatches[nextMatches.length - 1][1]);
+                    if (val !== null) {
+                      detectedTotal = val;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (detectedTotal !== null) break;
+            }
+          }
+        }
+      }
+
+      // Prioritat 3 (Fallback): Buscar línia de forma de pagament (TARJETA / TARGETA / VISA / MASTERCARD / BIZUM / PAGADO / T.CREDITO)
+      if (detectedTotal === null) {
+        const paymentRegex = /\b(tarjeta|targeta|visa|mastercard|bizum|t\.?credito|t\.?debito|pagat|pagado|efectiu|efectivo|met[aá]lico|cobrat|cobrado)\b/i;
         for (let i = lines.length - 1; i >= 0; i--) {
           const line = lines[i];
           if (paymentRegex.test(line) && !rejectLineRegex.test(line)) {
@@ -13936,7 +14019,7 @@
         if (highest > 0) detectedTotal = highest;
       }
 
-      return { store: detectedStore, date: detectedDate, total: detectedTotal };
+      return { store: detectedStore, date: detectedDate, total: detectedTotal, note: detectedNote };
     }
 
     function reparseNewTicketText() {
@@ -13959,7 +14042,7 @@
           storeObj = STORES.find(s => s.id === "bonpreu");
         }
         if (!storeObj) {
-          const knownNames = { consum: "Consum", aldi: "Aldi" };
+          const knownNames = { consum: "Consum", aldi: "Aldi", farmacia: "Farmàcia", carnisseria: "Carnisseria" };
           if (knownNames[targetStoreId] && typeof ensureStore === "function") {
             storeObj = ensureStore(targetStoreId, knownNames[targetStoreId]);
           }
@@ -13992,6 +14075,14 @@
           highlightTicketField(totalInput);
           detectedCount++;
           detectedLabels.push(`${detected.total.toFixed(2)} €`);
+        }
+      }
+
+      if (detected.note) {
+        const noteInput = document.getElementById("new-ticket-note");
+        if (noteInput && !noteInput.value.trim()) {
+          noteInput.value = detected.note;
+          highlightTicketField(noteInput);
         }
       }
 
@@ -14085,10 +14176,14 @@
 
           let res;
           try {
-            res = await Tesseract.recognize(canvas, 'spa', { logger: tesseractLogger });
-          } catch (e1) {
-            console.warn("Avís model spa, provant eng:", e1);
-            res = await Tesseract.recognize(canvas, 'eng', { logger: tesseractLogger });
+            res = await Tesseract.recognize(canvas, 'cat+spa', { logger: tesseractLogger });
+          } catch (eCat) {
+            try {
+              res = await Tesseract.recognize(canvas, 'spa', { logger: tesseractLogger });
+            } catch (e1) {
+              console.warn("Avís model spa, provant eng:", e1);
+              res = await Tesseract.recognize(canvas, 'eng', { logger: tesseractLogger });
+            }
           }
           extractedText = res?.data?.text || "";
         }
@@ -14109,6 +14204,7 @@
             if (!detected.store && fnDetected.store) detected.store = fnDetected.store;
             if (!detected.date && fnDetected.date) detected.date = fnDetected.date;
             if ((detected.total === null || detected.total <= 0) && fnDetected.total > 0) detected.total = fnDetected.total;
+            if (!detected.note && fnDetected.note) detected.note = fnDetected.note;
           } catch (fnErr) {}
         }
 
@@ -14126,7 +14222,7 @@
           }
 
           if (!storeObj) {
-            const knownNames = { consum: "Consum", aldi: "Aldi", caprabo: "Caprabo" };
+            const knownNames = { consum: "Consum", aldi: "Aldi", caprabo: "Caprabo", farmacia: "Farmàcia", carnisseria: "Carnisseria" };
             if (knownNames[targetStoreId] && typeof ensureStore === "function") {
               storeObj = ensureStore(targetStoreId, knownNames[targetStoreId]);
             }
@@ -14165,6 +14261,15 @@
             highlightTicketField(totalInput);
             detectedCount++;
             detectedLabels.push(`${detected.total.toFixed(2)} €`);
+          }
+        }
+
+        // 4. Assignar nota o nom de la botiga si s'ha detectat
+        if (detected.note) {
+          const noteInput = document.getElementById("new-ticket-note");
+          if (noteInput && !noteInput.value.trim()) {
+            noteInput.value = detected.note;
+            highlightTicketField(noteInput);
           }
         }
 
@@ -14218,6 +14323,13 @@
                 if (totalInput) {
                   totalInput.value = fnDetected.total.toFixed(2);
                   highlightTicketField(totalInput);
+                }
+              }
+              if (fnDetected.note) {
+                const noteInput = document.getElementById("new-ticket-note");
+                if (noteInput && !noteInput.value.trim()) {
+                  noteInput.value = fnDetected.note;
+                  highlightTicketField(noteInput);
                 }
               }
             }
