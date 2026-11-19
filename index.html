@@ -1788,7 +1788,7 @@
         </button>
         <button type="button" id="new-ticket-submit-btn" onclick="submitNewTicket()"
           class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <i id="new-ticket-submit-icon" class="fa-solid fa-cloud-arrow-up"></i>
           <span id="new-ticket-submit-text">Desar al núvol</span>
         </button>
       </div>
@@ -13024,6 +13024,7 @@
 
     let pendingTicketFileObj = null;
     let pendingTicketBlobToUpload = null;
+    let currentTicketOcrSessionId = 0;
     let currentViewerTicketObj = null;
     let ticketViewerZoomLevel = 1;
     let ticketViewerRotationDeg = 0;
@@ -13104,6 +13105,7 @@
       registerModalClose("tickets-modal", fromPopstate);
       const modal = document.getElementById("tickets-modal");
       if (modal) modal.classList.add("hidden");
+      closeNewTicketModal(fromPopstate);
     }
 
     function populateTicketsStoreFilter() {
@@ -13298,6 +13300,23 @@
       }).join("");
     }
 
+    function populateNewTicketStores(selectedStoreId = null) {
+      const storeSelect = document.getElementById("new-ticket-store");
+      if (!storeSelect) return;
+      const isEs = (typeof currentLang !== 'undefined' && currentLang === 'es');
+      const storeList = Array.isArray(STORES) ? STORES.filter(s => s && s.id !== "all") : [];
+      let html = "";
+      storeList.forEach(s => {
+        html += `<option value="${escapeHtml(s.id)}">${escapeHtml(getStoreDisplayName(s, currentLang))}</option>`;
+      });
+      storeSelect.innerHTML = html;
+
+      const target = selectedStoreId || (typeof currentStoreFilter !== 'undefined' && currentStoreFilter !== 'all' ? currentStoreFilter : "mercadona");
+      if (target && Array.from(storeSelect.options).some(o => o.value === target)) {
+        storeSelect.value = target;
+      }
+    }
+
     function openNewTicketModal() {
       registerModalOpen("new-ticket-modal", closeNewTicketModal);
       const modal = document.getElementById("new-ticket-modal");
@@ -13305,39 +13324,7 @@
       modal.classList.remove("hidden");
 
       clearNewTicketFile();
-      const storeSelect = document.getElementById("new-ticket-store");
-      if (storeSelect) {
-        storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => {
-          return `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`;
-        }).join("");
-        if (currentStoreFilter !== "all") {
-          storeSelect.value = currentStoreFilter;
-        }
-      }
-
-      const dateInput = document.getElementById("new-ticket-date");
-      if (dateInput) {
-        dateInput.value = new Date().toISOString().split("T")[0];
-      }
-
-      const totalInput = document.getElementById("new-ticket-total");
-      if (totalInput) totalInput.value = "";
-
-      const noteInput = document.getElementById("new-ticket-note");
-      if (noteInput) noteInput.value = "";
-
-      const ocrStatus = document.getElementById("new-ticket-ocr-status");
-      if (ocrStatus) ocrStatus.classList.add("hidden");
-      const ocrDetails = document.getElementById("new-ticket-ocr-details");
-      if (ocrDetails) ocrDetails.classList.add("hidden");
-      const rawTextEl = document.getElementById("new-ticket-raw-text");
-      if (rawTextEl) rawTextEl.value = "";
-
-      const submitBtn = document.getElementById("new-ticket-submit-btn");
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        document.getElementById("new-ticket-submit-text").innerText = currentLang === "es" ? "Guardar en la nube" : "Desar al núvol";
-      }
+      populateNewTicketStores();
     }
 
     function closeNewTicketModal(fromPopstate = false) {
@@ -13350,10 +13337,13 @@
     let ticketDragCounter = 0;
 
     function clearNewTicketFile() {
-      hideAllTicketDropOverlays();
+      try {
+        hideAllTicketDropOverlays();
+      } catch (e) {}
       currentTicketOcrSessionId++;
       pendingTicketFileObj = null;
       pendingTicketBlobToUpload = null;
+
       const uploadZone = document.getElementById("new-ticket-upload-zone");
       const previewBox = document.getElementById("new-ticket-preview-box");
       const camInput = document.getElementById("new-ticket-camera-input");
@@ -13361,6 +13351,10 @@
       const ocrStatus = document.getElementById("new-ticket-ocr-status");
       const ocrDetails = document.getElementById("new-ticket-ocr-details");
       const rawTextEl = document.getElementById("new-ticket-raw-text");
+      const thumb = document.getElementById("new-ticket-preview-thumb");
+      const nameEl = document.getElementById("new-ticket-preview-name");
+      const sizeEl = document.getElementById("new-ticket-preview-size");
+
       if (camInput) camInput.value = "";
       if (fileInput) fileInput.value = "";
       if (uploadZone) uploadZone.classList.remove("hidden");
@@ -13368,6 +13362,27 @@
       if (ocrStatus) ocrStatus.classList.add("hidden");
       if (ocrDetails) ocrDetails.classList.add("hidden");
       if (rawTextEl) rawTextEl.value = "";
+      if (thumb) thumb.innerHTML = "";
+      if (nameEl) nameEl.textContent = "";
+      if (sizeEl) sizeEl.textContent = "";
+
+      populateNewTicketStores();
+
+      const dateInput = document.getElementById("new-ticket-date");
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().split("T")[0];
+      }
+      const totalInput = document.getElementById("new-ticket-total");
+      if (totalInput) totalInput.value = "";
+      const noteInput = document.getElementById("new-ticket-note");
+      if (noteInput) noteInput.value = "";
+
+      const submitBtn = document.getElementById("new-ticket-submit-btn");
+      if (submitBtn) submitBtn.disabled = false;
+      const submitIcon = document.getElementById("new-ticket-submit-icon");
+      if (submitIcon) submitIcon.className = "fa-solid fa-cloud-arrow-up";
+      const submitText = document.getElementById("new-ticket-submit-text");
+      if (submitText) submitText.textContent = (typeof currentLang !== 'undefined' && currentLang === 'es') ? "Guardar en la nube" : "Desar al núvol";
     }
 
     function extractFileFromDropEvent(e) {
@@ -13456,38 +13471,32 @@
       if (window._pdfjsLoadingPromise) return window._pdfjsLoadingPromise;
 
       window._pdfjsLoadingPromise = new Promise((resolve, reject) => {
-        const workerScript = document.createElement("script");
-        workerScript.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-        const mainScript = document.createElement("script");
-        mainScript.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-
-        const finish = () => {
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        script.onload = () => {
           if (window.pdfjsLib) {
             try {
-              window.pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+              const workerBlob = new Blob([
+                'importScripts("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js");'
+              ], { type: "application/javascript" });
+              window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
             } catch (err) {
-              console.warn("Avís configurant PDF worker:", err);
+              console.warn("Avís configurant PDF worker amb blob:", err);
+              try {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+              } catch (e2) {}
             }
             resolve(window.pdfjsLib);
           } else {
+            window._pdfjsLoadingPromise = null;
             reject(new Error("pdfjsLib no disponible"));
           }
         };
-
-        workerScript.onload = () => {
-          document.head.appendChild(mainScript);
-        };
-        workerScript.onerror = () => {
-          document.head.appendChild(mainScript);
-        };
-        mainScript.onload = finish;
-        mainScript.onerror = (err) => {
+        script.onerror = (err) => {
           window._pdfjsLoadingPromise = null;
           reject(new Error("No s'ha pogut carregar el lector PDF: " + (err?.message || "")));
         };
-
-        document.head.appendChild(workerScript);
+        document.head.appendChild(script);
       });
 
       return window._pdfjsLoadingPromise;
@@ -13525,18 +13534,23 @@
               const page = await doc.getPage(i);
               const opList = await page.getOperatorList();
               let opText = "";
-              function walkOps(x) {
-                if (!x) return;
+              const visited = new Set();
+              function walkOps(x, depth = 0) {
+                if (!x || depth > 8) return;
+                if (typeof x === "object") {
+                  if (visited.has(x)) return;
+                  visited.add(x);
+                }
                 if (Array.isArray(x)) {
                   if (x.length > 0 && x[0] && typeof x[0] === "object" && x[0].unicode !== undefined) {
                     const str = x.map(g => g.unicode || "").join("");
                     if (str.trim()) opText += str + "\n";
                     return;
                   }
-                  for (let j = 0; j < x.length; j++) walkOps(x[j]);
+                  for (let j = 0; j < x.length; j++) walkOps(x[j], depth + 1);
                 } else if (typeof x === "object") {
                   const keys = Object.keys(x);
-                  for (let k = 0; k < keys.length; k++) walkOps(x[keys[k]]);
+                  for (let k = 0; k < keys.length; k++) walkOps(x[keys[k]], depth + 1);
                 }
               }
               walkOps(opList.argsArray);
@@ -13609,6 +13623,53 @@
         console.warn("Avís extraient text del PDF:", e);
         return "";
       }
+    }
+
+    function parseTicketFromFileName(name, availableStores = []) {
+      const res = { store: null, date: null, total: null };
+      if (!name || typeof name !== "string") return res;
+
+      // 1. Detecció de data: 20261106, 2026-11-06, Scan_20261103_...
+      const dMatch = name.match(/\b(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})\b/) || name.match(/(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})/);
+      if (dMatch) {
+        const y = parseInt(dMatch[1], 10);
+        const m = parseInt(dMatch[2], 10);
+        const d = parseInt(dMatch[3], 10);
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          res.date = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+      }
+
+      // 2. Detecció de botiga al nom del fitxer
+      const lower = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const defaultKnown = ['caprabo', 'mercadona', 'bonpreu', 'esclat', 'lidl', 'carrefour', 'dia', 'consum', 'aldi', 'farmacia', 'ametller', 'sirena', 'alcampo'];
+      for (const s of defaultKnown) {
+        if (lower.includes(s)) {
+          res.store = (s === 'esclat' ? 'bonpreu' : s);
+          break;
+        }
+      }
+      if (!res.store && Array.isArray(availableStores)) {
+        for (const s of availableStores) {
+          if (!s || s.id === 'all') continue;
+          const sNorm = (s.name || s.id || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (sNorm.length >= 3 && lower.includes(sNorm)) {
+            res.store = s.id;
+            break;
+          }
+        }
+      }
+
+      // 3. Detecció d'import al nom del fitxer (ex: 65-05€, 65.05€, 65,05€, 65-05)
+      const amtMatch = name.match(/(\d{1,4})[-.,](\d{2})\s*(?:€|eur)?/i);
+      if (amtMatch) {
+        const val = parseFloat(`${amtMatch[1]}.${amtMatch[2]}`);
+        if (!isNaN(val) && val > 0 && val < 5000) {
+          res.total = val;
+        }
+      }
+
+      return res;
     }
 
     function parseTicketOcrData(rawText, availableStores = []) {
@@ -14041,6 +14102,16 @@
         const detected = parseTicketOcrData(extractedText, STORES);
         console.log("Dades del tiquet detectades automàticament:", detected);
 
+        // Fallback addicional intel·ligent: Analitzar el nom del fitxer si falta alguna dada (ex: "20261106 Caprabo 65-05€ .pdf")
+        if (file && file.name) {
+          try {
+            const fnDetected = parseTicketFromFileName(file.name, STORES);
+            if (!detected.store && fnDetected.store) detected.store = fnDetected.store;
+            if (!detected.date && fnDetected.date) detected.date = fnDetected.date;
+            if ((detected.total === null || detected.total <= 0) && fnDetected.total > 0) detected.total = fnDetected.total;
+          } catch (fnErr) {}
+        }
+
         let detectedCount = 0;
         const detectedLabels = [];
 
@@ -14055,7 +14126,7 @@
           }
 
           if (!storeObj) {
-            const knownNames = { consum: "Consum", aldi: "Aldi" };
+            const knownNames = { consum: "Consum", aldi: "Aldi", caprabo: "Caprabo" };
             if (knownNames[targetStoreId] && typeof ensureStore === "function") {
               storeObj = ensureStore(targetStoreId, knownNames[targetStoreId]);
             }
@@ -14063,11 +14134,7 @@
 
           const storeSelect = document.getElementById("new-ticket-store");
           if (storeSelect) {
-            if (!Array.from(storeSelect.options).some(o => o.value === targetStoreId)) {
-              storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => {
-                return `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`;
-              }).join("");
-            }
+            populateNewTicketStores(targetStoreId);
             storeSelect.value = targetStoreId;
             highlightTicketField(storeSelect);
             detectedCount++;
@@ -14127,8 +14194,46 @@
         }
       } catch (ocrErr) {
         console.warn("Avís procés OCR tiquet:", ocrErr);
-        if (statusBox && sessionId === currentTicketOcrSessionId) {
-          statusBox.classList.add("hidden");
+        if (sessionId === currentTicketOcrSessionId) {
+          // Intentar almenys recuperar dades del nom del fitxer si OCR falla
+          try {
+            if (file && file.name) {
+              const fnDetected = parseTicketFromFileName(file.name, STORES);
+              if (fnDetected.store) {
+                const storeSelect = document.getElementById("new-ticket-store");
+                if (storeSelect) {
+                  populateNewTicketStores(fnDetected.store);
+                  highlightTicketField(storeSelect);
+                }
+              }
+              if (fnDetected.date) {
+                const dateInput = document.getElementById("new-ticket-date");
+                if (dateInput) {
+                  dateInput.value = fnDetected.date;
+                  highlightTicketField(dateInput);
+                }
+              }
+              if (fnDetected.total) {
+                const totalInput = document.getElementById("new-ticket-total");
+                if (totalInput) {
+                  totalInput.value = fnDetected.total.toFixed(2);
+                  highlightTicketField(totalInput);
+                }
+              }
+            }
+          } catch (fnErr) {}
+
+          if (statusBox) {
+            statusBox.className = "rounded-xl p-2.5 text-xs transition-all bg-amber-50 border border-amber-300 text-amber-900";
+            if (statusIcon) statusIcon.className = "fa-solid fa-circle-exclamation text-amber-600 text-sm flex-shrink-0";
+            if (statusText) {
+              statusText.innerText = currentLang === "es"
+                ? "No se ha podido leer todo el documento automáticamente. Puedes rellenar los datos a mano."
+                : "No s'ha pogut llegir tot el document automàticament. Pots omplir les dades a mà.";
+            }
+            if (statusBadge) statusBadge.classList.add("hidden");
+            statusBox.classList.remove("hidden");
+          }
         }
       }
     }
@@ -14154,10 +14259,12 @@
         return;
       }
 
-      // Si el modal de creació de tiquet no està obert, obrir-lo primer
+      // Obrir o assegurar que el modal està obert i inicialitzat
       const newModal = document.getElementById("new-ticket-modal");
       if (!newModal || newModal.classList.contains("hidden")) {
         openNewTicketModal();
+      } else {
+        populateNewTicketStores();
       }
 
       pendingTicketFileObj = file;
@@ -14197,7 +14304,11 @@
       if (previewBox) previewBox.classList.remove("hidden");
 
       // Auto-detecció de supermercat, data i import mitjançant OCR / extracció de text
-      runTicketDataDetection(file, isPdf);
+      try {
+        await runTicketDataDetection(file, isPdf);
+      } catch (err) {
+        console.error("Error no controlat a runTicketDataDetection:", err);
+      }
     }
 
     async function compressTicketImage(file) {
@@ -14249,7 +14360,7 @@
       }
 
       const storeSelect = document.getElementById("new-ticket-store");
-      const storeId = storeSelect ? storeSelect.value : "mercadona";
+      const storeId = (storeSelect && storeSelect.value) ? storeSelect.value : "mercadona";
       const dateInput = document.getElementById("new-ticket-date");
       const ticketDate = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split("T")[0];
       const totalInput = document.getElementById("new-ticket-total");
@@ -14259,8 +14370,10 @@
 
       const submitBtn = document.getElementById("new-ticket-submit-btn");
       const submitText = document.getElementById("new-ticket-submit-text");
+      const submitIcon = document.getElementById("new-ticket-submit-icon");
       if (submitBtn) submitBtn.disabled = true;
-      if (submitText) submitText.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> ${currentLang === 'es' ? 'Subiendo...' : 'Pujant...'}`;
+      if (submitIcon) submitIcon.className = "fa-solid fa-circle-notch animate-spin";
+      if (submitText) submitText.textContent = (currentLang === 'es' ? 'Subiendo...' : 'Pujant...');
 
       try {
         const ticketId = "tkt_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
@@ -14305,7 +14418,8 @@
         alert((currentLang === "es" ? "Error al subir el ticket a Firebase: " : "Error pujant el tiquet a Firebase: ") + (err.message || err));
       } finally {
         if (submitBtn) submitBtn.disabled = false;
-        if (submitText) submitText.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> ${currentLang === "es" ? "Guardar en la nube" : "Desar al núvol"}`;
+        if (submitIcon) submitIcon.className = "fa-solid fa-cloud-arrow-up";
+        if (submitText) submitText.textContent = (currentLang === "es" ? "Guardar en la nube" : "Desar al núvol");
       }
     }
 
@@ -14672,6 +14786,8 @@
     window.parseTicketOcrData = parseTicketOcrData;
     window.runTicketDataDetection = runTicketDataDetection;
     window.reparseNewTicketText = reparseNewTicketText;
+    window.populateNewTicketStores = populateNewTicketStores;
+    window.parseTicketFromFileName = parseTicketFromFileName;
 
     // Gestió global de Drag & Drop per a finestres de tiquets
     window.addEventListener("dragenter", (e) => {
