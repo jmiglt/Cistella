@@ -13311,48 +13311,102 @@
     }
 
     function loadPdfJs() {
-      return new Promise((resolve, reject) => {
-        if (window.pdfjsLib) return resolve(window.pdfjsLib);
-        const script = document.createElement("script");
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-        script.onload = async () => {
+      if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+      if (window._pdfjsLoadingPromise) return window._pdfjsLoadingPromise;
+
+      window._pdfjsLoadingPromise = new Promise((resolve, reject) => {
+        const workerScript = document.createElement("script");
+        workerScript.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+        const mainScript = document.createElement("script");
+        mainScript.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+
+        const finish = () => {
           if (window.pdfjsLib) {
             try {
-              if (!window._pdfjsWorkerBlobUrl) {
-                const resp = await fetch("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js");
-                const workerScript = await resp.text();
-                const blob = new Blob([workerScript], { type: "application/javascript" });
-                window._pdfjsWorkerBlobUrl = URL.createObjectURL(blob);
-              }
-              window.pdfjsLib.GlobalWorkerOptions.workerSrc = window._pdfjsWorkerBlobUrl;
+              window.pdfjsLib.GlobalWorkerOptions.workerSrc = "";
             } catch (err) {
-              console.warn("Avís configurant PDF worker blob, fallback a fake worker:", err);
+              console.warn("Avís configurant PDF worker:", err);
             }
             resolve(window.pdfjsLib);
           } else {
             reject(new Error("pdfjsLib no disponible"));
           }
         };
-        script.onerror = () => reject(new Error("No s'ha pogut carregar el lector PDF"));
-        document.head.appendChild(script);
+
+        workerScript.onload = () => {
+          document.head.appendChild(mainScript);
+        };
+        workerScript.onerror = () => {
+          document.head.appendChild(mainScript);
+        };
+        mainScript.onload = finish;
+        mainScript.onerror = (err) => {
+          window._pdfjsLoadingPromise = null;
+          reject(new Error("No s'ha pogut carregar el lector PDF: " + (err?.message || "")));
+        };
+
+        document.head.appendChild(workerScript);
       });
+
+      return window._pdfjsLoadingPromise;
     }
 
     async function extractTextFromPdfFile(file, logger = null) {
       try {
         const pdfjs = await loadPdfJs();
         const arrayBuffer = await file.arrayBuffer();
-        const doc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        const doc = await pdfjs.getDocument({
+          data: arrayBuffer,
+          cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
+          cMapPacked: true
+        }).promise;
+
         let fullText = "";
         const maxPages = Math.min(doc.numPages, 3);
+
+        // 1. Intent estàndard: getTextContent()
         for (let i = 1; i <= maxPages; i++) {
-          const page = await doc.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = (textContent.items || []).map(item => item.str).join(" ");
-          fullText += pageText + "\n";
+          try {
+            const page = await doc.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = (textContent.items || []).map(item => item.str).join(" ");
+            if (pageText.trim()) fullText += pageText + "\n";
+          } catch (tErr) {
+            console.warn("Avís getTextContent pàgina " + i + ":", tErr);
+          }
         }
 
-        // Si és un PDF escanejat o empaquetat com a gràfic / pattern (sense text digital o molt poc text)
+        // 2. Si és un PDF empaquetat com a Form XObject o Tiling Pattern (getTextContent buit o < 25 caràcters)
+        if (fullText.trim().length < 25) {
+          try {
+            for (let i = 1; i <= maxPages; i++) {
+              const page = await doc.getPage(i);
+              const opList = await page.getOperatorList();
+              let opText = "";
+              function walkOps(x) {
+                if (!x) return;
+                if (Array.isArray(x)) {
+                  if (x.length > 0 && x[0] && typeof x[0] === "object" && x[0].unicode !== undefined) {
+                    const str = x.map(g => g.unicode || "").join("");
+                    if (str.trim()) opText += str + "\n";
+                    return;
+                  }
+                  for (let j = 0; j < x.length; j++) walkOps(x[j]);
+                } else if (typeof x === "object") {
+                  const keys = Object.keys(x);
+                  for (let k = 0; k < keys.length; k++) walkOps(x[keys[k]]);
+                }
+              }
+              walkOps(opList.argsArray);
+              if (opText.trim()) fullText += opText + "\n";
+            }
+          } catch (opErr) {
+            console.warn("Avís extraient text d'operatorList:", opErr);
+          }
+        }
+
+        // 3. Fallback per a PDFs purament escanejats o imatges: Renderització canvas + OCR Tesseract
         if (fullText.trim().length < 25) {
           const page = await doc.getPage(1);
           const baseVp = page.getViewport({ scale: 1.0 });
