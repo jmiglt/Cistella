@@ -13209,54 +13209,73 @@
         const totalFormatted = typeof t.total === "number" ? t.total.toFixed(2).replace(".", ",") + " €" : (parseFloat(t.total) ? parseFloat(t.total).toFixed(2).replace(".", ",") + " €" : "0,00 €");
 
         return `
-          <div class="bg-white border border-gray-200/90 hover:border-emerald-500/60 rounded-xl p-2.5 shadow-2xs hover:shadow-xs transition flex items-center justify-between gap-2.5">
-            <div class="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer" onclick="openTicketViewer('${escapeHtml(t.id)}')">
-              <!-- Miniatura o icona -->
-              <div class="w-11 h-11 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100 border border-gray-200 flex-shrink-0 relative">
+          <div class="bg-white border border-gray-200/90 hover:border-emerald-500/60 rounded-xl p-3 shadow-2xs hover:shadow-xs transition space-y-2.5">
+            <!-- Zona principal clicable per veure el tiquet -->
+            <div class="flex items-start gap-3 cursor-pointer" onclick="openTicketViewer('${escapeHtml(t.id)}')">
+              <!-- Miniatura -->
+              <div class="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center bg-gray-100 border border-gray-200/90 flex-shrink-0 shadow-2xs mt-0.5">
                 ${isPdf 
-                  ? `<div class="w-full h-full bg-rose-50 flex items-center justify-center text-rose-600 text-lg"><i class="fa-solid fa-file-pdf"></i></div>` 
+                  ? `<div class="w-full h-full bg-rose-50 flex items-center justify-center text-rose-600 text-xl"><i class="fa-solid fa-file-pdf"></i></div>` 
                   : (t.fileUrl 
                       ? `<img src="${escapeHtml(t.fileUrl)}" alt="Tiquet" class="w-full h-full object-cover">` 
-                      : `<div class="w-full h-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-lg"><i class="fa-solid fa-image"></i></div>`
+                      : `<div class="w-full h-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-xl"><i class="fa-solid fa-image"></i></div>`
                     )
                 }
               </div>
 
-              <!-- Dades del tiquet -->
+              <!-- Informació del tiquet -->
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200">${escapeHtml(storeName)}</span>
-                  <span class="text-[10px] text-gray-400">${escapeHtml(dateFormatted)}</span>
+                <!-- Fila 1: Botiga i Total -->
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/70 truncate max-w-[140px]">
+                    ${escapeHtml(storeName)}
+                  </span>
+                  <span class="text-sm sm:text-base font-extrabold text-emerald-700 tracking-tight flex-shrink-0">
+                    ${totalFormatted}
+                  </span>
                 </div>
-                <div class="text-xs font-bold text-gray-900 mt-0.5 truncate">
-                  ${t.note ? escapeHtml(t.note) : (isPdf ? (t.fileName ? escapeHtml(t.fileName) : "Document PDF") : (isEs ? "Foto de ticket" : "Foto de tiquet"))}
-                </div>
-              </div>
 
-              <!-- Import -->
-              <div class="text-right flex-shrink-0 pr-1">
-                <div class="text-sm font-extrabold text-emerald-700">${totalFormatted}</div>
+                <!-- Fila 2: Data de compra -->
+                <div class="mt-1 flex items-center gap-1.5 text-[11px] text-gray-500">
+                  <i class="fa-regular fa-calendar text-[10px] text-gray-400"></i>
+                  <span class="font-medium text-gray-700">${escapeHtml(dateFormatted)}</span>
+                </div>
+
+                <!-- Fila 3: Nom del fitxer o nota de compra -->
+                ${t.note ? `
+                  <div class="text-[11px] font-semibold text-gray-800 mt-0.5 truncate" title="${escapeHtml(t.note)}">
+                    ${escapeHtml(t.note)}
+                  </div>
+                ` : (t.fileName ? `
+                  <div class="text-[10px] text-gray-400 mt-0.5 truncate flex items-center gap-1" title="${escapeHtml(t.fileName)}">
+                    <i class="fa-solid fa-paperclip text-[9px]"></i> ${escapeHtml(t.fileName)}
+                  </div>
+                ` : '')}
               </div>
             </div>
 
-            <!-- Accions -->
-            <div class="flex items-center gap-1 flex-shrink-0">
-              <button onclick="openTicketViewer('${escapeHtml(t.id)}')" title="${isEs ? 'Ver ticket' : 'Veure tiquet'}"
-                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-emerald-100 text-gray-600 hover:text-emerald-700 flex items-center justify-center transition text-xs">
-                <i class="fa-solid fa-eye"></i>
+            <!-- Fila inferior: Botons d'acció amples i còmodes -->
+            <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+              <button onclick="openTicketViewer('${escapeHtml(t.id)}')"
+                class="flex-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98">
+                <i class="fa-solid fa-eye text-xs"></i>
+                <span>${isEs ? 'Ver ticket' : 'Veure tiquet'}</span>
               </button>
-              <button onclick="openEditTicketModal('${escapeHtml(t.id)}')" title="${isEs ? 'Editar ticket' : 'Editar tiquet'}"
-                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-amber-100 text-gray-600 hover:text-amber-700 flex items-center justify-center transition text-xs">
-                <i class="fa-solid fa-pencil"></i>
-              </button>
-              <button onclick="shareTicket('${escapeHtml(t.id)}')" title="${isEs ? 'Compartir' : 'Compartir'}"
-                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-teal-100 text-gray-600 hover:text-teal-700 flex items-center justify-center transition text-xs">
-                <i class="fa-solid fa-share-nodes"></i>
-              </button>
-              <button onclick="deleteTicket('${escapeHtml(t.id)}')" title="${isEs ? 'Eliminar' : 'Eliminar'}"
-                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-rose-100 text-gray-400 hover:text-rose-600 flex items-center justify-center transition text-xs">
-                <i class="fa-solid fa-trash"></i>
-              </button>
+
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <button onclick="openEditTicketModal('${escapeHtml(t.id)}')" title="${isEs ? 'Editar ticket' : 'Editar tiquet'}"
+                  class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-amber-100 text-gray-600 hover:text-amber-700 flex items-center justify-center transition text-xs active:scale-95">
+                  <i class="fa-solid fa-pencil"></i>
+                </button>
+                <button onclick="shareTicket('${escapeHtml(t.id)}')" title="${isEs ? 'Compartir' : 'Compartir'}"
+                  class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-teal-100 text-gray-600 hover:text-teal-700 flex items-center justify-center transition text-xs active:scale-95">
+                  <i class="fa-solid fa-share-nodes"></i>
+                </button>
+                <button onclick="deleteTicket('${escapeHtml(t.id)}')" title="${isEs ? 'Eliminar' : 'Eliminar'}"
+                  class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-rose-100 text-gray-400 hover:text-rose-600 flex items-center justify-center transition text-xs active:scale-95">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </div>
           </div>
         `;
