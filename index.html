@@ -1615,9 +1615,30 @@
 
   <!-- MODAL PER CREAR / PUJAR UN NOU TIQUET -->
   <div id="new-ticket-modal"
-    class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
-    <div
-      class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col">
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs"
+    onclick="closeNewTicketModal()"
+    ondragenter="handleNewTicketModalDragEnter(event)"
+    ondragover="handleNewTicketModalDragOver(event)"
+    ondragleave="handleNewTicketModalDragLeave(event)"
+    ondrop="handleNewTicketModalDrop(event)">
+    <div id="new-ticket-modal-card"
+      class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-2xl text-gray-800 animate-fade-in max-h-[92vh] flex flex-col relative transition-all"
+      onclick="event.stopPropagation()"
+      ondragenter="handleNewTicketModalDragEnter(event)"
+      ondragover="handleNewTicketModalDragOver(event)"
+      ondragleave="handleNewTicketModalDragLeave(event)"
+      ondrop="handleNewTicketModalDrop(event)">
+
+      <!-- OVERLAY QUAN S'ARROSSEGA UN ARXIU DINS EL POPUP -->
+      <div id="new-ticket-drop-overlay"
+        class="hidden absolute inset-0 z-30 bg-emerald-700/90 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center text-white border-2 border-dashed border-emerald-200 shadow-2xl pointer-events-none transition-all">
+        <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mb-2 animate-bounce">
+          <i class="fa-solid fa-cloud-arrow-up text-2xl text-white"></i>
+        </div>
+        <p class="text-sm font-bold text-white mb-0.5" id="new-ticket-drop-overlay-title" data-i18n="newTicketDropOverlay">Deixa anar el tiquet aquí</p>
+        <p class="text-[11px] text-emerald-100">Admet PDF o imatges (JPG, PNG)</p>
+      </div>
+
       <!-- CAPÇALERA -->
       <div class="flex items-center justify-between border-b pb-2">
         <div class="flex items-center space-x-2">
@@ -1629,18 +1650,19 @@
         </button>
       </div>
 
-      <!-- ZONA DE SELECCIÓ DE FITXER (CÀMERA O FITXER) -->
+      <!-- ZONA DE SELECCIÓ DE FITXER (CÀMERA O FITXER / ARROSSEGAR) -->
       <div class="space-y-2">
         <div id="new-ticket-upload-zone"
-          class="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-xl p-3.5 text-center space-y-2 bg-gray-50/70 transition">
-          <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-lg">
+          class="border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-xl p-3.5 text-center space-y-2 bg-gray-50/70 transition cursor-pointer"
+          onclick="document.getElementById('new-ticket-file-input').click()">
+          <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-lg pointer-events-none">
             <i class="fa-solid fa-receipt"></i>
           </div>
-          <div>
-            <p class="text-xs font-bold text-gray-800">Fes una foto o tria un PDF</p>
+          <div class="pointer-events-none">
+            <p class="text-xs font-bold text-gray-800" id="new-ticket-upload-prompt" data-i18n="newTicketDropPrompt">Arrossega el tiquet aquí, fes foto o tria arxiu</p>
             <p class="text-[10px] text-gray-500">Admet imatges (JPG, PNG) i documents PDF</p>
           </div>
-          <div class="flex gap-2 justify-center pt-1">
+          <div class="flex gap-2 justify-center pt-1" onclick="event.stopPropagation()">
             <button type="button" onclick="document.getElementById('new-ticket-camera-input').click()"
               class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
               <i class="fa-solid fa-camera"></i> Fer foto
@@ -1667,9 +1689,15 @@
               <p id="new-ticket-preview-size" class="text-[10px] text-emerald-700 font-medium">120 KB</p>
             </div>
           </div>
-          <button type="button" onclick="clearNewTicketFile()" class="text-gray-400 hover:text-rose-600 p-1.5 transition" title="Treure arxiu">
-            <i class="fa-solid fa-xmark text-sm"></i>
-          </button>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button type="button" onclick="document.getElementById('new-ticket-file-input').click()"
+              class="px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 rounded-lg transition" title="Canviar arxiu">
+              Canviar
+            </button>
+            <button type="button" onclick="clearNewTicketFile()" class="text-gray-400 hover:text-rose-600 p-1.5 transition" title="Treure arxiu">
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3355,6 +3383,8 @@
         lblFilterStore: "Filtrar per botiga:",
         lblFilterPeriod: "Filtrar per mes:",
         newTicketTitle: "Afegir tiquet de compra",
+        newTicketDropPrompt: "Arrossega el tiquet aquí, fes foto o tria arxiu",
+        newTicketDropOverlay: "Deixa anar el tiquet aquí",
         menuImportOG: "Importar OurGroceries (.json/.zip)",
         menuImportProductsJson: "Importar productes (json)",
         menuCleanDupes: "Netejar duplicats / proves",
@@ -3519,6 +3549,8 @@
         lblFilterStore: "Filtrar por tienda:",
         lblFilterPeriod: "Filtrar por mes:",
         newTicketTitle: "Añadir ticket de compra",
+        newTicketDropPrompt: "Arrastra el ticket aquí, haz foto o elige archivo",
+        newTicketDropOverlay: "Suelta el ticket aquí",
         menuImportOG: "Importar OurGroceries (.json/.zip)",
         menuImportProductsJson: "Importar productos (json)",
         menuCleanDupes: "Limpiar duplicados / pruebas",
@@ -13280,9 +13312,13 @@
       clearNewTicketFile();
     }
 
-    let currentTicketOcrSessionId = 0;
+    let newTicketDragCounter = 0;
 
     function clearNewTicketFile() {
+      newTicketDragCounter = 0;
+      const overlay = document.getElementById("new-ticket-drop-overlay");
+      if (overlay) overlay.classList.add("hidden");
+
       currentTicketOcrSessionId++;
       pendingTicketFileObj = null;
       pendingTicketBlobToUpload = null;
@@ -13300,6 +13336,55 @@
       if (ocrStatus) ocrStatus.classList.add("hidden");
       if (ocrDetails) ocrDetails.classList.add("hidden");
       if (rawTextEl) rawTextEl.value = "";
+    }
+
+    function handleNewTicketModalDragEnter(e) {
+      if (!e.dataTransfer || !e.dataTransfer.types) return;
+      const types = Array.from(e.dataTransfer.types);
+      if (!types.includes("Files")) return;
+      e.preventDefault();
+      newTicketDragCounter++;
+      const overlay = document.getElementById("new-ticket-drop-overlay");
+      if (overlay) {
+        overlay.classList.remove("hidden");
+        const titleEl = document.getElementById("new-ticket-drop-overlay-title");
+        if (titleEl) {
+          titleEl.innerText = currentLang === "es" ? "Suelta el ticket aquí" : "Deixa anar el tiquet aquí";
+        }
+      }
+    }
+
+    function handleNewTicketModalDragOver(e) {
+      if (!e.dataTransfer || !e.dataTransfer.types) return;
+      const types = Array.from(e.dataTransfer.types);
+      if (!types.includes("Files")) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+    }
+
+    function handleNewTicketModalDragLeave(e) {
+      if (!e.dataTransfer || !e.dataTransfer.types) return;
+      const types = Array.from(e.dataTransfer.types);
+      if (!types.includes("Files")) return;
+      e.preventDefault();
+      newTicketDragCounter--;
+      if (newTicketDragCounter <= 0) {
+        newTicketDragCounter = 0;
+        const overlay = document.getElementById("new-ticket-drop-overlay");
+        if (overlay) overlay.classList.add("hidden");
+      }
+    }
+
+    function handleNewTicketModalDrop(e) {
+      e.preventDefault();
+      newTicketDragCounter = 0;
+      const overlay = document.getElementById("new-ticket-drop-overlay");
+      if (overlay) overlay.classList.add("hidden");
+
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files.length > 0) {
+        processNewTicketFile(files[0]);
+      }
     }
 
     function highlightTicketField(el) {
@@ -13992,12 +14077,26 @@
       }
     }
 
-    async function handleNewTicketFileSelected(event) {
+    function handleNewTicketFileSelected(event) {
       const file = event.target.files && event.target.files[0];
+      if (file) {
+        processNewTicketFile(file);
+      }
+    }
+
+    async function processNewTicketFile(file) {
       if (!file) return;
 
-      pendingTicketFileObj = file;
       const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      const isImg = file.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|heic|bmp)$/i.test(file.name);
+      if (!isPdf && !isImg) {
+        alert(currentLang === "es"
+          ? "Por favor, selecciona o arrastra un archivo PDF o una imagen (JPG, PNG)."
+          : "Si us plau, selecciona o arrossega un arxiu PDF o una imatge (JPG, PNG).");
+        return;
+      }
+
+      pendingTicketFileObj = file;
 
       const uploadZone = document.getElementById("new-ticket-upload-zone");
       const previewBox = document.getElementById("new-ticket-preview-box");
@@ -14491,6 +14590,11 @@
     window.openNewTicketModal = openNewTicketModal;
     window.closeNewTicketModal = closeNewTicketModal;
     window.handleNewTicketFileSelected = handleNewTicketFileSelected;
+    window.processNewTicketFile = processNewTicketFile;
+    window.handleNewTicketModalDragEnter = handleNewTicketModalDragEnter;
+    window.handleNewTicketModalDragOver = handleNewTicketModalDragOver;
+    window.handleNewTicketModalDragLeave = handleNewTicketModalDragLeave;
+    window.handleNewTicketModalDrop = handleNewTicketModalDrop;
     window.clearNewTicketFile = clearNewTicketFile;
     window.submitNewTicket = submitNewTicket;
     window.deleteTicket = deleteTicket;
@@ -14505,6 +14609,28 @@
     window.parseTicketOcrData = parseTicketOcrData;
     window.runTicketDataDetection = runTicketDataDetection;
     window.reparseNewTicketText = reparseNewTicketText;
+
+    // Prevenir que el navegador obri el PDF o la imatge si es deixa anar dins la finestra amb el modal obert
+    window.addEventListener("dragover", (e) => {
+      const modal = document.getElementById("new-ticket-modal");
+      if (modal && !modal.classList.contains("hidden")) {
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener("drop", (e) => {
+      const modal = document.getElementById("new-ticket-modal");
+      if (modal && !modal.classList.contains("hidden")) {
+        e.preventDefault();
+        newTicketDragCounter = 0;
+        const overlay = document.getElementById("new-ticket-drop-overlay");
+        if (overlay) overlay.classList.add("hidden");
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length > 0) {
+          processNewTicketFile(files[0]);
+        }
+      }
+    });
 
     // ==========================================
     // INICIALITZACIÓ GLOBAL (Tots els mòduls llestos)
