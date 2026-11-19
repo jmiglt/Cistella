@@ -3268,15 +3268,9 @@
       });
     });
 
-    // Mantenir compatibilitat amb àlies anteriors
-    for (const [oldKey, newKey] of Object.entries(LEGACY_CAT_ALIASES)) {
-      if (!DEFAULT_CATEGORY_ICONS[oldKey] && DEFAULT_CATEGORY_ICONS[newKey]) {
-        DEFAULT_CATEGORY_ICONS[oldKey] = DEFAULT_CATEGORY_ICONS[newKey];
-      }
-      if (!CATEGORY_TRANSLATIONS[oldKey] && CATEGORY_TRANSLATIONS[newKey]) {
-        CATEGORY_TRANSLATIONS[oldKey] = CATEGORY_TRANSLATIONS[newKey];
-      }
-    }
+    // Nota: Els àlies històrics (LEGACY_CAT_ALIASES) no s'injecten a DEFAULT_CATEGORY_ICONS
+    // ni a CATEGORY_TRANSLATIONS per evitar que es mostrin com a categories duplicades.
+    // Es resolen transparentment a través de getCategoryCanonicalKey().
 
     function getCategorySortIndex(catKey) {
       const canonical = getCategoryCanonicalKey(catKey);
@@ -3713,7 +3707,7 @@
     let CATEGORY_ICONS = { ...DEFAULT_CATEGORY_ICONS };
 
     function getSortedCategoriesList() {
-      const all = Object.keys(CATEGORY_ICONS);
+      const all = Object.keys(CATEGORY_ICONS).filter(k => !LEGACY_CAT_ALIASES[k]);
       return all.sort((a, b) => {
         if (a === "General") return 1;
         if (b === "General") return -1;
@@ -3747,13 +3741,31 @@
       } catch (e) {
         console.error("Error carregant categories:", e);
       }
+
+      // Neteja d'àlies històrics o claus redundants desats prèviament a localStorage
+      let hadLegacyPurge = false;
+      Object.keys(CATEGORY_ICONS).forEach(k => {
+        if (LEGACY_CAT_ALIASES[k]) {
+          delete CATEGORY_ICONS[k];
+          hadLegacyPurge = true;
+          return;
+        }
+        const canon = getCategoryCanonicalKey(k);
+        if (k !== canon && DEFAULT_CATEGORY_ICONS[canon]) {
+          delete CATEGORY_ICONS[k];
+          hadLegacyPurge = true;
+        }
+      });
+
       // Assegurar que totes les categories estàndard existeixen
       Object.keys(DEFAULT_CATEGORY_ICONS).forEach(k => {
         if (!CATEGORY_ICONS[k]) CATEGORY_ICONS[k] = DEFAULT_CATEGORY_ICONS[k];
       });
-      if (!CATEGORY_ICONS["Productes Cabina"]) CATEGORY_ICONS["Productes Cabina"] = "fa-spa";
-      if (!CATEGORY_ICONS["Aperitius i Snacks"]) CATEGORY_ICONS["Aperitius i Snacks"] = "fa-bowl-food";
       CATEGORIES = getSortedCategoriesList();
+
+      if (hadLegacyPurge) {
+        saveCategoriesToStorage();
+      }
     }
 
     // DADES INICIALS D'EXEMPLE
@@ -3763,7 +3775,7 @@
       { id: "p3", name: "Acondicionador GLISS", store: "clarel", category: "Cura del Cabell", qty: "1", unit: "ud", price: 3.25, note: "Schwarzkopf", photo: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=100&auto=format&fit=crop&q=60", crossed_off: false },
       { id: "p4", name: "Nueces de brasil", store: "mercadona", category: "Esmorzars i Berenars", qty: "1", unit: "paq", price: 2.80, note: "", photo: "", crossed_off: false },
       { id: "p5", name: "Vino blanco cocina", store: "bonpreu", category: "Vins i Caves", qty: "1", unit: "botella", price: 1.45, note: "", photo: "", crossed_off: false },
-      { id: "p6", name: "Tornillos rosca chapa 3.5", store: "ferreteria", category: "Bricolatge i Eines", qty: "12", unit: "ud", price: 1.20, note: "Per a la taula", photo: "", crossed_off: false },
+      { id: "p6", name: "Tornillos rosca chapa 3.5", store: "ferreteria", category: "Bricolatge i Piles", qty: "12", unit: "ud", price: 1.20, note: "Per a la taula", photo: "", crossed_off: false },
       { id: "p7", name: "Bacalao ahumado", store: "mercadona", category: "Peixateria", qty: "1", unit: "pack", price: 2.10, note: "", photo: "", crossed_off: true },
       { id: "p8", name: "Almendra tostada sin sal", store: "mercadona", category: "Esmorzars i Berenars", qty: "1", unit: "paq", price: 2.40, note: "", photo: "", crossed_off: true }
     ];
@@ -6093,7 +6105,7 @@
       // Categories addicionals / personalitzades
       const customCats = Object.keys(CATEGORY_ICONS).filter(k => {
         const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
-        return !inMain && k !== "General";
+        return !inMain && k !== "General" && !LEGACY_CAT_ALIASES[k];
       });
 
       if (customCats.length > 0) {
@@ -6351,7 +6363,7 @@
       // Categories personalitzades / altres no incloses
       const customCats = Object.keys(CATEGORY_ICONS).filter(k => {
         const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
-        return !inMain && k !== "General";
+        return !inMain && k !== "General" && !LEGACY_CAT_ALIASES[k];
       });
 
       if (customCats.length > 0) {
@@ -7244,25 +7256,30 @@
       const canonSelected = getCategoryCanonicalKey(selectedCat || "General");
 
       let html = "";
+      const addedValues = new Set();
+
       MAIN_CATEGORIES.forEach(m => {
         const groupTitle = m.name[currentLang] || m.name.ca;
-        html += `<optgroup label="${groupTitle}">`;
-        m.subcategories.forEach(sub => {
-          if (CATEGORY_ICONS[sub.id]) {
+        const validSubs = m.subcategories.filter(sub => CATEGORY_ICONS[sub.id] && !addedValues.has(sub.id));
+        if (validSubs.length > 0) {
+          html += `<optgroup label="${groupTitle}">`;
+          validSubs.forEach(sub => {
+            addedValues.add(sub.id);
             const isSel = getCategoryCanonicalKey(sub.id) === canonSelected ? 'selected' : '';
             html += `<option value="${sub.id}" ${isSel}>${getCategoryDisplayName(sub.id, currentLang)}</option>`;
-          }
-        });
-        html += `</optgroup>`;
+          });
+          html += `</optgroup>`;
+        }
       });
 
       const customCats = Object.keys(CATEGORY_ICONS).filter(k => {
         const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
-        return !inMain && k !== "General";
+        return !inMain && k !== "General" && !addedValues.has(k) && !LEGACY_CAT_ALIASES[k];
       });
       if (customCats.length > 0) {
         html += `<optgroup label="${currentLang === 'es' ? 'Otras' : 'Altres'}">`;
         customCats.forEach(k => {
+          addedValues.add(k);
           const isSel = getCategoryCanonicalKey(k) === canonSelected ? 'selected' : '';
           html += `<option value="${k}" ${isSel}>${getCategoryDisplayName(k, currentLang)}</option>`;
         });
@@ -9705,9 +9722,12 @@
             }
 
             // Migració transparent de categories antigues a la nova taxonomia
-            if (it.category && LEGACY_CAT_ALIASES[it.category]) {
-              it.category = LEGACY_CAT_ALIASES[it.category];
-              hadMigration = true;
+            if (it.category) {
+              const canon = getCategoryCanonicalKey(it.category);
+              if (canon !== it.category && DEFAULT_CATEGORY_ICONS[canon]) {
+                it.category = canon;
+                hadMigration = true;
+              }
             }
           });
           if (hadMigration) {
@@ -12124,23 +12144,27 @@
       const catSelect = document.getElementById("catalog-category-filter");
       if (catSelect) {
         let catOptions = `<option value="all">${currentLang === 'es' ? 'Todas las categorías' : 'Totes les categories'}</option>`;
+        const addedFilterVals = new Set();
         MAIN_CATEGORIES.forEach(m => {
           const groupName = m.name[currentLang] || m.name.ca;
-          catOptions += `<optgroup label="${groupName}">`;
-          m.subcategories.forEach(sub => {
-            if (CATEGORY_ICONS[sub.id]) {
+          const validSubs = m.subcategories.filter(sub => CATEGORY_ICONS[sub.id] && !addedFilterVals.has(sub.id));
+          if (validSubs.length > 0) {
+            catOptions += `<optgroup label="${groupName}">`;
+            validSubs.forEach(sub => {
+              addedFilterVals.add(sub.id);
               catOptions += `<option value="${sub.id}">${getCategoryDisplayName(sub.id, currentLang)}</option>`;
-            }
-          });
-          catOptions += `</optgroup>`;
+            });
+            catOptions += `</optgroup>`;
+          }
         });
         const customKeys = Object.keys(CATEGORY_ICONS).filter(k => {
           const inMain = MAIN_CATEGORIES.some(m => m.subcategories.some(sub => sub.id === k));
-          return !inMain && k !== 'General';
+          return !inMain && k !== 'General' && !addedFilterVals.has(k) && !LEGACY_CAT_ALIASES[k];
         });
         if (customKeys.length > 0) {
           catOptions += `<optgroup label="${currentLang === 'es' ? 'Otras' : 'Altres'}">`;
           customKeys.forEach(k => {
+            addedFilterVals.add(k);
             catOptions += `<option value="${k}">${getCategoryDisplayName(k, currentLang)}</option>`;
           });
           catOptions += `</optgroup>`;
