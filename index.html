@@ -13676,41 +13676,65 @@
 
       // 2. Detecció de botiga al nom del fitxer
       const lower = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const defaultKnown = [
-        { id: 'carnisseria', keys: ['valcan', 'carnisseria', 'carniceria', 'embotits', 'xarcuteria'] },
-        { id: 'farmacia', keys: ['farmacia', 'farmacia sant jordi'] },
-        { id: 'caprabo', keys: ['caprabo'] },
-        { id: 'mercadona', keys: ['mercadona'] },
-        { id: 'bonpreu', keys: ['bonpreu', 'esclat'] },
-        { id: 'lidl', keys: ['lidl'] },
-        { id: 'carrefour', keys: ['carrefour'] },
-        { id: 'dia', keys: ['dia'] },
-        { id: 'consum', keys: ['consum'] },
-        { id: 'aldi', keys: ['aldi'] },
-        { id: 'spar', keys: ['spar', 'eurospar'] },
-        { id: 'ametller', keys: ['ametller'] },
-        { id: 'sirena', keys: ['sirena'] },
-        { id: 'alcampo', keys: ['alcampo'] }
-      ];
-      for (const item of defaultKnown) {
-        if (item.keys.some(k => lower.includes(k))) {
-          res.store = item.id;
-          break;
+      const storesToUse = (Array.isArray(availableStores) && availableStores.length > 0)
+        ? availableStores
+        : (typeof STORES !== "undefined" && Array.isArray(STORES) ? STORES : []);
+
+      // Primer busquem a les botigues de l'usuari (prioritat màxima a botigues creades/personalitzades)
+      if (Array.isArray(storesToUse) && storesToUse.length > 0) {
+        const customStores = storesToUse.filter(s => s && s.id !== 'all' && (typeof DEFAULT_STORES === 'undefined' || !DEFAULT_STORES.some(d => d.id === s.id)));
+        const allStores = [...customStores, ...storesToUse.filter(s => s && s.id !== 'all')];
+        const sorted = allStores.sort((a, b) => (b.name || '').length - (a.name || '').length);
+
+        for (const s of sorted) {
+          if (!s || !s.name) continue;
+          const sNorm = (s.name || s.id || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+          if (sNorm.length < 3) continue;
+          if (lower.includes(sNorm)) {
+            res.store = s.id;
+            break;
+          }
+          if (typeof DEFAULT_STORES === 'undefined' || !DEFAULT_STORES.some(d => d.id === s.id)) {
+            const words = sNorm.split(/[\s_-]+/).filter(w => w.length >= 4 && !['super', 'hiper', 'mercat', 'botiga', 'tienda', 'gran'].includes(w));
+            for (const w of words) {
+              if (lower.includes(w)) {
+                res.store = s.id;
+                break;
+              }
+            }
+            if (res.store) break;
+          }
         }
       }
-      if (lower.includes('valcan')) res.note = 'Embotits Valcan';
-      else if (lower.includes('sant jordi') && lower.includes('farm')) res.note = 'Farmàcia Sant Jordi';
 
-      if (!res.store && Array.isArray(availableStores)) {
-        for (const s of availableStores) {
-          if (!s || s.id === 'all') continue;
-          const sNorm = (s.name || s.id || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          if (sNorm.length >= 3 && lower.includes(sNorm)) {
-            res.store = s.id;
+      // Si no és cap botiga existent de l'usuari, provar les conegudes per defecte
+      if (!res.store) {
+        const defaultKnown = [
+          { id: 'carnisseria', keys: ['valcan', 'carnisseria', 'carniceria', 'embotits', 'xarcuteria'] },
+          { id: 'farmacia', keys: ['farmacia', 'farmacia sant jordi'] },
+          { id: 'caprabo', keys: ['caprabo'] },
+          { id: 'mercadona', keys: ['mercadona'] },
+          { id: 'bonpreu', keys: ['bonpreu', 'esclat'] },
+          { id: 'lidl', keys: ['lidl'] },
+          { id: 'carrefour', keys: ['carrefour'] },
+          { id: 'dia', keys: ['dia'] },
+          { id: 'consum', keys: ['consum'] },
+          { id: 'aldi', keys: ['aldi'] },
+          { id: 'spar', keys: ['spar', 'eurospar'] },
+          { id: 'ametller', keys: ['ametller'] },
+          { id: 'sirena', keys: ['sirena'] },
+          { id: 'alcampo', keys: ['alcampo'] }
+        ];
+        for (const item of defaultKnown) {
+          if (item.keys.some(k => lower.includes(k))) {
+            res.store = item.id;
             break;
           }
         }
       }
+
+      if (res.store === 'carnisseria' && lower.includes('valcan')) res.note = 'Embotits Valcan';
+      else if (res.store === 'farmacia' && lower.includes('sant jordi')) res.note = 'Farmàcia Sant Jordi';
 
       // 3. Detecció d'import al nom del fitxer (ex: 65-05€, 65.05€, 65,05€, 65-05)
       const amtMatch = name.match(/(\d{1,4})[-.,](\d{2})\s*(?:€|eur)?/i);
@@ -13743,56 +13767,86 @@
       let detectedStore = null;
       let detectedNote = null;
       const headerText = lines.slice(0, 15).join(" ").toLowerCase();
+      const storesToUse = (Array.isArray(availableStores) && availableStores.length > 0)
+        ? availableStores
+        : (typeof STORES !== "undefined" && Array.isArray(STORES) ? STORES : []);
 
-      if (/\bvalcan\b/i.test(normalizedText)) {
-        detectedNote = "Embotits Valcan";
-      } else if (/\bsant\s+jordi\b/i.test(normalizedText) && /\bfarm/i.test(normalizedText)) {
-        detectedNote = "Farmàcia Sant Jordi";
-      }
+      // Prioritat 1: Cercar a les botigues configurades a l'aplicació (amb màxima prioritat a botigues creades per l'usuari)
+      if (Array.isArray(storesToUse) && storesToUse.length > 0) {
+        const customStores = storesToUse.filter(s => s && s.id !== "all" && (typeof DEFAULT_STORES === "undefined" || !DEFAULT_STORES.some(d => d.id === s.id)));
+        const allCandidateStores = [...customStores, ...storesToUse.filter(s => s && s.id !== "all")];
+        // Ordenem per longitud de nom descendent per prioritzar noms més concrets ("Embotits Valcan" abans que "Valcan" o noms curts)
+        const sortedStores = allCandidateStores.sort((a, b) => (b.name || "").length - (a.name || "").length);
 
-      const storePatterns = [
-        { id: "mercadona", regex: /\b(mercadona|hacendado|deliplus|bosque verde|comapy|a-?46103834)\b/i },
-        { id: "esclat", regex: /\b(esclat)\b/i },
-        { id: "bonpreu", regex: /\b(bonpreu|bon preu|a-?08639205)\b/i },
-        { id: "lidl", regex: /\b(lidl|a-?08599458)\b/i },
-        { id: "carrefour", regex: /\b(carrefour|a-?28425270)\b/i },
-        { id: "consum", regex: /\b(consum|charter|f-?46077236)\b/i },
-        { id: "dia", regex: /\b(dia|maxi dia|distribuidora internacional|a-?28164754)\b/i },
-        { id: "caprabo", regex: /\b(caprabo|eroski|a-?08115032)\b/i },
-        { id: "alcampo", regex: /\b(alcampo|auchan|a-?28585008)\b/i },
-        { id: "ametller", regex: /\b(ametller|casa ametller|ametller origen)\b/i },
-        { id: "aldi", regex: /\b(aldi)\b/i },
-        { id: "sirena", regex: /\b(la sirena|sirena|a-?08865768)\b/i },
-        { id: "clarel", regex: /\b(clarel)\b/i },
-        { id: "spar", regex: /\b(spar|eurospar)\b/i },
-        { id: "makro", regex: /\b(makro)\b/i },
-        { id: "decathlon", regex: /\b(decathlon)\b/i },
-        { id: "ikea", regex: /\b(ikea)\b/i },
-        { id: "farmacia", regex: /\b(farmacia|farmàcia|farmaceutic|farmacèutic|botic[ao])\b/i },
-        { id: "ferreteria", regex: /\b(ferreteria|ferretería)\b/i },
-        { id: "forn", regex: /\b(forn|panaderia|panadería|fleca)\b/i },
-        { id: "pescaderia", regex: /\b(peixateria|pescaderia|pescadería)\b/i },
-        { id: "carnisseria", regex: /\b(carnisseria|carniceria|carnicería|embotits|embotit|xarcuteria|charcuteria|valcan|carnisser)\b/i },
-        { id: "fruteria", regex: /\b(fruiteria|fruteria|frutería)\b/i }
-      ];
+        for (const s of sortedStores) {
+          if (!s || !s.name) continue;
+          const sNameNorm = s.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+          if (sNameNorm.length < 3) continue;
 
-      for (const sp of storePatterns) {
-        if (sp.regex.test(headerText) || sp.regex.test(fullLower)) {
-          detectedStore = sp.id;
-          break;
-        }
-      }
+          const escapedName = sNameNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+          const nameRegex = new RegExp(`\\b${escapedName}\\b`, 'i');
 
-      // Si no és una de les cadenes conegudes, cercar a les botigues disponibles a la configuració
-      if (!detectedStore && Array.isArray(availableStores)) {
-        for (const s of availableStores) {
-          if (!s || s.id === "all") continue;
-          const sName = (s.name || "").toLowerCase();
-          if (sName.length >= 3 && (headerText.includes(sName) || fullLower.includes(sName))) {
+          if (nameRegex.test(headerText) || nameRegex.test(fullLower)) {
             detectedStore = s.id;
             break;
           }
+
+          // Paraules distintives per a botigues personalitzades (ex: si l'usuari ha creat "Embotits Valcan", la paraula "valcan" la identifica)
+          if (typeof DEFAULT_STORES === "undefined" || !DEFAULT_STORES.some(d => d.id === s.id)) {
+            const words = sNameNorm.split(/[\s_-]+/).filter(w => w.length >= 4 && !['super', 'hiper', 'mercat', 'botiga', 'tienda', 'gran'].includes(w));
+            for (const w of words) {
+              const wRegex = new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+              if (wRegex.test(headerText) || wRegex.test(fullLower)) {
+                detectedStore = s.id;
+                break;
+              }
+            }
+            if (detectedStore) break;
+          }
         }
+      }
+
+      // Prioritat 2: Si no s'ha trobat cap botiga d'usuari, emprar patrons per defecte de supermercats o categories
+      if (!detectedStore) {
+        const storePatterns = [
+          { id: "mercadona", regex: /\b(mercadona|hacendado|deliplus|bosque verde|comapy|a-?46103834)\b/i },
+          { id: "esclat", regex: /\b(esclat)\b/i },
+          { id: "bonpreu", regex: /\b(bonpreu|bon preu|a-?08639205)\b/i },
+          { id: "lidl", regex: /\b(lidl|a-?08599458)\b/i },
+          { id: "carrefour", regex: /\b(carrefour|a-?28425270)\b/i },
+          { id: "consum", regex: /\b(consum|charter|f-?46077236)\b/i },
+          { id: "dia", regex: /\b(dia|maxi dia|distribuidora internacional|a-?28164754)\b/i },
+          { id: "caprabo", regex: /\b(caprabo|eroski|a-?08115032)\b/i },
+          { id: "alcampo", regex: /\b(alcampo|auchan|a-?28585008)\b/i },
+          { id: "ametller", regex: /\b(ametller|casa ametller|ametller origen)\b/i },
+          { id: "aldi", regex: /\b(aldi)\b/i },
+          { id: "sirena", regex: /\b(la sirena|sirena|a-?08865768)\b/i },
+          { id: "clarel", regex: /\b(clarel)\b/i },
+          { id: "spar", regex: /\b(spar|eurospar)\b/i },
+          { id: "makro", regex: /\b(makro)\b/i },
+          { id: "decathlon", regex: /\b(decathlon)\b/i },
+          { id: "ikea", regex: /\b(ikea)\b/i },
+          { id: "farmacia", regex: /\b(farmacia|farmàcia|farmaceutic|farmacèutic|botic[ao])\b/i },
+          { id: "ferreteria", regex: /\b(ferreteria|ferretería)\b/i },
+          { id: "forn", regex: /\b(forn|panaderia|panadería|fleca)\b/i },
+          { id: "pescaderia", regex: /\b(peixateria|pescaderia|pescadería)\b/i },
+          { id: "carnisseria", regex: /\b(carnisseria|carniceria|carnicería|embotits|embotit|xarcuteria|charcuteria|valcan|carnisser)\b/i },
+          { id: "fruteria", regex: /\b(fruiteria|fruteria|frutería)\b/i }
+        ];
+
+        for (const sp of storePatterns) {
+          if (sp.regex.test(headerText) || sp.regex.test(fullLower)) {
+            detectedStore = sp.id;
+            break;
+          }
+        }
+      }
+
+      // Si s'ha assignat a una categoria genèrica, pre-omplim la nota amb el nom del comerç detectat
+      if (detectedStore === "carnisseria" && /\bvalcan\b/i.test(normalizedText)) {
+        detectedNote = "Embotits Valcan";
+      } else if (detectedStore === "farmacia" && /\bsant\s+jordi\b/i.test(normalizedText)) {
+        detectedNote = "Farmàcia Sant Jordi";
       }
 
       // 2. DETECCIÓ DE DATA DE COMPRA
@@ -14049,6 +14103,7 @@
         }
         const storeSelect = document.getElementById("new-ticket-store");
         if (storeSelect) {
+          populateNewTicketStores(targetStoreId);
           storeSelect.value = targetStoreId;
           highlightTicketField(storeSelect);
           detectedCount++;
