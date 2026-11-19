@@ -1751,6 +1751,87 @@
     </div>
   </div>
 
+  <!-- MODAL EDITAR TIQUET -->
+  <div id="edit-ticket-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs animate-fade-in"
+    onclick="closeEditTicketModal()">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-4 space-y-3 shadow-2xl relative max-h-[92vh] overflow-y-auto"
+      onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="text-sm font-bold text-gray-800 flex items-center gap-2">
+          <i class="fa-solid fa-pencil text-amber-500"></i>
+          <span>Editar tiquet de compra</span>
+        </h3>
+        <button onclick="closeEditTicketModal()" class="text-gray-400 hover:text-gray-600 p-1">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="edit-ticket-id">
+
+      <!-- PREVIEW BOX DEL TIQUET EXISTENT -->
+      <div id="edit-ticket-preview-box" class="flex items-center gap-2.5 p-2 bg-gray-50 border border-gray-200 rounded-xl">
+        <div id="edit-ticket-preview-thumb" class="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex items-center justify-center flex-shrink-0 border border-gray-300">
+          <i class="fa-solid fa-image text-gray-400"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p id="edit-ticket-preview-name" class="text-xs font-bold text-gray-800 truncate">tiquet</p>
+          <p id="edit-ticket-preview-info" class="text-[10px] text-gray-500">Document associat</p>
+        </div>
+        <button type="button" id="edit-ticket-preview-btn" onclick="openCurrentEditTicketViewer()"
+          class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold px-2 py-1 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition flex items-center gap-1 flex-shrink-0" title="Veure document">
+          <i class="fa-solid fa-eye text-[11px]"></i> Veure
+        </button>
+      </div>
+
+      <!-- FORMULARI DE DADES DEL TIQUET -->
+      <div class="space-y-2.5 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-gray-700 text-xs mb-1">Supermercat / Botiga:</label>
+            <select id="edit-ticket-store"
+              class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+              <!-- Injecció de botigues -->
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-700 text-xs mb-1">Data de compra:</label>
+            <input type="date" id="edit-ticket-date"
+              class="w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-gray-700 text-xs mb-1">Import total (€):</label>
+          <div class="relative">
+            <input type="number" step="0.01" min="0" id="edit-ticket-total" placeholder="0.00"
+              class="w-full text-sm font-bold border border-gray-300 rounded-lg pl-3 pr-7 py-1.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+            <span class="absolute right-3 top-2 text-xs font-bold text-gray-400">€</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-gray-700 text-xs mb-1">Notes o comentari (opcional):</label>
+          <input type="text" id="edit-ticket-note" placeholder="Ex: Compra setmanal, dinar familiar..."
+            class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-emerald-600 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- BOTONS ACCIÓ -->
+      <div class="pt-2 border-t flex gap-2">
+        <button type="button" onclick="closeEditTicketModal()"
+          class="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold rounded-lg text-xs transition">
+          Cancel·lar
+        </button>
+        <button type="button" onclick="saveTicketEdit()"
+          class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Desar canvis</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL VISOR DE TIQUET (FOTO EN GRAN O PDF) -->
   <div id="ticket-viewer-modal"
     class="hidden fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fade-in"
@@ -1766,6 +1847,10 @@
           <div id="viewer-ticket-total" class="text-lg font-extrabold text-emerald-400 mt-0.5">34,50 €</div>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button id="viewer-ticket-edit-btn" onclick="editCurrentViewerTicket()" title="Editar dades"
+            class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+            <i class="fa-solid fa-pencil text-xs"></i>
+          </button>
           <button id="viewer-ticket-share-btn" onclick="shareCurrentViewerTicket()" title="Compartir"
             class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
             <i class="fa-solid fa-share-nodes text-xs"></i>
@@ -4940,6 +5025,7 @@
       // Verificació directa sobre el DOM per si cap modal no s'havia registrat a la pila
       const candidates = [
         { id: 'ticket-viewer-modal', close: (fromPop) => closeTicketViewerModal(fromPop) },
+        { id: 'edit-ticket-modal', close: (fromPop) => closeEditTicketModal(fromPop) },
         { id: 'new-ticket-modal', close: (fromPop) => closeNewTicketModal(fromPop) },
         { id: 'tickets-modal', close: (fromPop) => closeTicketsModal(fromPop) },
         { id: 'image-lightbox-modal', close: closeImageLightbox },
@@ -13127,6 +13213,10 @@
                 class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-emerald-100 text-gray-600 hover:text-emerald-700 flex items-center justify-center transition text-xs">
                 <i class="fa-solid fa-eye"></i>
               </button>
+              <button onclick="openEditTicketModal('${escapeHtml(t.id)}')" title="${isEs ? 'Editar ticket' : 'Editar tiquet'}"
+                class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-amber-100 text-gray-600 hover:text-amber-700 flex items-center justify-center transition text-xs">
+                <i class="fa-solid fa-pencil"></i>
+              </button>
               <button onclick="shareTicket('${escapeHtml(t.id)}')" title="${isEs ? 'Compartir' : 'Compartir'}"
                 class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-teal-100 text-gray-600 hover:text-teal-700 flex items-center justify-center transition text-xs">
                 <i class="fa-solid fa-share-nodes"></i>
@@ -13225,9 +13315,19 @@
         if (window.pdfjsLib) return resolve(window.pdfjsLib);
         const script = document.createElement("script");
         script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-        script.onload = () => {
+        script.onload = async () => {
           if (window.pdfjsLib) {
-            window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            try {
+              if (!window._pdfjsWorkerBlobUrl) {
+                const resp = await fetch("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js");
+                const workerScript = await resp.text();
+                const blob = new Blob([workerScript], { type: "application/javascript" });
+                window._pdfjsWorkerBlobUrl = URL.createObjectURL(blob);
+              }
+              window.pdfjsLib.GlobalWorkerOptions.workerSrc = window._pdfjsWorkerBlobUrl;
+            } catch (err) {
+              console.warn("Avís configurant PDF worker blob, fallback a fake worker:", err);
+            }
             resolve(window.pdfjsLib);
           } else {
             reject(new Error("pdfjsLib no disponible"));
@@ -13238,7 +13338,7 @@
       });
     }
 
-    async function extractTextFromPdfFile(file) {
+    async function extractTextFromPdfFile(file, logger = null) {
       try {
         const pdfjs = await loadPdfJs();
         const arrayBuffer = await file.arrayBuffer();
@@ -13252,18 +13352,61 @@
           fullText += pageText + "\n";
         }
 
-        // Si és un PDF escanejat (sense text digital o molt poc text)
+        // Si és un PDF escanejat o empaquetat com a gràfic / pattern (sense text digital o molt poc text)
         if (fullText.trim().length < 25) {
           const page = await doc.getPage(1);
-          const viewport = page.getViewport({ scale: 2.0 });
+          const baseVp = page.getViewport({ scale: 1.0 });
+          // Escalar a una amplada òptima per OCR (~1050 px)
+          const targetWidth = 1050;
+          const scale = Math.max(1.5, Math.min(3.0, targetWidth / (baseVp.width || targetWidth)));
+          const viewport = page.getViewport({ scale });
+
           const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const ctx = canvas.getContext("2d");
+          canvas.width = Math.round(viewport.width);
+          canvas.height = Math.round(viewport.height);
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+          // Important: omplir el canvas de blanc sòlid per evitar que un fons transparent es converteixi en negre a Tesseract
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
           await page.render({ canvasContext: ctx, viewport }).promise;
 
+          // Millora de contrast i escala de grisos per facilitar OCR
+          try {
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+            const contrast = 35;
+            const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+            for (let idx = 0; idx < data.length; idx += 4) {
+              const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+              const adj = factor * (gray - 128) + 128;
+              const finalVal = Math.max(0, Math.min(255, adj));
+              data[idx] = finalVal;
+              data[idx + 1] = finalVal;
+              data[idx + 2] = finalVal;
+            }
+            ctx.putImageData(imgData, 0, 0);
+          } catch (cErr) {
+            console.warn("Avís processant contrast canvas PDF:", cErr);
+          }
+
           const Tesseract = await loadTesseract();
-          const res = await Tesseract.recognize(canvas, 'spa');
+          let res;
+          try {
+            res = await Tesseract.recognize(canvas, 'spa', {
+              logger: (m) => {
+                if (typeof logger === 'function') logger(m);
+              }
+            });
+          } catch (e1) {
+            console.warn("Avís model spa a PDF, provant eng:", e1);
+            res = await Tesseract.recognize(canvas, 'eng', {
+              logger: (m) => {
+                if (typeof logger === 'function') logger(m);
+              }
+            });
+          }
           fullText = res?.data?.text || "";
         }
         return fullText;
@@ -13417,9 +13560,9 @@
       // 3. DETECCIÓ D'IMPORT TOTAL (€)
       let detectedTotal = null;
 
-      // Línies que NO són el total final a pagar (descomptes, canvi, unitats, o desglossament pur d'IVA)
+      // Línies que NO són el total final a pagar (descomptes, canvi, unitats, o desglossament pur d'IVA / punts)
       // Important: NO descartem "TOTAL (IVA INCLUIDO)" ni "TOTAL A PAGAR (IVA INCL.)"
-      const rejectLineRegex = /\b(art[ií]culos?|unitats?|unidades?|l[íi]neas?|puntos?|punts?|ahorro|estalvi|descuento|descompte|dto\.?|cambio|canvi|su\s*cambio|resto|devuelto|entregad[oa]|import\s*entregat|base\s*imponible|cuota|tipo\s*iva|desglose)\b/i;
+      const rejectLineRegex = /\b(art[ií]culos?|unitats?|unidades?|l[íi]neas?|puntos?|punts?|ahorro|estalvi|descuento|descompte|dto\.?|cambio|canvi|su\s*cambio|resto|devuelto|entregad[oa]|import\s*entregat|base\s*imponible|base\b|cuota|tipo\s*iva|desglose|acumulat|acumulado|saldo|club\b)\b/i;
 
       function parseAmount(str) {
         if (!str) return null;
@@ -13437,14 +13580,12 @@
       // Regex per capturar imports monetaris amb decimals (suporta '23,45', '23.45', '23 , 45', '23 . 45')
       const pricePattern = /(?:^|[^\d])(\d{1,4}(?:[,\.\s]\d{3})*\s*[\.,\']\s*\d{2})(?:\s*[€a-zA-Z%])?(?:\s|$)/g;
 
-      // Paraules clau de TOTAL amb tolerància a variacions i errors OCR (T0TAL, TOTAI, TOTA1, TOT, IMPORTE...)
-      const totalKeywordsRegex = /\b(t[o0]ta[li1!]|t[o0]t\b|import|importe|suma|a\s*pagar|pagar|cobro|liquidaci[oó]n|compra)\b/i;
+      // Prioritat 1 (Màxima): Frases explícites de TOTAL FINAL A PAGAR (ex: "TOTAL A PAGAR", "TOTAL (€)", etc.)
+      const strongTotalKeywordsRegex = /\b(total\s+a\s+pagar|total\s+factura|total\s+compra|total\s+t[ií]quet|total\s*\(\s*€\s*\)|import\s+total|importe\s+total)\b/i;
 
-      // Pas 1: Cercar de baix cap a dalt una línia amb paraula clau de TOTAL
       for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i];
-
-        if (totalKeywordsRegex.test(line) && !rejectLineRegex.test(line)) {
+        if (strongTotalKeywordsRegex.test(line) && !rejectLineRegex.test(line)) {
           const matches = [...line.matchAll(pricePattern)];
           if (matches.length > 0) {
             const val = parseAmount(matches[matches.length - 1][1]);
@@ -13453,7 +13594,7 @@
               break;
             }
           } else {
-            // Si el text "TOTAL" està sol a la línia i l'import a la següent (o següent + 1)
+            // Si el text està sol a la línia i l'import a la següent (o següent + 1)
             for (let nextOffset = 1; nextOffset <= 2; nextOffset++) {
               if (i + nextOffset < lines.length) {
                 const nextMatches = [...lines[i + nextOffset].matchAll(pricePattern)];
@@ -13471,7 +13612,41 @@
         }
       }
 
-      // Pas 2 (Fallback): Buscar línia de forma de pagament (TARJETA / TARGETA / VISA / MASTERCARD / BIZUM / PAGADO)
+      // Prioritat 2: Paraules clau generals de TOTAL amb tolerància a variacions i errors OCR
+      if (detectedTotal === null) {
+        const totalKeywordsRegex = /\b(t[o0]ta[li1!]|t[o0]t\b|import|importe|suma|a\s*pagar|pagar|cobro|liquidaci[oó]n)\b/i;
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i];
+
+          if (totalKeywordsRegex.test(line) && !rejectLineRegex.test(line)) {
+            const matches = [...line.matchAll(pricePattern)];
+            if (matches.length > 0) {
+              const val = parseAmount(matches[matches.length - 1][1]);
+              if (val !== null) {
+                detectedTotal = val;
+                break;
+              }
+            } else {
+              // Si el text "TOTAL" està sol a la línia i l'import a la següent (o següent + 1)
+              for (let nextOffset = 1; nextOffset <= 2; nextOffset++) {
+                if (i + nextOffset < lines.length) {
+                  const nextMatches = [...lines[i + nextOffset].matchAll(pricePattern)];
+                  if (nextMatches.length > 0) {
+                    const val = parseAmount(nextMatches[nextMatches.length - 1][1]);
+                    if (val !== null) {
+                      detectedTotal = val;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (detectedTotal !== null) break;
+            }
+          }
+        }
+      }
+
+      // Prioritat 3 (Fallback): Buscar línia de forma de pagament (TARJETA / TARGETA / VISA / MASTERCARD / BIZUM / PAGADO)
       if (detectedTotal === null) {
         const paymentRegex = /\b(tarjeta|targeta|visa|mastercard|bizum|pagat|pagado|efectiu|efectivo|met[aá]lico|cobrat|cobrado)\b/i;
         for (let i = lines.length - 1; i >= 0; i--) {
@@ -13489,7 +13664,7 @@
         }
       }
 
-      // Pas 3 (Fallback màxim per tiquets tallats o OCR amb només números):
+      // Prioritat 4 (Fallback màxim per tiquets tallats o OCR amb només números):
       // Prendre el número vàlid més alt de les últimes 6 línies que no sigui rebuig
       if (detectedTotal === null && lines.length > 0) {
         const lastLines = lines.slice(-6);
@@ -13615,7 +13790,20 @@
 
         if (isPdf) {
           if (statusText) statusText.innerText = currentLang === "es" ? "Extrayendo texto del PDF..." : "Extraient text del PDF...";
-          extractedText = await extractTextFromPdfFile(file);
+          const pdfLogger = (m) => {
+            if (sessionId !== currentTicketOcrSessionId) return;
+            if (m.status === 'loading language traineddata') {
+              if (statusText) statusText.innerText = currentLang === 'es' ? 'Descargando modelo de lectura...' : 'Descarregant model de lectura...';
+            } else if (m.status === 'recognizing text' && m.progress !== undefined) {
+              const pct = Math.round(m.progress * 100);
+              if (statusText) {
+                statusText.innerText = currentLang === 'es'
+                  ? `Leyendo caracteres del PDF... ${pct}%`
+                  : `Llegint caràcters del PDF... ${pct}%`;
+              }
+            }
+          };
+          extractedText = await extractTextFromPdfFile(file, pdfLogger);
         } else {
           if (statusText) statusText.innerText = currentLang === "es" ? "Optimizando imagen..." : "Optimizant imatge...";
           const canvas = await preprocessReceiptImage(file);
@@ -14041,6 +14229,120 @@
     function shareCurrentViewerTicket() {
       if (!currentViewerTicketObj) return;
       shareTicket(currentViewerTicketObj.id);
+    }
+
+    function editCurrentViewerTicket() {
+      if (!currentViewerTicketObj) return;
+      const id = currentViewerTicketObj.id;
+      closeTicketViewerModal();
+      openEditTicketModal(id);
+    }
+
+    function openCurrentEditTicketViewer() {
+      const id = document.getElementById("edit-ticket-id")?.value;
+      if (!id) return;
+      closeEditTicketModal();
+      openTicketViewer(id);
+    }
+
+    function openEditTicketModal(ticketId) {
+      const ticket = TICKETS.find(t => t.id === ticketId);
+      if (!ticket) return;
+
+      registerModalOpen("edit-ticket-modal", closeEditTicketModal);
+      const modal = document.getElementById("edit-ticket-modal");
+      if (!modal) return;
+      modal.classList.remove("hidden");
+
+      const idInput = document.getElementById("edit-ticket-id");
+      if (idInput) idInput.value = ticket.id;
+
+      const storeSelect = document.getElementById("edit-ticket-store");
+      if (storeSelect) {
+        storeSelect.innerHTML = STORES.filter(s => s.id !== "all").map(s => {
+          return `<option value="${s.id}">${getStoreDisplayName(s, currentLang)}</option>`;
+        }).join("");
+        storeSelect.value = ticket.store || "mercadona";
+      }
+
+      const dateInput = document.getElementById("edit-ticket-date");
+      if (dateInput) {
+        dateInput.value = ticket.date || new Date().toISOString().split("T")[0];
+      }
+
+      const totalInput = document.getElementById("edit-ticket-total");
+      if (totalInput) {
+        totalInput.value = (typeof ticket.total === "number") ? ticket.total.toFixed(2) : (parseFloat(ticket.total) ? parseFloat(ticket.total).toFixed(2) : "");
+      }
+
+      const noteInput = document.getElementById("edit-ticket-note");
+      if (noteInput) {
+        noteInput.value = ticket.note || "";
+      }
+
+      const isPdf = ticket.fileType === "application/pdf" || (ticket.fileName || "").toLowerCase().endsWith(".pdf");
+      const thumb = document.getElementById("edit-ticket-preview-thumb");
+      const nameEl = document.getElementById("edit-ticket-preview-name");
+      const infoEl = document.getElementById("edit-ticket-preview-info");
+
+      if (nameEl) nameEl.innerText = ticket.fileName || (isPdf ? "tiquet.pdf" : "tiquet.jpg");
+      if (infoEl) {
+        const sizeStr = ticket.fileSize ? `${Math.round(ticket.fileSize / 1024)} KB` : "";
+        infoEl.innerText = isPdf ? `Document PDF ${sizeStr ? '· ' + sizeStr : ''}` : `Imatge ${sizeStr ? '· ' + sizeStr : ''}`;
+      }
+      if (thumb) {
+        if (isPdf) {
+          thumb.innerHTML = `<i class="fa-solid fa-file-pdf text-rose-500 text-xl"></i>`;
+        } else if (ticket.fileUrl) {
+          thumb.innerHTML = `<img src="${ticket.fileUrl}" class="w-full h-full object-cover">`;
+        } else {
+          thumb.innerHTML = `<i class="fa-solid fa-image text-gray-400"></i>`;
+        }
+      }
+    }
+
+    function closeEditTicketModal(fromPopstate = false) {
+      registerModalClose("edit-ticket-modal", fromPopstate);
+      const modal = document.getElementById("edit-ticket-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function saveTicketEdit() {
+      const id = document.getElementById("edit-ticket-id")?.value;
+      if (!id) return;
+
+      const ticketIndex = TICKETS.findIndex(t => t.id === id);
+      if (ticketIndex === -1) return;
+
+      const storeSelect = document.getElementById("edit-ticket-store");
+      const storeId = storeSelect ? storeSelect.value : "mercadona";
+      const dateInput = document.getElementById("edit-ticket-date");
+      const ticketDate = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().split("T")[0];
+      const totalInput = document.getElementById("edit-ticket-total");
+      const ticketTotal = totalInput && totalInput.value ? parseFloat(totalInput.value) || 0 : 0;
+      const noteInput = document.getElementById("edit-ticket-note");
+      const ticketNote = noteInput ? noteInput.value.trim() : "";
+
+      TICKETS[ticketIndex] = {
+        ...TICKETS[ticketIndex],
+        store: storeId,
+        date: ticketDate,
+        total: ticketTotal,
+        note: ticketNote,
+        updatedAt: Date.now()
+      };
+
+      saveTickets(true);
+      populateTicketsStoreFilter();
+      populateTicketsMonthFilter();
+      renderTicketsList();
+      closeEditTicketModal();
+
+      if (currentViewerTicketObj && currentViewerTicketObj.id === id) {
+        openTicketViewer(id);
+      }
+
+      showToast(currentLang === "es" ? "¡Ticket modificado correctamente!" : "Tiquet modificat correctament!", "fa-pencil");
     }
 
     function shareTicket(id) {
